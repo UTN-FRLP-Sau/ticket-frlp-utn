@@ -112,94 +112,55 @@ class Ticket extends CI_Controller
     }
 
     public function compra()
-    {
-        $totalCompra = $this->input->post('total');
+        {
+            $id_usuario = $this->session->userdata('id_usuario');
+            $usuario = $this->ticket_model->getUserById($id_usuario);
+            $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
 
-        $id_usuario = $this->session->userdata('id_usuario');
-        $usuario = $this->ticket_model->getUserById($id_usuario);
-        $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
-        $saldoUser = $usuario->saldo;
-        $nroDia = date('N');
+            $totalCompra = $this->input->post('total');
+            $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
 
-        if ($totalCompra > $saldoUser) {
-            redirect(base_url('menu'));
-        }
-
-        $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
-        // carga de la compra en la DB
-        $n_compras = 0;
-        foreach ($dias as $id => $dia) {
-            if ($this->input->post("check{$dia}")) {
-                //obtenemos el saldo actualizado luego de cada compra
-                $saldo = $this->ticket_model->getSaldoByIDUser($id_usuario);
-                $nroDia = date('N');
-                $proximo = time() + ((7 - $nroDia + ($id + 1)) * 24 * 60 * 60);
-
-                $data_compra = [
-                    'fecha' => date('Y-m-d', time()),
-                    'hora' => date('H:i:s', time()),
-                    'dia_comprado' => date('Y-m-d', $proximo),
-                    'id_usuario' => $id_usuario,
-                    'precio' => $costoVianda,
-                    'tipo' => $this->input->post("selectTipo{$dia}"),
-                    'turno' => $this->input->post("selectTurno{$dia}"),
-                    'menu' => $this->input->post("selectMenu{$dia}"),
-                    'transaccion_id' => -$id_usuario //Seteamos un id unico y negativo para poder obtenerlas luego
-                ];
-
-                $data_log = [
-                    'fecha' => date('Y-m-d', time()),
-                    'hora' => date('H:i:s', time()),
-                    'dia_comprado' => date('Y-m-d', $proximo),
-                    'id_usuario' => $id_usuario,
-                    'precio' => $costoVianda,
-                    'tipo' => $this->input->post("selectTipo{$dia}"),
-                    'turno' => $this->input->post("selectTurno{$dia}"),
-                    'menu' => $this->input->post("selectMenu{$dia}"),
-                    'transaccion_tipo' => 'Compra',
-                    'transaccion_id' => -$id_usuario //Seteamos un id unico y negativo para poder obtenerlas luego
-                ];
-
-                if ($this->ticket_model->addCompra($data_compra)) {
-                    //Actualizamos el saldo
-                    $this->ticket_model->updateSaldoByIDUser($id_usuario, $saldo - $costoVianda);
-                    $this->ticket_model->addLogCompra($data_log);
-                    $n_compras = $n_compras + 1;
-                };
+            $seleccion = [];
+            foreach ($dias as $id => $dia) {
+                if ($this->input->post("check{$dia}")) {
+                    $nroDia = date('N');
+                    $proximo = time() + ((7 - $nroDia + ($id + 1)) * 24 * 60 * 60);
+                    $seleccion[] = [
+                        'dia' => $dia,
+                        'dia_comprado' => date('Y-m-d', $proximo),
+                        'tipo' => $this->input->post("selectTipo{$dia}"),
+                        'turno' => $this->input->post("selectTurno{$dia}"),
+                        'menu' => $this->input->post("selectMenu{$dia}"),
+                        'precio' => $costoVianda
+                    ];
+                }
             }
-        }
-        //Si se generaron compras asiento la transaccion
-        if ($n_compras > 0) {
-            //Genero los datos de la transaccion
-            $transaction_compra = [
-                'fecha' => date('Y-m-d', time()),
-                'hora' => date('H:i:s', time()),
+
+            if (count($seleccion) === 0) {
+                redirect(base_url('comedor/ticket'));
+            }
+
+            // Generar external_reference único
+            $external_reference = $id_usuario . '-' . time();
+
+            // Guardar selección pendiente en una tabla temporal
+            $this->ticket_model->guardarCompraPendiente([
+                'external_reference' => $external_reference,
                 'id_usuario' => $id_usuario,
-                'transaccion' => 'Compra',
-                'monto' => -$costoVianda * $n_compras,
-            ];
-            //Calculo el saldo final de la transaccion y lo seteo
-            $saldo = $saldoUser - $costoVianda  * $n_compras;
-            $transaction_compra['saldo'] = $saldo;
-            //Inserto la transaccion y obtengo su ID
-            $id_insert = $this->ticket_model->addTransaccion($transaction_compra);
-            //Obtenemos los registros en la tabla 'compra' con el id provisorio y lo actualizamos
-            $compras = $this->ticket_model->getComprasByIDTransaccion(-$id_usuario);
-            foreach ($compras as $compra) {
-                $id_compra = $compra->id;
-                $this->ticket_model->updateTransactionInCompraByID($id_compra, $id_insert);
-            }
-            //Obtenemos los registros en la tabla 'log_compra' con el id provisorio y lo actualizamos
-            $logcompras = $this->ticket_model->getLogComprasByIDTransaccion(-$id_usuario);
-            foreach ($logcompras as $compra) {
-                $id_compra = $compra->id;
-                $this->ticket_model->updateTransactionInLogCompraByID($id_compra, $id_insert);
-            }
-        }
-        $this->session->set_flashdata('transaccion', $id_insert);
+                'datos' => json_encode($seleccion),
+                'total' => $totalCompra,
+                'procesada' => 0,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
 
-        redirect(base_url('usuario/comprar/success'));
-    }
+            // Guardar también en sesión (opcional)
+            $this->session->set_userdata('external_reference', $external_reference);
+
+            // Redirigir a Pago.php para iniciar MP
+            redirect(base_url('comedor/pago/comprar'));
+        }
+
+        // ... (compraSuccess igual o adaptado para mostrar solo confirmación, ahora la compra real la hace el webhook)
 
     public function compraSuccess()
     {

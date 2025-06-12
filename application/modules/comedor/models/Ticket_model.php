@@ -212,4 +212,17 @@ class Ticket_model extends CI_Model
         $query = $this->db->get();
         return $query->result();
     }
+
+    public function guardarCompraPendiente($data) {
+        return $this->db->insert('compras_pendientes', $data);
+    }
+
+    public function getCompraPendiente($external_reference) {
+        return $this->db->get_where('compras_pendientes', ['external_reference' => $external_reference])->row();
+    }
+
+    public function setCompraPendienteProcesada($external_reference) {
+        $this->db->where('external_reference', $external_reference);
+        $this->db->update('compras_pendientes', ['procesada' => 1]);
+    }
 }
