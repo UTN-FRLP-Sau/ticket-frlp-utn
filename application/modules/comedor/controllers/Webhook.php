@@ -6,7 +6,8 @@ class Webhook extends CI_Controller
     public function mercadopago()
     {
         require_once FCPATH . 'vendor/autoload.php';
-        MercadoPago\SDK::setAccessToken('TU_ACCESS_TOKEN');
+        $this->config->load('mercadopago');
+        MercadoPago\SDK::setAccessToken($this->config->item('mp_access_token'));
 
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
