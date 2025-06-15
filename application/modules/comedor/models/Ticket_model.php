@@ -14,9 +14,9 @@ class Ticket_model extends CI_Model
         compra
         */
         if ($this->db->insert('compra', $data)) {
-            return true;
+            return $this->db->insert_id();
         } else {
-            false;
+            return false;
         }
     }
 
@@ -33,6 +33,24 @@ class Ticket_model extends CI_Model
         }
     }
 
+    public function updateTransactionInCompraByExternalReference($external_reference, $transaction_id)
+    {
+        $this->db->where('external_reference', $external_reference);
+        $this->db->where('transaccion_id', -1);
+        $this->db->set('transaccion_id', $transaction_id);
+        $this->db->update('compra');
+        return $this->db->affected_rows();
+    }
+
+    public function updateTransactionInLogCompraByExternalReference($external_reference, $transaction_id)
+    {
+        $this->db->where('external_reference', $external_reference);
+        $this->db->where('transaccion_id', -1);
+        $this->db->set('transaccion_id', $transaction_id);
+        $this->db->update('log_compra');
+        return $this->db->affected_rows();
+    }
+    
     public function updateSaldoByIDUser($id_user, $saldo_nuevo)
     {
         /* Usado en:
