@@ -124,12 +124,16 @@ class Ticket_model extends CI_Model
 
     public function addTransaccion($data)
     {
-        /* Usado en:
-        compra
-        devolverCompra
-        */
-        $this->db->insert('transacciones', $data);
-        return $this->db->insert_id();
+        log_message('debug', 'Ticket_model: addTransaccion - Datos recibidos: ' . json_encode($data));
+        if ($this->db->insert('transacciones', $data)) {
+            $insert_id = $this->db->insert_id();
+            log_message('debug', 'Ticket_model: addTransaccion - Inserción exitosa. ID: ' . $insert_id);
+            return $insert_id;
+        } else {
+            $db_error = $this->db->error();
+            log_message('error', 'Ticket_model: addTransaccion - Fallo en la inserción. DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
+            return false;
+        }
     }
 
     public function updateTransactionInCompraByID($id_compra, $id_trans)
@@ -224,5 +228,6 @@ class Ticket_model extends CI_Model
     public function setCompraPendienteProcesada($external_reference) {
         $this->db->where('external_reference', $external_reference);
         $this->db->update('compras_pendientes', ['procesada' => 1]);
+        return $this->db->affected_rows();
     }
 }
