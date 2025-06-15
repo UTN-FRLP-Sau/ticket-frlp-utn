@@ -119,3 +119,7 @@ $route['admin/cargasvirtuales/list/(:any)/rechazar'] = 'admin/administrador/carg
 $route['admin/repartidor'] = 'admin/repartidor/buscar_compra_por_fecha_user';
 $route['admin/repartidor/entregar'] = 'admin/repartidor/entregar_compra_by_id';
 $route['admin/repartidor/historial/(:num)'] = 'admin/repartidor/historial_entregas_by_fecha';
+
+
+
+$route['webhook/mercadopago'] = 'comedor/webhook/mercadopago';
