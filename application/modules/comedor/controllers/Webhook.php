@@ -5,7 +5,7 @@ class Webhook extends CI_Controller
 {
     private function log_manual($mensaje)
     {
-        // Define la ruta del archivo de log para que sea específica del webhook
+        // ruta del archivo de log específica del webhook
         $ruta_log = APPPATH . 'logs/webhook_manual_' . date('Y-m-d') . '.log';
         $fecha = date('Y-m-d H:i:s');
         file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
@@ -25,9 +25,9 @@ class Webhook extends CI_Controller
 
         $data = json_decode($input, true);
 
-        // Agregado un try-catch para atrapar cualquier excepción que pueda causar un 500
+        // try-catch para atrapar cualquier excepción que pueda causar un 500
         try {
-            if ( (isset($data['type']) && $data['type'] === 'payment') || (isset($data['action']) && $data['action'] === 'payment.created') ) {
+            if ((isset($data['type']) && $data['type'] === 'payment') || (isset($data['action']) && $data['action'] === 'payment.created')) {
                 $payment_id = isset($data['data']['id']) ? $data['data']['id'] : null;
 
                 // Si no se encontró el payment_id en data.id, y es un 'topic' 'payment', buscar en 'resource'
@@ -54,10 +54,10 @@ class Webhook extends CI_Controller
                 }
 
                 if ($payment->status === 'approved') {
-                    $external_reference = trim($payment->external_reference); // TRIM para asegurar la limpieza
+                    $external_reference = trim($payment->external_reference);
                     $this->log_manual('External Reference (trimmed) obtenido de MP: ' . $external_reference);
 
-                    $CI =& get_instance();
+                    $CI = &get_instance();
                     $CI->load->model('ticket_model');
                     $compra_pendiente = $CI->ticket_model->getCompraPendiente($external_reference);
 
@@ -81,7 +81,7 @@ class Webhook extends CI_Controller
                         $monto_total_compra_pendiente = $compra_pendiente->total;
 
                         foreach ($dias as $index => $compra) {
-                            $this->log_manual('Procesando item de compra #'.($index+1).': ' . json_encode($compra));
+                            $this->log_manual('Procesando item de compra #' . ($index + 1) . ': ' . json_encode($compra));
 
                             $data_compra = [
                                 'fecha' => date('Y-m-d', time()),
@@ -92,7 +92,8 @@ class Webhook extends CI_Controller
                                 'tipo' => $compra['tipo'],
                                 'turno' => $compra['turno'],
                                 'menu' => $compra['menu'],
-                                'transaccion_id' => -1
+                                'transaccion_id' => -1,
+                                'external_reference' => $external_reference 
                             ];
 
                             $data_log = [
@@ -105,18 +106,19 @@ class Webhook extends CI_Controller
                                 'turno' => $compra['turno'],
                                 'menu' => $compra['menu'],
                                 'transaccion_tipo' => 'Compra',
-                                'transaccion_id' => -1
+                                'transaccion_id' => -1,
+                                'external_reference' => $external_reference
                             ];
 
                             $resultado_add_compra = $CI->ticket_model->addCompra($data_compra);
                             if ($resultado_add_compra) {
-                                $this->log_manual('Item de compra #'.($index+1).' añadido con éxito. DB insert ID: ' . $CI->db->insert_id());
+                                $this->log_manual('Item de compra #' . ($index + 1) . ' añadido con éxito. DB insert ID: ' . $resultado_add_compra); // Usar $resultado_add_compra que ya tiene el ID
                                 $CI->ticket_model->addLogCompra($data_log);
-                                $this->log_manual('Log de item de compra #'.($index+1).' añadido.');
+                                $this->log_manual('Log de item de compra #' . ($index + 1) . ' añadido.');
                                 $n_compras++;
                             } else {
                                 $db_error = $CI->db->error();
-                                $this->log_manual('ERROR: Fallo al insertar item de compra #'.($index+1).': ' . print_r($data_compra, true) . ' DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
+                                $this->log_manual('ERROR: Fallo al insertar item de compra #' . ($index + 1) . ': ' . print_r($data_compra, true) . ' DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
                             }
                         }
                         $this->log_manual('Bucle de inserción de items de compra finalizado. Total de items insertados: ' . $n_compras);
@@ -140,31 +142,15 @@ class Webhook extends CI_Controller
                             }
                             $this->log_manual('ID de transacción principal insertada: ' . $id_insert);
 
-                            // --- ADVERTENCIA: ---
-                            // --- Necesitas vincular las compras de forma más robusta a la external_reference ---
-                            // --- Ya que la tabla 'compra' no tiene una external_reference ni id_compra_pendiente directa ---
-                            $compras_actualizadas = 0;
-                            $compras = $CI->ticket_model->getComprasByIDTransaccion(-$id_usuario); // Obtener compras con transaccion_id = -id_usuario
-                            $this->log_manual('Intentando actualizar transaccion_id en ' . count($compras) . ' compras encontradas por transaccion_id = -' . $id_usuario);
-                            foreach ($compras as $compra) {
-                                $CI->ticket_model->updateTransactionInCompraByID($compra->id, $id_insert);
-                                $compras_actualizadas += $CI->db->affected_rows(); // Suma las filas afectadas por CADA update
-                            }
-                            $this->log_manual('Filas actualizadas en tabla "compra": ' . $compras_actualizadas);
+                            $compras_actualizadas = $CI->ticket_model->updateTransactionInCompraByExternalReference($external_reference, $id_insert);
+                            $this->log_manual('Filas actualizadas en tabla "compra" por external_reference: ' . $compras_actualizadas);
 
-                            $logcompras_actualizadas = 0;
-                            $logcompras = $CI->ticket_model->getLogComprasByIDTransaccion(-$id_usuario); 
-                            $this->log_manual('Intentando actualizar transaccion_id en ' . count($logcompras) . ' log_compras encontradas por transaccion_id = -' . $id_usuario);
-                            foreach ($logcompras as $compra) {
-                                $CI->ticket_model->updateTransactionInLogCompraByID($compra->id, $id_insert);
-                                $logcompras_actualizadas += $CI->db->affected_rows(); // Suma las filas afectadas por CADA update
-                            }
-                            $this->log_manual('Filas actualizadas en tabla "log_compras": ' . $logcompras_actualizadas);
-                            // --- FIN ADVERTENCIA ---
+                            $logcompras_actualizadas = $CI->ticket_model->updateTransactionInLogCompraByExternalReference($external_reference, $id_insert);
+                            $this->log_manual('Filas actualizadas en tabla "log_compras" por external_reference: ' . $logcompras_actualizadas);
 
-                            // Marcar la compra pendiente como procesada
+                            // Marca la compra pendiente como procesada
                             $rows_affected = $CI->ticket_model->setCompraPendienteProcesada($external_reference);
-                            
+
                             if ($rows_affected > 0) {
                                 $this->log_manual('ÉXITO: Compra pendiente marcada como procesada: ' . $external_reference . ' (Filas afectadas: ' . $rows_affected . ')');
                             } else {
@@ -172,7 +158,7 @@ class Webhook extends CI_Controller
                             }
                         } else {
                             $this->log_manual('ERROR: No se pudo registrar ninguna compra individual para el usuario ID ' . $id_usuario . ' a partir de los datos decodificados. No se creó transacción principal.');
-                        
+
                         }
                     } else {
                         if ($compra_pendiente === null) {
