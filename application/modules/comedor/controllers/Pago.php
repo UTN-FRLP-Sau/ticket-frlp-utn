@@ -42,7 +42,7 @@ class Pago extends CI_Controller
 
         $preference->external_reference = $external_reference;
 
-        $ngrok_url = 'https://85dc-181-85-147-154.ngrok-free.app';
+        $ngrok_url = 'https://e0a5-181-85-147-154.ngrok-free.app';
 
         $preference->back_urls = [
             "success" => $ngrok_url . "/comedor/pago/compra_exitosa",
