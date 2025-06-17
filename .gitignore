@@ -37,5 +37,5 @@ script/
 
 node_modules
 
-application/config/mercadopago.php
+.env
 
