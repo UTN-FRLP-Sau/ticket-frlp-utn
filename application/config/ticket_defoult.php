@@ -17,6 +17,7 @@ $config['smtp_crypto'] = 'tls';
 $config['email_settings_sender'] = 'ticketweb@frlp.utn.edu.ar';
 $config['email_settings_sender_name'] = 'TicketWeb';
 
+// Mercado Pago Config
 $config['MP_ACCESS_TOKEN'] = '';
 $config['MP_PUBLIC_KEY'] = '';
 $config['MP_WEBHOOK_SECRET'] = '';
