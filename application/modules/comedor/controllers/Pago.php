@@ -3,20 +3,17 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Pago extends CI_Controller
 {
-    private $access_token;
-    private $public_key;
+        
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->config->load('mercadopago');
-        $this->access_token = $this->config->item('mp_access_token');
-        $this->public_key = $this->config->item('mp_public_key');
-    }
 
     public function comprar()
     {
+        $this->config->load('ticket');
+
+        $access_token = $this->config->item('MP_ACCESS_TOKEN');
+        $public_key = $this->config->item('MP_PUBLIC_KEY');
+        $webhook_secret = $this->config->item('MP_WEBHOOK_SECRET');
+
         $external_reference = $this->session->userdata('external_reference');
         if (!$external_reference) {
             redirect('comedor/ticket');
@@ -30,7 +27,7 @@ class Pago extends CI_Controller
         }
 
         require_once FCPATH . 'vendor/autoload.php';
-        MercadoPago\SDK::setAccessToken($this->access_token);
+        MercadoPago\SDK::setAccessToken($access_token);
 
         $preference = new MercadoPago\Preference();
 
@@ -42,7 +39,7 @@ class Pago extends CI_Controller
 
         $preference->external_reference = $external_reference;
 
-        $ngrok_url = 'https://e0a5-181-85-147-154.ngrok-free.app';
+        $ngrok_url = 'https://640a-200-10-126-116.ngrok-free.app';
 
         $preference->back_urls = [
             "success" => $ngrok_url . "/comedor/pago/compra_exitosa",

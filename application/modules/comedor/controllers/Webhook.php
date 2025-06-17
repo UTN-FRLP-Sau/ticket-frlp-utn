@@ -17,8 +17,16 @@ class Webhook extends CI_Controller
 
         // Carga MercadoPago SDK y configuración
         require_once FCPATH . 'vendor/autoload.php';
-        $this->config->load('mercadopago');
-        MercadoPago\SDK::setAccessToken($this->config->item('mp_access_token'));
+        $this->config->load('ticket');
+
+        $access_token = $this->config->item('MP_ACCESS_TOKEN');
+        MercadoPago\SDK::setAccessToken($access_token);
+
+        $public_key = $this->config->item('MP_PUBLIC_KEY');
+        $webhook_secret = $this->config->item('MP_WEBHOOK_SECRET');
+
+
+        
 
         $input = file_get_contents('php://input');
         $this->log_manual('Webhook recibido (RAW): ' . $input);
