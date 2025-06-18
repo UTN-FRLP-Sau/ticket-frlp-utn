@@ -15,9 +15,6 @@
                 <div class="col mt-3">
                     <p style="padding: 0px;" class="text-center"><strong> Saldo: $ <?= $usuario->saldo; ?> -. </strong>
                     </p>
-                    <p style="padding: 0px;" class="text-center">
-                        <a href="<?= base_url('usuario/carga_virtual'); ?>" class="btn btn-primary">Cargar Saldo</a>
-                    </p>
                     <p style="padding: 0px;" class="text-center" id="compra"><strong>Costo:</strong></h2>
                     </p>
                 </div>
