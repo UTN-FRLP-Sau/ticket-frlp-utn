@@ -10,6 +10,13 @@
                 <div class="col mt-3">
                     <h5 class="text-center">UTN FRLP Ticket Web - Compra</h5>
                 </div>
+                <div style="background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 15px 20px; margin: 20px 0; border-radius: 4px; font-family: Arial, sans-serif; color: #31708f;">
+                    <p style="margin: 0; font-size: 16px; line-height: 1.5;">
+                        <strong>Información importante:</strong> Si usted posee saldo a favor, se aplicará automáticamente en esta compra.  
+                        En caso de que el saldo sea suficiente, la operación se completará sin necesidad de realizar un pago adicional.  
+                        Si el saldo es parcial, solo deberá abonar la diferencia restante mediante su cuenta de Mercado Pago.
+                    </p>
+                </div>
             </div>
             <div class="row">
                 <div class="col mt-3">
