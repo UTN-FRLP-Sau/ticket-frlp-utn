@@ -1,6 +1,6 @@
 var $cantidad_dias = 0;
 var $monto = 0;
-var $saldo = 0;
+var $saldo_usuario = parseInt(document.getElementById("saldoCuenta").value);
 var $costo = parseInt(document.getElementById("costoVianda").value);
 
 function check(event) {
@@ -14,9 +14,7 @@ function check(event) {
         $monto -= $costo;
     }
 
-    var $saldo = document.getElementById("saldoCuenta").value;
-
-    if ($monto > 0 && $monto <= $saldo) {
+    if ($monto > 0) {
         document.getElementById("btnCompra").disabled = false;
     } else {
         document.getElementById("btnCompra").disabled = true;
@@ -55,20 +53,15 @@ viernes.dia = "viernes";
 
 document.getElementById("btnReset").addEventListener("click", function () {
     $monto = 0;
-    var $saldo = document.getElementById("saldoCuenta").value;
     document.getElementById("lunes").disabled = true;
     document.getElementById("martes").disabled = true;
     document.getElementById("miercoles").disabled = true;
     document.getElementById("jueves").disabled = true;
     document.getElementById("viernes").disabled = true;
 
-    if ($monto > 0 && $monto <= $saldo) {
-        document.getElementById("btnCompra").disabled = false;
-    } else {
-        document.getElementById("btnCompra").disabled = true;
-    }
-
-    document.getElementById("compra").innerHTML = $monto;
+    document.getElementById("btnCompra").disabled = true;
+    
+    document.getElementById("compra").innerHTML = "<strong>Costo: $ " + $monto + "-.<\strong>";
 
     document.getElementById("totalCompra").innerHTML =
         '<input name="total" value="' + $monto + '" hidden>';

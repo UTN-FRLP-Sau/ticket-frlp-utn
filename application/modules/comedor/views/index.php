@@ -44,7 +44,7 @@
 
                         <div class="my-1 form-check form-check-inline">
                             <fieldset
-                                <?= ($usuario->saldo < $costoVianda) || (in_array(date('Y-m-d', $proximo), array_column($comprados, 'dia_comprado'))) || (in_array(date('Y-m-d', $proximo), array_column($feriados, 'fecha'))) ? 'disabled' : ''; ?>>
+                                <?= (in_array(date('Y-m-d', $proximo), array_column($comprados, 'dia_comprado'))) || (in_array(date('Y-m-d', $proximo), array_column($feriados, 'fecha'))) ? 'disabled' : ''; ?>>
                                 <div class="form-check">
                                     <input type="checkbox" class="form-check-input" id="check<?= ucwords($dia); ?>"
                                         name="check<?= ucwords($dia); ?>" value="<?= ucwords($dia); ?>"
@@ -82,8 +82,7 @@
                         <?php endforeach; ?>
                         <div class="form-check">
                             <div class="btn-group" role="group" aria-label="Basic example">
-                                <button type="submit" id="btnCompra" class="btn btn-success mx-3"
-                                    disabled>Comprar</button>
+                                <button type="submit" id="btnCompra" class="btn btn-success mx-3">Comprar</button>
                                 <button type="reset" id="btnReset" class="btn btn-warning mx-3">Reset</button>
                                 <a href=" <?= base_url('usuario/devolver_compra'); ?>"
                                     class="btn btn-danger mx-3">Devolver</a>
