@@ -32,7 +32,7 @@
             <h1 class="text-center"> Devolver compras </h1>
         <div style="background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 15px 20px; margin: 20px 0; border-radius: 4px; font-family: Arial, sans-serif; color: #31708f;">
         <p style="margin: 0; font-size: 16px; line-height: 1.5;">
-            <strong>Advertencia:</strong> Cuando realiza la devolución de una compra, el importe se acredita como saldo a favor en su cuenta de Mercado Pago.  
+            <strong>Advertencia:</strong> Cuando realiza la devolución de una compra, el importe se acredita como saldo en su cuenta de Mercado Pago.  
             En la siguiente compra, dicho saldo se aplicará automáticamente para cubrir el total o parte del monto.  
             Si el saldo es suficiente para cubrir el pago completo, la transacción se efectuará únicamente con ese saldo.
         </p>
