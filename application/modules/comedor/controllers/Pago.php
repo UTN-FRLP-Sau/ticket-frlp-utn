@@ -3,16 +3,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Pago extends CI_Controller
 {
-        
-
-
     public function comprar()
     {
         $this->config->load('ticket');
 
         $access_token = $this->config->item('MP_ACCESS_TOKEN');
-        $public_key = $this->config->item('MP_PUBLIC_KEY');
-        $webhook_secret = $this->config->item('MP_WEBHOOK_SECRET');
 
         $external_reference = $this->session->userdata('external_reference');
         if (!$external_reference) {
@@ -26,37 +21,42 @@ class Pago extends CI_Controller
             redirect('comedor/ticket');
         }
 
+        $notificacion_url = 'https://8ca0-200-10-126-116.ngrok-free.app/webhook/mercadopago';
+        $back_urls = [
+            "success" => 'https://8ca0-200-10-126-116.ngrok-free.app/comedor/pago/compra_exitosa',
+            "failure" => 'https://8ca0-200-10-126-116.ngrok-free.app/comedor/pago/compra_fallida',
+            "pending" => 'https://8ca0-200-10-126-116.ngrok-free.app/comedor/pago/compra_pendiente'
+        ];
+
+        // Usar la función del modelo que maneja saldo y preferencia MP
+        $preferencia_info = $this->ticket_model->generarPreferenciaConSaldo(
+            $external_reference,
+            $access_token,
+            $notificacion_url,
+            $back_urls
+        );
+
+        if ($preferencia_info === null) {
+            // El saldo alcanza para cubrir toda la compra, procesar directamente
+            $saldo_usuario = $this->ticket_model->getSaldoByIDUser($compra->id_usuario);
+            $procesado = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
+            if ($procesado) {
+                $this->compra_exitosa();
+                return;  // Para que no siga y no redirija a MP
+            } else {
+                show_error('Error procesando la compra con saldo disponible.');
+            }
+        }
+
+        if ($preferencia_info === false) {
+            show_error('Error procesando la preferencia de pago.');
+        }
+
+        // Si no se cubre todo con saldo, redirigir a Mercado Pago
         require_once FCPATH . 'vendor/autoload.php';
         MercadoPago\SDK::setAccessToken($access_token);
 
-        $preference = new MercadoPago\Preference();
-
-        $item = new MercadoPago\Item();
-        $item->title = "Compra de menú universitario";
-        $item->quantity = 1;
-        $item->unit_price = (float)$compra->total;
-        $preference->items = [$item];
-
-        $preference->external_reference = $external_reference;
-
-        $ngrok_url = 'https://640a-200-10-126-116.ngrok-free.app';
-
-        $preference->back_urls = [
-            "success" => $ngrok_url . "/comedor/pago/compra_exitosa",
-            "failure" => $ngrok_url . "/comedor/pago/compra_fallida",
-            "pending" => $ngrok_url . "/comedor/pago/compra_pendiente"
-        ];
-        $preference->auto_return = "approved";
-        $preference->notification_url = $ngrok_url . "/webhook/mercadopago";
-
-        $saved = $preference->save();
-
-        if (!$saved) {
-            log_message('error', 'Error guardando preferencia Mercado Pago: ' . print_r($preference->getLastApiResponse(), true));
-            show_error('No se pudo procesar la preferencia de pago');
-        }
-
-        redirect($preference->init_point);
+        redirect($preferencia_info['init_point']);
     }
 
     public function compra_exitosa()

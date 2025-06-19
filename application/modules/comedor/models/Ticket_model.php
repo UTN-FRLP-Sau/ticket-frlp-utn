@@ -65,6 +65,159 @@ class Ticket_model extends CI_Model
             return false;
         }
     }
+    public function generarPreferenciaConSaldo($external_reference, $access_token, $notification_url, $back_urls)
+    {
+        $compra = $this->getCompraPendiente($external_reference);
+        if (!$compra) {
+            return null;
+        }
+
+        $saldo_usuario = $this->getSaldoByIDUser($compra->id_usuario);
+        $monto_total = (float)$compra->total;
+        $monto_a_pagar = $monto_total - $saldo_usuario;
+
+        log_message('debug', "Saldo usuario: $saldo_usuario, total: $monto_total, monto a pagar: $monto_a_pagar");
+
+        if ($monto_a_pagar <= 0) {
+            return null;
+        }
+
+        // Carga SDK MercadoPago y setea Access Token
+        require_once FCPATH . 'vendor/autoload.php';
+        MercadoPago\SDK::setAccessToken($access_token);
+
+        // Crea item para la preferencia con el monto a pagar ajustado
+        $item = new MercadoPago\Item();
+        $item->title = "Compra de menú universitario";
+        $item->quantity = 1;
+        $item->unit_price = $monto_a_pagar;
+
+        $preference = new MercadoPago\Preference();
+        $preference->items = [$item];
+        $preference->external_reference = $external_reference;
+        $preference->back_urls = $back_urls;
+        $preference->auto_return = "approved";
+        $preference->notification_url = $notification_url;
+
+        $saved = $preference->save();
+
+        if (!$saved) {
+            log_message('error', 'Error guardando preferencia Mercado Pago: ' . print_r($preference->getLastApiResponse(), true));
+            return false;
+        }
+
+        return [
+            'id' => $preference->id,
+            'init_point' => $preference->init_point,
+            'monto_a_pagar' => $monto_a_pagar,
+            'saldo_usuario' => $saldo_usuario
+        ];
+    }
+
+
+
+    public function procesarCompraConSaldo($compra, $saldo_utilizado)
+    {
+        $this->db->trans_start();
+
+        // Decodificamos los datos JSON de la compra para obtener todos los ítems
+        $seleccion = json_decode($compra->datos, true);
+        if (!$seleccion || count($seleccion) == 0) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        $id_transaccion = null;
+        $n_compras = 0;
+
+        // Insertamos cada ítem como una compra individual y su log correspondiente
+        foreach ($seleccion as $item) {
+            $data_compra = [
+                'fecha' => date('Y-m-d'),
+                'hora' => date('H:i:s'),
+                'dia_comprado' => $item['dia_comprado'],
+                'id_usuario' => $compra->id_usuario,
+                'precio' => $item['precio'],
+                'tipo' => $item['tipo'],
+                'turno' => $item['turno'],
+                'menu' => $item['menu'],
+                'transaccion_id' => -1,
+                'external_reference' => $compra->external_reference
+            ];
+
+            $id_compra = $this->addCompra($data_compra);
+            if (!$id_compra) {
+                $this->db->trans_rollback();
+                return false;
+            }
+
+            $data_log = [
+                'fecha' => date('Y-m-d'),
+                'hora' => date('H:i:s'),
+                'dia_comprado' => $item['dia_comprado'],
+                'id_usuario' => $compra->id_usuario,
+                'precio' => $item['precio'],
+                'tipo' => $item['tipo'],
+                'turno' => $item['turno'],
+                'menu' => $item['menu'],
+                'transaccion_tipo' => 'Compra con saldo',
+                'transaccion_id' => -1,
+                'external_reference' => $compra->external_reference
+            ];
+
+            $this->addLogCompra($data_log);
+            $n_compras++;
+        }
+
+        // Registramos una única transacción para todo el saldo utilizado
+        $data_transaccion = [
+            'fecha' => date('Y-m-d'),
+            'hora' => date('H:i:s'),
+            'id_usuario' => $compra->id_usuario,
+            'transaccion' => 'Compra con saldo',
+            'monto' => -$saldo_utilizado,
+            'saldo' => null
+        ];
+
+        $id_transaccion = $this->addTransaccion($data_transaccion);
+        if (!$id_transaccion) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        // Actualizamos todas las compras recién insertadas con el ID de la transacción
+        $this->db->where('external_reference', $compra->external_reference);
+        $this->db->where('transaccion_id', -1);
+        $this->db->set('transaccion_id', $id_transaccion);
+        $this->db->update('compra');
+
+        // También actualizamos los logs de compra con el ID de la transacción
+        $this->db->where('external_reference', $compra->external_reference);
+        $this->db->where('transaccion_id', -1);
+        $this->db->set('transaccion_id', $id_transaccion);
+        $this->db->update('log_compra');
+
+        // Actualizamos saldo en tabla usuarios
+        $saldo_actual = $this->getSaldoByIDUser($compra->id_usuario);
+        $saldo_nuevo = $saldo_actual - $saldo_utilizado;
+        if (!$this->updateSaldoByIDUser($compra->id_usuario, $saldo_nuevo)) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        // Marcamos la compra pendiente como procesada
+        $this->setCompraPendienteProcesada($compra->external_reference);
+
+        $this->db->trans_complete();
+
+        return $this->db->trans_status();
+    }
+
+
+
+
+
+
 
     public function getCostoByID($id)
     {
