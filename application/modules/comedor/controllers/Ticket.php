@@ -15,9 +15,6 @@ class Ticket extends CI_Controller
         if (!$this->session->userdata('is_user')) {
             redirect(base_url('login'));
         }
-        // if (!$this->session->userdata('accepted_terms')){
-        //     redirect(base_url('terminos'));
-        // }
     }
 
     public function estadoComedor()
@@ -78,11 +75,18 @@ class Ticket extends CI_Controller
 
         if ($this->estadoComedor()) {
             if ($this->estadoCompra()) {
+                $compras_usuario = $this->ticket_model->getComprasInRangeByIdUser($proximo_lunes_fecha, $proximo_viernes_fecha, $id_usuario);
+                
+                $comprados_con_turno = [];
+                foreach ($compras_usuario as $compra) {
+                    $comprados_con_turno[] = $compra->dia_comprado . '_' . $compra->turno; 
+                }
+
                 $data = [
                     'titulo' => 'Comprar',
                     'usuario' => $usuario,
                     'feriados' => $this->ticket_model->getFeriadosInRange($proximo_lunes_fecha, $proximo_viernes_fecha),
-                    'comprados' => $this->ticket_model->getComprasInRangeByIdUser($proximo_lunes_fecha, $proximo_viernes_fecha, $id_usuario),
+                    'comprados' => $comprados_con_turno,
                     'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
                 ];
 
@@ -112,55 +116,54 @@ class Ticket extends CI_Controller
     }
 
     public function compra()
-        {
-            $id_usuario = $this->session->userdata('id_usuario');
-            $usuario = $this->ticket_model->getUserById($id_usuario);
-            $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
+    {
+        $id_usuario = $this->session->userdata('id_usuario');
+        $usuario = $this->ticket_model->getUserById($id_usuario);
+        $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
 
-            $totalCompra = $this->input->post('total');
-            $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
+        $totalCompra = $this->input->post('total');
+        $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
+        $turnos = ['Manana', 'Noche'];
 
-            $seleccion = [];
-            foreach ($dias as $id => $dia) {
-                if ($this->input->post("check{$dia}")) {
-                    $nroDia = date('N');
-                    $proximo = time() + ((7 - $nroDia + ($id + 1)) * 24 * 60 * 60);
+        $seleccion = [];
+        foreach ($dias as $id => $dia) {
+            $nroDia = date('N');
+            $proximo_timestamp = time() + ((7 - $nroDia + ($id + 1)) * 24 * 60 * 60);
+            $proxima_fecha_ymd = date('Y-m-d', $proximo_timestamp);
+
+            foreach ($turnos as $turno) {
+                if ($this->input->post("check{$dia}{$turno}")) {
                     $seleccion[] = [
                         'dia' => $dia,
-                        'dia_comprado' => date('Y-m-d', $proximo),
-                        'tipo' => $this->input->post("selectTipo{$dia}"),
-                        'turno' => $this->input->post("selectTurno{$dia}"),
-                        'menu' => $this->input->post("selectMenu{$dia}"),
+                        'dia_comprado' => $proxima_fecha_ymd,
+                        'tipo' => $this->input->post("selectTipo{$dia}{$turno}"),
+                        'turno' => strtolower($turno), // 'manana' o 'noche'
+                        'menu' => $this->input->post("selectMenu{$dia}{$turno}"),
                         'precio' => $costoVianda
                     ];
                 }
             }
-
-            if (count($seleccion) === 0) {
-                redirect(base_url('comedor/ticket'));
-            }
-
-            // Generar external_reference único
-            $external_reference = $id_usuario . '-' . time();
-
-            // Guardar selección pendiente en una tabla temporal
-            $this->ticket_model->guardarCompraPendiente([
-                'external_reference' => $external_reference,
-                'id_usuario' => $id_usuario,
-                'datos' => json_encode($seleccion),
-                'total' => $totalCompra,
-                'procesada' => 0,
-                'created_at' => date('Y-m-d H:i:s')
-            ]);
-
-            // Guardar también en sesión (opcional)
-            $this->session->set_userdata('external_reference', $external_reference);
-
-            // Redirigir a Pago.php para iniciar MP
-            redirect(base_url('comedor/pago/comprar'));
         }
 
-        // ... (compraSuccess igual o adaptado para mostrar solo confirmación, ahora la compra real la hace el webhook)
+        if (empty($seleccion)) {
+            redirect(base_url('comedor/ticket'));
+        }
+
+        $external_reference = $id_usuario . '-' . time();
+
+        $this->ticket_model->guardarCompraPendiente([
+            'external_reference' => $external_reference,
+            'id_usuario' => $id_usuario,
+            'datos' => json_encode($seleccion),
+            'total' => $totalCompra,
+            'procesada' => 0,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $this->session->set_userdata('external_reference', $external_reference);
+
+        redirect(base_url('comedor/pago/comprar'));
+    }
 
     public function compraSuccess()
     {
