@@ -1,3 +1,7 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+?>
+
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-12 col-md-10 col-lg-9">
@@ -40,67 +44,67 @@
                                                 $es_feriado = $dayData['es_feriado'];
                                             ?>
                                             <div class="day-column flex-shrink-0 me-3" style="width: 250px;"> <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?>">
-                                                    <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : 'bg-light' ?> py-2">
-                                                        <h6 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h6>
-                                                        <?php if ($es_feriado): ?>
-                                                            <span class="badge bg-warning text-dark"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $es_feriado) ? 'meal-disabled' : '' ?>">
-                                                            <div class="form-check custom-checkbox d-flex align-items-center">
-                                                                <input class="form-check-input meal-checkbox check-vianda"
-                                                                       type="checkbox"
-                                                                       id="check<?= $date_ymd ?>Manana"
-                                                                       name="check[<?= $date_ymd ?>][manana]"
-                                                                       value="manana"
-                                                                       <?= ($comprado_mediodia) ? 'checked disabled' : '' ?>
-                                                                       <?= ($es_feriado) ? 'disabled data-es-feriado="true"' : '' ?>>
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Manana">
-                                                                    <i class="bi bi-sun me-2"></i>Mediodía
-                                                                    <?php if ($comprado_mediodia): ?>
-                                                                        <span class="badge bg-secondary ms-2"><i class="bi bi-check-circle me-1"></i>Comprado</span>
-                                                                    <?php endif; ?>
-                                                                </label>
-                                                            </div>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_mediodia || $es_feriado) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][manana]" <?= ($comprado_mediodia || $es_feriado) ? 'disabled' : '' ?>>
-                                                                    <option value="Basico">Menú Básico</option>
-                                                                    <option value="Veggie">Menú Vegetariano</option>
-                                                                    <option value="Celiaco">Sin TACC</option>
-                                                                </select>
-                                                            </div>
+                                                <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : 'bg-light' ?> py-2">
+                                                    <h6 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h6>
+                                                    <?php if ($es_feriado): ?>
+                                                        <span class="badge bg-warning text-dark"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $es_feriado) ? 'meal-disabled' : '' ?>">
+                                                        <div class="form-check custom-checkbox d-flex align-items-center">
+                                                            <input class="form-check-input meal-checkbox check-vianda"
+                                                                    type="checkbox"
+                                                                    id="check<?= $date_ymd ?>Manana"
+                                                                    name="check[<?= $date_ymd ?>][manana]"
+                                                                    value="manana"
+                                                                    <?= ($comprado_mediodia) ? 'checked disabled' : '' ?>
+                                                                    <?= ($es_feriado) ? 'disabled data-es-feriado="true"' : '' ?>>
+                                                            <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Manana">
+                                                                <i class="bi bi-sun me-2"></i>Mediodía
+                                                                <?php if ($comprado_mediodia): ?>
+                                                                    <span class="badge bg-secondary ms-2"><i class="bi bi-check-circle me-1"></i>Comprado</span>
+                                                                <?php endif; ?>
+                                                            </label>
                                                         </div>
+                                                        <div class="vianda-options mt-2 ps-3 <?= ($comprado_mediodia || $es_feriado) ? 'd-none' : '' ?>">
+                                                            <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][manana]" <?= ($comprado_mediodia || $es_feriado) ? 'disabled' : '' ?>>
+                                                                <option value="Basico">Menú Básico</option>
+                                                                <option value="Veggie">Menú Vegetariano</option>
+                                                                <option value="Celiaco">Sin TACC</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
 
-                                                        <hr class="my-3">
+                                                    <hr class="my-3">
 
-                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $es_feriado) ? 'meal-disabled' : '' ?>">
-                                                            <div class="form-check custom-checkbox d-flex align-items-center">
-                                                                <input class="form-check-input meal-checkbox check-vianda"
-                                                                       type="checkbox"
-                                                                       id="check<?= $date_ymd ?>Noche"
-                                                                       name="check[<?= $date_ymd ?>][noche]"
-                                                                       value="noche"
-                                                                       <?= ($comprado_noche) ? 'checked disabled' : '' ?>
-                                                                       <?= ($es_feriado) ? 'disabled data-es-feriado="true"' : '' ?>>
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Noche">
-                                                                    <i class="bi bi-moon me-2"></i>Noche
-                                                                    <?php if ($comprado_noche): ?>
-                                                                        <span class="badge bg-secondary ms-2"><i class="bi bi-check-circle me-1"></i>Comprado</span>
-                                                                    <?php endif; ?>
-                                                                </label>
-                                                            </div>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_noche || $es_feriado) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][noche]" <?= ($comprado_noche || $es_feriado) ? 'disabled' : '' ?>>
-                                                                    <option value="Basico">Menú Básico</option>
-                                                                    <option value="Veggie">Menú Vegetariano</option>
-                                                                    <option value="Celiaco">Sin TACC</option>
-                                                                </select>
-                                                            </div>
+                                                    <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $es_feriado) ? 'meal-disabled' : '' ?>">
+                                                        <div class="form-check custom-checkbox d-flex align-items-center">
+                                                            <input class="form-check-input meal-checkbox check-vianda"
+                                                                    type="checkbox"
+                                                                    id="check<?= $date_ymd ?>Noche"
+                                                                    name="check[<?= $date_ymd ?>][noche]"
+                                                                    value="noche"
+                                                                    <?= ($comprado_noche) ? 'checked disabled' : '' ?>
+                                                                    <?= ($es_feriado) ? 'disabled data-es-feriado="true"' : '' ?>>
+                                                            <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Noche">
+                                                                <i class="bi bi-moon me-2"></i>Noche
+                                                                <?php if ($comprado_noche): ?>
+                                                                    <span class="badge bg-secondary ms-2"><i class="bi bi-check-circle me-1"></i>Comprado</span>
+                                                                <?php endif; ?>
+                                                            </label>
+                                                        </div>
+                                                        <div class="vianda-options mt-2 ps-3 <?= ($comprado_noche || $es_feriado) ? 'd-none' : '' ?>">
+                                                            <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][noche]" <?= ($comprado_noche || $es_feriado) ? 'disabled' : '' ?>>
+                                                                <option value="Basico">Menú Básico</option>
+                                                                <option value="Veggie">Menú Vegetariano</option>
+                                                                <option value="Celiaco">Sin TACC</option>
+                                                            </select>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
@@ -124,7 +128,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <span class="text-muted">Saldo aplicado:</span>
-                                            <strong class="fs-5 text-success">-$<?= number_format($usuario->saldo, 2) ?></strong>
+                                            <strong class="fs-5 text-success" id="saldoAplicadoDisplay">-$<?= number_format($usuario->saldo, 2) ?></strong>
                                         </div>
                                         <hr class="my-3">
                                         <div class="d-flex justify-content-between align-items-center fw-bold fs-4">
@@ -168,7 +172,7 @@
             <div class="modal-body">
                 <p>Está a punto de comprar <strong id="modalCantidad">0</strong> viandas.</p>
                 <p>Costo total de viandas: <strong class="text-primary" id="modalCostoTotal">$0.00</strong>.</p>
-                <p>Se aplicará su saldo de <strong class="text-success">$<?= number_format($usuario->saldo, 2) ?></strong>.</p>
+                <p>Se aplicará su saldo de <strong class="text-success" id="modalSaldoAplicado">$<?= number_format($usuario->saldo, 2) ?></strong>.</p>
                 <p class="fw-bold fs-5 mt-3">Total a pagar: <span id="modalPagar">$0.00</span></p>
                 <p class="mt-4 text-center">¿Desea continuar con esta operación?</p>
             </div>
@@ -184,29 +188,42 @@
 
 <script>
 $(document).ready(function() {
-    // Actualiza el total a pagar y la cantidad de viandas seleccionadas
-    function actualizarTotal() {
-        const costoVianda = parseFloat($('#costoVianda').val());
-        const saldo = parseFloat($('#saldoCuenta').val());
-        // Contar las viandas seleccionadas que no están deshabilitadas
-        // Usamos la clase 'check-vianda' para seleccionar todos los checkboxes relevantes
-        const cantidad = $('.check-vianda:checked:not(:disabled)').length;
-        const total = cantidad * costoVianda;
-        const aPagar = Math.max(0, total - saldo);
+    // Obtenemos el costo unitario de la vianda y el saldo inicial del usuario
+    const costoViandaUnitario = parseFloat($('#costoVianda').val());
+    const saldoUsuarioInicial = parseFloat($('#saldoCuenta').val());
 
-        $('#cantidadViandas').text(cantidad);
-        $('#costoDisplay').text('$' + total.toFixed(2));
-        $('#totalPagar').text('$' + aPagar.toFixed(2));
+    // Actualiza el total a pagar, la cantidad de viandas y el saldo aplicado
+    function actualizarTotal() {
+        const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
+        const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
+
+        // Calcular el saldo que REALMENTE se aplicará
+        let saldoAplicado = 0;
+        if (costoTotalViandas > 0) { // Solo si hay viandas seleccionadas
+            saldoAplicado = Math.min(costoTotalViandas, saldoUsuarioInicial);
+        }
+
+        // Calcular el total a pagar después de aplicar el saldo
+        const totalAPagar = Math.max(0, costoTotalViandas - saldoUsuarioInicial);
+
+        // --- Actualizar el Resumen de Compra en la página ---
+        $('#cantidadViandas').text(cantidadViandasSeleccionadas);
+        $('#costoDisplay').text('$' + costoTotalViandas.toFixed(2));
+        
+        // **ACTUALIZACIÓN CLAVE AQUI:** Mostrar el saldo que realmente se aplicará
+        $('#saldoAplicadoDisplay').text('-$' + saldoAplicado.toFixed(2));
+
+        $('#totalPagar').text('$' + totalAPagar.toFixed(2));
 
         // Aplica color al total a pagar según si es mayor que 0 o no
-        if(aPagar > 0) {
+        if(totalAPagar > 0) {
             $('#totalPagar').addClass('text-danger').removeClass('text-success');
         } else {
             $('#totalPagar').removeClass('text-danger').addClass('text-success');
         }
 
         // Activa o desactiva el botón de compra
-        if (cantidad > 0) {
+        if (cantidadViandasSeleccionadas > 0) {
             $('#btnCompra').prop('disabled', false);
         } else {
             $('#btnCompra').prop('disabled', true);
@@ -214,23 +231,21 @@ $(document).ready(function() {
     }
 
     // Alterna la visibilidad y el estado de los selects al cambiar el estado de los checkboxes
-    // Usamos delegación de eventos para los checkboxes que se pueden generar dinámicamente
     $(document).on('change', '.meal-checkbox', function() {
         const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
         const selectElement = optionsDiv.find('select');
 
         if (this.checked) {
             optionsDiv.removeClass('d-none');
-            selectElement.prop('disabled', false); // Habilita el select
+            selectElement.prop('disabled', false);
         } else {
             optionsDiv.addClass('d-none');
-            selectElement.prop('disabled', true); // Deshabilita el select
+            selectElement.prop('disabled', true);
         }
         actualizarTotal(); // Actualiza el total al cambiar el estado del checkbox
     });
 
     // Actualiza el total al cambiar las opciones de vianda (los selects)
-    // También usamos delegación de eventos
     $(document).on('change', '.form-select', actualizarTotal);
 
     // Inicializa el total al cargar la página
@@ -239,25 +254,37 @@ $(document).ready(function() {
     // Confirmación antes de comprar
     $('#btnCompra').click(function(e) {
         e.preventDefault();
-        const cantidad = $('.check-vianda:checked:not(:disabled)').length; // Cuenta solo las viandas seleccionadas que no están deshabilitadas
-        const costoTotalViandas = cantidad * parseFloat($('#costoVianda').val());
-        const saldoUsuario = parseFloat($('#saldoCuenta').val());
-        const totalAPagar = Math.max(0, costoTotalViandas - saldoUsuario);
+        const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
+        const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
+        // Siempre usamos el saldo inicial del usuario para el cálculo
+        const saldoUsuario = saldoUsuarioInicial;
 
-        if(cantidad === 0) {
+        // Calcular el saldo a aplicar para el modal
+        let saldoAplicadoModal = 0;
+        if (costoTotalViandas > 0) {
+            saldoAplicadoModal = Math.min(costoTotalViandas, saldoUsuario);
+        }
+        
+        const totalAPagarModal = Math.max(0, costoTotalViandas - saldoUsuario);
+
+        if(cantidadViandasSeleccionadas === 0) {
             alert('Por favor seleccione al menos una vianda para comprar.');
             return;
         }
 
-        $('#modalCantidad').text(cantidad);
+        $('#modalCantidad').text(cantidadViandasSeleccionadas);
         $('#modalCostoTotal').text('$' + costoTotalViandas.toFixed(2));
-        $('#modalPagar').text('Total a pagar: $' + totalAPagar.toFixed(2));
+        
+        // **ACTUALIZACIÓN CLAVE AQUI:** Mostrar el saldo que realmente se aplicará en el modal
+        $('#modalSaldoAplicado').text('$' + saldoAplicadoModal.toFixed(2));
+        
+        $('#modalPagar').html('Total a pagar: <span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');
 
-        // Aplica color al total a pagar según si es mayor que 0 o no
-        if (totalAPagar > 0) {
-            $('#modalPagar').addClass('text-danger').removeClass('text-success');
+        // Aplica color al total a pagar en el modal
+        if (totalAPagarModal > 0) {
+            $('#modalFinalPagarValor').addClass('text-danger').removeClass('text-success');
         } else {
-            $('#modalPagar').removeClass('text-danger').addClass('text-success');
+            $('#modalFinalPagarValor').removeClass('text-danger').addClass('text-success');
         }
 
         $('#confirmModal').modal('show');
@@ -266,7 +293,7 @@ $(document).ready(function() {
     // Confirma la compra al hacer clic en el botón de confirmación del modal
     $('#confirmBuy').click(function() {
         // Antes de enviar el formulario, asegúrate de que todos los selects *seleccionados*
-        // tengan su atributo `name` habilitado. Esto es crucial.
+        // tengan su atributo `name` habilitado. Esto es crucial para que el backend los reciba.
         $('.check-vianda:checked:not(:disabled)').each(function() {
             const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
             optionsDiv.find('select').prop('disabled', false);
@@ -274,7 +301,7 @@ $(document).ready(function() {
         $('#formCompraId').submit();
     });
 
-    // Boton resetar
+    // Botón reiniciar selección
     $('#btnReset').click(function() {
         // Resetear todos los checkboxes que NO están deshabilitados
         $('.check-vianda:not(:disabled)').prop('checked', false);
@@ -294,14 +321,13 @@ $(document).ready(function() {
     });
 
     // Inicialmente oculta las opciones de vianda para checkboxes ya marcados o deshabilitados
-    // Esto se ejecuta una vez al cargar la página.
+    // Esto se ejecuta una vez al cargar la página para el estado inicial.
     $('.meal-checkbox').each(function() {
         const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
         const selectElement = optionsDiv.find('select');
-
         if (this.checked || $(this).prop('disabled')) {
             optionsDiv.addClass('d-none');
-            selectElement.prop('disabled', true); // Deshabilita el select al inicio si está inactivo
+            selectElement.prop('disabled', true);
         }
     });
 });

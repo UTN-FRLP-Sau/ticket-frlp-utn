@@ -153,8 +153,6 @@ class Ticket extends CI_Controller
                     'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
                 ];
 
-                // --- FIN DE CAMBIOS EN INDEX() ---
-
                 $this->load->view('usuario/header', $data);
                 $this->load->view('index', $data); // Esta vista es la que deberás adaptar
                 $this->load->view('general/footer');
@@ -186,54 +184,40 @@ class Ticket extends CI_Controller
         $usuario = $this->ticket_model->getUserById($id_usuario);
         $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
 
-        $totalCompra = $this->input->post('total'); // Esto se sigue recibiendo igual
+        // Eliminamos esta línea, ya no tomaremos el total del POST
+        // $totalCompra = $this->input->post('total'); 
 
         $seleccion = [];
-        
-        // --- INICIO DE CAMBIOS EN COMPRA() ---
+        $totalCompraCalculado = 0; // Inicializamos el total calculado
 
-        // Acceder directamente a los arrays 'check', 'selectTipo', 'selectMenu'
         $postChecks = $this->input->post('check');
-        $postTipos = $this->input->post('selectTipo');
         $postMenus = $this->input->post('selectMenu');
 
         if (!empty($postChecks)) {
             foreach ($postChecks as $date_ymd => $turnosSeleccionados) {
-                // $date_ymd será 'YYYY-MM-DD'
-                // $turnosSeleccionados será un array como ['manana' => 'manana'] o ['noche' => 'noche'] o ambos
-
                 foreach ($turnosSeleccionados as $turno => $value) {
-                    // $turno será 'manana' o 'noche'
-                    // $value será 'manana' o 'noche' (el valor del checkbox)
-                    
-                    // Asegúrate de que el tipo y el menú existen para este día y turno
-                    $tipo = isset($postTipos[$date_ymd][$turno]) ? $postTipos[$date_ymd][$turno] : null;
-                    $menu = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;
+                    $tipoServicio = "Comer aqui"; 
+                    $menuSeleccionado = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;
 
-                    if ($tipo && $menu) { // Solo si se seleccionó un tipo y menú
-                        // Para el campo 'dia', podríamos extraer el día de la semana de $date_ymd
-                        // O, si no es estrictamente necesario en la base de datos para la compra,
-                        // puedes omitirlo o usar un valor genérico.
-                        // Para fines de ejemplo, vamos a calcular el día de la semana
+                    if ($menuSeleccionado) { 
                         $dayOfWeek = new DateTime($date_ymd);
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-                        $dia_semana_nombre = $spanishDayNames[$dayOfWeek->format('N') - 1]; // N devuelve 1 para lunes, 7 para domingo
+                        $dia_semana_nombre = $spanishDayNames[$dayOfWeek->format('N') - 1];
 
                         $seleccion[] = [
-                            'dia' => $dia_semana_nombre, // El nombre del día (ej. 'lunes')
+                            'dia' => $dia_semana_nombre,
                             'dia_comprado' => $date_ymd,
-                            'tipo' => $tipo,
-                            'turno' => $turno, // 'manana' o 'noche'
-                            'menu' => $menu,
-                            'precio' => $costoVianda
+                            'tipo' => $tipoServicio,
+                            'turno' => $turno,
+                            'menu' => $menuSeleccionado,
+                            'precio' => $costoVianda // El precio de una vianda individual
                         ];
+                        $totalCompraCalculado += $costoVianda; // Sumamos el costo de cada vianda al total
                     }
                 }
             }
         }
         
-        // --- FIN DE CAMBIOS EN COMPRA() ---
-
         if (empty($seleccion)) {
             redirect(base_url('comedor/ticket'));
         }
@@ -244,13 +228,13 @@ class Ticket extends CI_Controller
             'external_reference' => $external_reference,
             'id_usuario' => $id_usuario,
             'datos' => json_encode($seleccion),
-            'total' => $totalCompra,
+            'total' => $totalCompraCalculado, // <--- Usamos el total calculado aquí
             'procesada' => 0,
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
         $this->session->set_userdata('external_reference', $external_reference);
-
+        log_message('debug', 'TICKET: external_reference guardada en sesión: ' . $external_reference);
         redirect(base_url('comedor/pago/comprar'));
     }
 
@@ -333,11 +317,11 @@ class Ticket extends CI_Controller
                                 'dia_comprado' => $compra->dia_comprado,
                                 'id_usuario' => $id_usuario,
                                 'precio' => $compra->precio,
-                                'tipo' => $compra->tipo,
+                                'tipo' => $compra->tipo, 
                                 'turno' => $compra->turno,
                                 'menu' => $compra->menu,
-                                'transaccion_tipo' => 'Devolucion', //Seteamos un id unico y negativo para poder obtenerlas luego
-                                'transaccion_id' => -$id_usuario //Seteamos un id unico y negativo para poder obtenerlas luego
+                                'transaccion_tipo' => 'Devolucion', 
+                                'transaccion_id' => -$id_usuario 
                             ];
                             if ($this->ticket_model->removeCompra($id_compra, $id_usuario)) {
                                 $this->ticket_model->updateSaldoByIDUser($id_usuario, $saldo + $costoVianda);
