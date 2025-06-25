@@ -73,6 +73,66 @@ body {
     font-size: 0.85rem;
 }
 
+
+
+/* Estilos para el contenedor del carrusel de días */
+.days-carousel-container {
+    display: flex; /* Alinea los elementos hijos (columnas de día) horizontalmente */
+    overflow-x: auto; /* Permite el scroll horizontal si el contenido es demasiado ancho */
+    flex-wrap: nowrap; /* Evita que los elementos se envuelvan a la siguiente línea */
+    -webkit-overflow-scrolling: touch; /* Para un scroll más suave en iOS */
+    padding-bottom: 1rem; /* Espacio para el scrollbar */
+    gap: 1rem; /* Espacio entre las columnas de día */
+    /* scroll-snap-type: x mandatory; /* Opcional: para un "snap" al desplazar */
+}
+
+/* Estilos para cada columna de día dentro del carrusel */
+.day-column {
+    flex-shrink: 0; /* Evita que las columnas de día se achiquen */
+    min-width: 250px; /* Ancho mínimo para cada tarjeta de día */
+    /* Puedes ajustar el width si quieres que intenten ocupar más espacio,
+       pero `min-width` es clave para que no se achiquen demasiado */
+    /* width: 33%; */ /* Si quieres que intente mostrar 3 por fila, por ejemplo */
+    /* scroll-snap-align: start; /* Opcional: para el "snap" en cada columna */
+}
+
+/* Estilos para el scrollbar (opcional, para navegadores WebKit como Chrome/Safari) */
+.days-carousel-container::-webkit-scrollbar {
+    height: 8px; /* Altura de la barra de desplazamiento horizontal */
+}
+
+.days-carousel-container::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Color del fondo de la pista del scrollbar */
+    border-radius: 10px;
+}
+
+.days-carousel-container::-webkit-scrollbar-thumb {
+    background: #888; /* Color del "pulgar" del scrollbar */
+    border-radius: 10px;
+}
+
+.days-carousel-container::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Color del "pulgar" al pasar el mouse */
+}
+
+/* Clases de estilo para los estados de las viandas (mantener) */
+.meal-disabled {
+    background-color: #f8f9fa !important; /* Gris claro para viandas deshabilitadas */
+    opacity: 0.7;
+    pointer-events: none; /* Deshabilita clics en todo el bloque */
+}
+
+.meal-disabled .form-check-input,
+.meal-disabled select {
+    cursor: not-allowed;
+}
+
+.bg-light-danger {
+    background-color: #fdd !important; /* Fondo más claro para días feriados */
+}
+
+
+
 /* Day Option Cards (Each Day's Block) */
 .day-option-card {
     border: 1px solid #e0e0e0;

@@ -66,36 +66,101 @@ class Ticket extends CI_Controller
     public function index()
     {
         $id_usuario = $this->session->userdata('id_usuario');
-        $nroDia = date('N');
-        $proximo_lunes = time() + ((7 - ($nroDia - 1)) * 24 * 60 * 60);
-        $proximo_lunes_fecha = date('Y-m-d', $proximo_lunes);
-        $proximo_viernes = time() + ((7 - ($nroDia - 5)) * 24 * 60 * 60);
-        $proximo_viernes_fecha = date('Y-m-d', $proximo_viernes);
         $usuario = $this->ticket_model->getUserById($id_usuario);
 
         if ($this->estadoComedor()) {
             if ($this->estadoCompra()) {
-                $compras_usuario = $this->ticket_model->getComprasInRangeByIdUser($proximo_lunes_fecha, $proximo_viernes_fecha, $id_usuario);
+                // --- INICIO DE CAMBIOS EN INDEX() ---
+
+                $numWeeksToDisplay = 4; // Define cuántas semanas quieres mostrar
+                $weeksData = [];
+                $all_dates_in_range = []; // Para almacenar todas las fechas de todas las semanas
+
+                // Obtener el lunes de la semana actual
+                $currentDate = new DateTime();
+                $mondayOfCurrentWeek = clone $currentDate;
+                if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes, ir al lunes más cercano anterior
+                    $mondayOfCurrentWeek->modify('last monday');
+                }
+
+                for ($w = 0; $w < $numWeeksToDisplay; $w++) {
+                    $week = [];
+                    $mondayOfThisWeek = clone $mondayOfCurrentWeek;
+                    $mondayOfThisWeek->modify('+' . $w . ' week');
+
+                    // Definir el rango de fechas para cada semana
+                    $weekStartDate = $mondayOfThisWeek->format('Y-m-d');
+                    $fridayOfThisWeek = clone $mondayOfThisWeek;
+                    $fridayOfThisWeek->modify('+4 days'); // Lunes + 4 días = Viernes
+                    $weekEndDate = $fridayOfThisWeek->format('Y-m-d');
+
+                    // Almacenar todas las fechas para una única consulta de comprados y feriados
+                    for ($d = 0; $d < 5; $d++) { // Lunes a Viernes
+                        $dayDate = clone $mondayOfThisWeek;
+                        $dayDate->modify('+' . $d . ' day');
+                        $all_dates_in_range[] = $dayDate->format('Y-m-d');
+                    }
+                }
                 
+                // Realizar una única consulta para todas las compras y feriados dentro del rango total
+                // Esto es mucho más eficiente que consultar por semana o por día.
+                $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser(min($all_dates_in_range), max($all_dates_in_range), $id_usuario);
+                $feriados_total = $this->ticket_model->getFeriadosInRange(min($all_dates_in_range), max($all_dates_in_range));
+
+                // Formatear los comprados para fácil acceso
                 $comprados_con_turno = [];
-                foreach ($compras_usuario as $compra) {
-                    $comprados_con_turno[] = $compra->dia_comprado . '_' . $compra->turno; 
+                foreach ($compras_usuario_total as $compra) {
+                    $comprados_con_turno[] = $compra->dia_comprado . '_' . $compra->turno;
+                }
+                
+                // Volver a iterar para construir la estructura de datos para la vista
+                for ($w = 0; $w < $numWeeksToDisplay; $w++) {
+                    $week = [];
+                    $mondayOfThisWeek = clone $mondayOfCurrentWeek;
+                    $mondayOfThisWeek->modify('+' . $w . ' week');
+
+                    for ($d = 0; $d < 5; $d++) { // Lunes a Viernes
+                        $dayDate = clone $mondayOfThisWeek;
+                        $dayDate->modify('+' . $d . ' day');
+
+                        $date_ymd = $dayDate->format('Y-m-d');
+                        // Usamos date('w') para el índice del día de la semana (0=domingo, 1=lunes)
+                        // y luego lo mapeamos a los nombres de los días en español.
+                        $dayOfWeekNumber = $dayDate->format('N'); // 1 (for Monday) through 7 (for Sunday)
+                        $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+                        $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajustar índice para el array
+
+                        $dia_comprado_mediodia = in_array($date_ymd . '_manana', $comprados_con_turno);
+                        $dia_comprado_noche = in_array($date_ymd . '_noche', $comprados_con_turno);
+                        $es_feriado = in_array($date_ymd, array_column($feriados_total, 'fecha'));
+
+                        $week[] = [
+                            'day_name' => $dayName,
+                            'date_display' => $dayDate->format('d'),
+                            'date_ymd' => $date_ymd,
+                            'comprado_mediodia' => $dia_comprado_mediodia,
+                            'comprado_noche' => $dia_comprado_noche,
+                            'es_feriado' => $es_feriado
+                        ];
+                    }
+                    $weeksData[] = $week;
                 }
 
                 $data = [
-                    'titulo' => 'Comprar',
+                    'titulo' => 'Comprar Viandas',
                     'usuario' => $usuario,
-                    'feriados' => $this->ticket_model->getFeriadosInRange($proximo_lunes_fecha, $proximo_viernes_fecha),
-                    'comprados' => $comprados_con_turno,
+                    'weeksData' => $weeksData, // Aquí pasamos los datos estructurados por semana
                     'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
                 ];
 
+                // --- FIN DE CAMBIOS EN INDEX() ---
+
                 $this->load->view('usuario/header', $data);
-                $this->load->view('index', $data);
+                $this->load->view('index', $data); // Esta vista es la que deberás adaptar
                 $this->load->view('general/footer');
             } else {
                 $data = [
-                    'titulo' => 'Comprar',
+                    'titulo' => 'Comprar Viandas',
                     'alerta' => "<p>Fuera del horario de compra</p><p>La compra se realiza desde el Lunes hasta el Viernes a las {$this->config->item('hora_final')}</p>"
                 ];
 
@@ -105,7 +170,7 @@ class Ticket extends CI_Controller
             }
         } else {
             $data = [
-                'titulo' => 'Comprar',
+                'titulo' => 'Comprar Viandas',
                 'alerta' => '<p>El comedor no funciona en este Periodo</p>'
             ];
 
@@ -121,29 +186,53 @@ class Ticket extends CI_Controller
         $usuario = $this->ticket_model->getUserById($id_usuario);
         $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
 
-        $totalCompra = $this->input->post('total');
-        $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
-        $turnos = ['Manana', 'Noche'];
+        $totalCompra = $this->input->post('total'); // Esto se sigue recibiendo igual
 
         $seleccion = [];
-        foreach ($dias as $id => $dia) {
-            $nroDia = date('N');
-            $proximo_timestamp = time() + ((7 - $nroDia + ($id + 1)) * 24 * 60 * 60);
-            $proxima_fecha_ymd = date('Y-m-d', $proximo_timestamp);
+        
+        // --- INICIO DE CAMBIOS EN COMPRA() ---
 
-            foreach ($turnos as $turno) {
-                if ($this->input->post("check{$dia}{$turno}")) {
-                    $seleccion[] = [
-                        'dia' => $dia,
-                        'dia_comprado' => $proxima_fecha_ymd,
-                        'tipo' => $this->input->post("selectTipo{$dia}{$turno}"),
-                        'turno' => strtolower($turno), // 'manana' o 'noche'
-                        'menu' => $this->input->post("selectMenu{$dia}{$turno}"),
-                        'precio' => $costoVianda
-                    ];
+        // Acceder directamente a los arrays 'check', 'selectTipo', 'selectMenu'
+        $postChecks = $this->input->post('check');
+        $postTipos = $this->input->post('selectTipo');
+        $postMenus = $this->input->post('selectMenu');
+
+        if (!empty($postChecks)) {
+            foreach ($postChecks as $date_ymd => $turnosSeleccionados) {
+                // $date_ymd será 'YYYY-MM-DD'
+                // $turnosSeleccionados será un array como ['manana' => 'manana'] o ['noche' => 'noche'] o ambos
+
+                foreach ($turnosSeleccionados as $turno => $value) {
+                    // $turno será 'manana' o 'noche'
+                    // $value será 'manana' o 'noche' (el valor del checkbox)
+                    
+                    // Asegúrate de que el tipo y el menú existen para este día y turno
+                    $tipo = isset($postTipos[$date_ymd][$turno]) ? $postTipos[$date_ymd][$turno] : null;
+                    $menu = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;
+
+                    if ($tipo && $menu) { // Solo si se seleccionó un tipo y menú
+                        // Para el campo 'dia', podríamos extraer el día de la semana de $date_ymd
+                        // O, si no es estrictamente necesario en la base de datos para la compra,
+                        // puedes omitirlo o usar un valor genérico.
+                        // Para fines de ejemplo, vamos a calcular el día de la semana
+                        $dayOfWeek = new DateTime($date_ymd);
+                        $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+                        $dia_semana_nombre = $spanishDayNames[$dayOfWeek->format('N') - 1]; // N devuelve 1 para lunes, 7 para domingo
+
+                        $seleccion[] = [
+                            'dia' => $dia_semana_nombre, // El nombre del día (ej. 'lunes')
+                            'dia_comprado' => $date_ymd,
+                            'tipo' => $tipo,
+                            'turno' => $turno, // 'manana' o 'noche'
+                            'menu' => $menu,
+                            'precio' => $costoVianda
+                        ];
+                    }
                 }
             }
         }
+        
+        // --- FIN DE CAMBIOS EN COMPRA() ---
 
         if (empty($seleccion)) {
             redirect(base_url('comedor/ticket'));
