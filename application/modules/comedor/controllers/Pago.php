@@ -19,7 +19,7 @@ class Pago extends CI_Controller
             // --- LOG DE REDIRECCIÓN POR FALTA DE external_reference ---
             log_message('error', 'PAGO: external_reference vacía. Redirigiendo a comedor/ticket.');
             redirect('comedor/ticket');
-            return; // Es buena práctica añadir return después de un redirect.
+            return;
         }
 
         $this->load->model('ticket_model');
@@ -34,16 +34,15 @@ class Pago extends CI_Controller
             return; // Añadir return.
         }
 
-        $notificacion_url = 'https://d89e-200-10-126-116.ngrok-free.app/webhook/mercadopago';
+        $notificacion_url = 'https://88e0-181-85-147-154.ngrok-free.app/webhook/mercadopago';
         $back_urls = [
-            "success" => 'https://d89e-200-10-126-116.ngrok-free.app/comedor/pago/compra_exitosa',
-            "failure" => 'https://d89e-200-10-126-116.ngrok-free.app/comedor/pago/compra_fallida',
-            "pending" => 'https://d89e-200-10-126-116.ngrok-free.app/comedor/pago/compra_pendiente'
+            "success" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_exitosa',
+            "failure" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_fallida',
+            "pending" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_pendiente'
         ];
         // --- LOG DE URLs DE RETORNO ---
         log_message('debug', 'PAGO: back_urls configuradas: ' . json_encode($back_urls));
 
-        // Usar la función del modelo que maneja saldo y preferencia MP
         $preferencia_info = $this->ticket_model->generarPreferenciaConSaldo(
             $external_reference,
             $access_token,
@@ -56,7 +55,7 @@ class Pago extends CI_Controller
 
 
         if ($preferencia_info === null) {
-            // El saldo alcanza para cubrir toda la compra, procesar directamente
+            // Si el saldo alcanza para cubrir toda la compra llamo a procesarCompraConSaldo
             log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Procesando directamente.');
             $saldo_usuario = $this->ticket_model->getSaldoByIDUser($compra->id_usuario); // Puede ser útil para depuración, aunque el procesado lo hace el modelo.
             $procesado = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
@@ -76,12 +75,11 @@ class Pago extends CI_Controller
             show_error('Error procesando la preferencia de pago.');
         }
 
-        // Si no se cubre todo con saldo, redirigir a Mercado Pago
+        // Si no se cubre todo con saldo, redirige a Mercado Pago
         // --- LOG ANTES DE REDIRIGIR A MERCADO PAGO ---
         $init_point = isset($preferencia_info['init_point']) ? $preferencia_info['init_point'] : 'NO DEFINIDO';
         log_message('info', 'PAGO: Redirigiendo a Mercado Pago. init_point: ' . $init_point);
         
-        // Asegúrate de que MercadoPago SDK esté incluido y el Access Token seteado
         require_once FCPATH . 'vendor/autoload.php';
         MercadoPago\SDK::setAccessToken($access_token);
 

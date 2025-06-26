@@ -67,6 +67,10 @@ class Ticket_model extends CI_Model
     }
     public function generarPreferenciaConSaldo($external_reference, $access_token, $notification_url, $back_urls)
     {
+        /* Usado en:
+        pago.php
+        comprar()
+        */
         $compra = $this->getCompraPendiente($external_reference);
         if (!$compra) {
             return null;
@@ -118,6 +122,10 @@ class Ticket_model extends CI_Model
 
     public function procesarCompraConSaldo($compra, $saldo_utilizado)
     {
+        /* Usado en:
+        pago.php
+        comprar()
+        */
         $this->db->trans_start();
 
         // Decodificamos los datos JSON de la compra para obtener todos los ítems
@@ -251,6 +259,9 @@ class Ticket_model extends CI_Model
         /*Usado en:
         compra
         devolverCompra
+
+        Pago.php
+        comprar()
         */
         $this->db->select('saldo');
         $this->db->where('id', $id_user);
@@ -392,14 +403,29 @@ class Ticket_model extends CI_Model
     }
 
     public function guardarCompraPendiente($data) {
+        /* Usado en:
+        Ticket 
+        compra()
+        */
         return $this->db->insert('compras_pendientes', $data);
     }
 
     public function getCompraPendiente($external_reference) {
+        /* Usado en:
+        Pago 
+        comprar()
+
+        Webhook
+        mercadopago()
+        */
         return $this->db->get_where('compras_pendientes', ['external_reference' => $external_reference])->row();
     }
 
     public function setCompraPendienteProcesada($external_reference) {
+        /* Usado en:
+        Webhook
+        mercadopago()
+        */
         $this->db->where('external_reference', $external_reference);
         $this->db->update('compras_pendientes', ['procesada' => 1]);
         return $this->db->affected_rows();

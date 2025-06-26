@@ -197,20 +197,20 @@ $(document).ready(function() {
         const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
         const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
 
-        // Calcular el saldo que REALMENTE se aplicará
+        // Calcula el saldo que REALMENTE se aplicará
         let saldoAplicado = 0;
         if (costoTotalViandas > 0) { // Solo si hay viandas seleccionadas
             saldoAplicado = Math.min(costoTotalViandas, saldoUsuarioInicial);
         }
 
-        // Calcular el total a pagar después de aplicar el saldo
+        // Calcula el total a pagar después de aplicar el saldo
         const totalAPagar = Math.max(0, costoTotalViandas - saldoUsuarioInicial);
 
-        // --- Actualizar el Resumen de Compra en la página ---
+        // --- Actualiza el Resumen de Compra en la página ---
         $('#cantidadViandas').text(cantidadViandasSeleccionadas);
         $('#costoDisplay').text('$' + costoTotalViandas.toFixed(2));
         
-        // **ACTUALIZACIÓN CLAVE AQUI:** Mostrar el saldo que realmente se aplicará
+        // Muestra el saldo que realmente se aplicará
         $('#saldoAplicadoDisplay').text('-$' + saldoAplicado.toFixed(2));
 
         $('#totalPagar').text('$' + totalAPagar.toFixed(2));
@@ -275,7 +275,7 @@ $(document).ready(function() {
         $('#modalCantidad').text(cantidadViandasSeleccionadas);
         $('#modalCostoTotal').text('$' + costoTotalViandas.toFixed(2));
         
-        // **ACTUALIZACIÓN CLAVE AQUI:** Mostrar el saldo que realmente se aplicará en el modal
+        //  Muestra el saldo que realmente se aplicará en el modal
         $('#modalSaldoAplicado').text('$' + saldoAplicadoModal.toFixed(2));
         
         $('#modalPagar').html('Total a pagar: <span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');
@@ -292,8 +292,6 @@ $(document).ready(function() {
 
     // Confirma la compra al hacer clic en el botón de confirmación del modal
     $('#confirmBuy').click(function() {
-        // Antes de enviar el formulario, asegúrate de que todos los selects *seleccionados*
-        // tengan su atributo `name` habilitado. Esto es crucial para que el backend los reciba.
         $('.check-vianda:checked:not(:disabled)').each(function() {
             const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
             optionsDiv.find('select').prop('disabled', false);
@@ -310,8 +308,8 @@ $(document).ready(function() {
         $('.vianda-options').addClass('d-none');
         $('.vianda-options select').prop('disabled', true);
 
-        // Asegurarse de que los checkboxes de feriados o comprados estén deshabilitados
-        // y sus opciones de vianda ocultas (ya lo están por defecto en el HTML, pero es buena práctica)
+        // Asegura de que los checkboxes de feriados o comprados estén deshabilitados
+        // y sus opciones de vianda ocultas
         $('.meal-checkbox[data-es-feriado="true"], .meal-checkbox[checked][disabled]').each(function() {
             $(this).closest('.meal-time-block').find('.vianda-options').addClass('d-none');
             $(this).closest('.meal-time-block').find('.vianda-options select').prop('disabled', true);
