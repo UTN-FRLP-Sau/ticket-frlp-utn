@@ -70,16 +70,15 @@ class Ticket extends CI_Controller
 
         if ($this->estadoComedor()) {
             if ($this->estadoCompra()) {
-                // --- INICIO DE CAMBIOS EN INDEX() ---
 
-                $numWeeksToDisplay = 4; // Define cuántas semanas quieres mostrar
+                $numWeeksToDisplay = 4; // Define semanas a mostrar
                 $weeksData = [];
                 $all_dates_in_range = []; // Para almacenar todas las fechas de todas las semanas
 
-                // Obtener el lunes de la semana actual
+                // Obtiene el lunes de la semana actual
                 $currentDate = new DateTime();
                 $mondayOfCurrentWeek = clone $currentDate;
-                if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes, ir al lunes más cercano anterior
+                if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes, va al lunes más cercano anterior
                     $mondayOfCurrentWeek->modify('last monday');
                 }
 
@@ -88,7 +87,7 @@ class Ticket extends CI_Controller
                     $mondayOfThisWeek = clone $mondayOfCurrentWeek;
                     $mondayOfThisWeek->modify('+' . $w . ' week');
 
-                    // Definir el rango de fechas para cada semana
+                    // Define el rango de fechas para cada semana
                     $weekStartDate = $mondayOfThisWeek->format('Y-m-d');
                     $fridayOfThisWeek = clone $mondayOfThisWeek;
                     $fridayOfThisWeek->modify('+4 days'); // Lunes + 4 días = Viernes
@@ -103,17 +102,16 @@ class Ticket extends CI_Controller
                 }
                 
                 // Realizar una única consulta para todas las compras y feriados dentro del rango total
-                // Esto es mucho más eficiente que consultar por semana o por día.
                 $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser(min($all_dates_in_range), max($all_dates_in_range), $id_usuario);
                 $feriados_total = $this->ticket_model->getFeriadosInRange(min($all_dates_in_range), max($all_dates_in_range));
 
-                // Formatear los comprados para fácil acceso
+                // Formatea los comprados para fácil acceso
                 $comprados_con_turno = [];
                 foreach ($compras_usuario_total as $compra) {
                     $comprados_con_turno[] = $compra->dia_comprado . '_' . $compra->turno;
                 }
                 
-                // Volver a iterar para construir la estructura de datos para la vista
+                // Itera para construir la estructura de datos para la vista
                 for ($w = 0; $w < $numWeeksToDisplay; $w++) {
                     $week = [];
                     $mondayOfThisWeek = clone $mondayOfCurrentWeek;
@@ -128,7 +126,7 @@ class Ticket extends CI_Controller
                         // y luego lo mapeamos a los nombres de los días en español.
                         $dayOfWeekNumber = $dayDate->format('N'); // 1 (for Monday) through 7 (for Sunday)
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-                        $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajustar índice para el array
+                        $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajusta indice para el array
 
                         $dia_comprado_mediodia = in_array($date_ymd . '_manana', $comprados_con_turno);
                         $dia_comprado_noche = in_array($date_ymd . '_noche', $comprados_con_turno);
@@ -149,12 +147,12 @@ class Ticket extends CI_Controller
                 $data = [
                     'titulo' => 'Comprar Viandas',
                     'usuario' => $usuario,
-                    'weeksData' => $weeksData, // Aquí pasamos los datos estructurados por semana
+                    'weeksData' => $weeksData, // pasamos los datos estructurados por semana
                     'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
                 ];
 
                 $this->load->view('usuario/header', $data);
-                $this->load->view('index', $data); // Esta vista es la que deberás adaptar
+                $this->load->view('index', $data);
                 $this->load->view('general/footer');
             } else {
                 $data = [
@@ -184,11 +182,8 @@ class Ticket extends CI_Controller
         $usuario = $this->ticket_model->getUserById($id_usuario);
         $costoVianda = $this->ticket_model->getCostoByID($usuario->id_precio);
 
-        // Eliminamos esta línea, ya no tomaremos el total del POST
-        // $totalCompra = $this->input->post('total'); 
-
         $seleccion = [];
-        $totalCompraCalculado = 0; // Inicializamos el total calculado
+        $totalCompraCalculado = 0;
 
         $postChecks = $this->input->post('check');
         $postMenus = $this->input->post('selectMenu');
@@ -228,7 +223,7 @@ class Ticket extends CI_Controller
             'external_reference' => $external_reference,
             'id_usuario' => $id_usuario,
             'datos' => json_encode($seleccion),
-            'total' => $totalCompraCalculado, // <--- Usamos el total calculado aquí
+            'total' => $totalCompraCalculado,
             'procesada' => 0,
             'created_at' => date('Y-m-d H:i:s')
         ]);
