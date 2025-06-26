@@ -279,103 +279,167 @@ class Ticket extends CI_Controller
         }
     }
 
-
     public function devolverCompra()
     {
-        if ($this->estadoComedor()) {
-            if ($this->estadoCompra()) {
-                $id_usuario = $this->session->userdata('id_usuario');
-                $nroDia = date('N');
-                $proximo_lunes = time() + ((7 - ($nroDia - 1)) * 24 * 60 * 60);
-                $proximo_lunes_fecha = date('Y-m-d', $proximo_lunes);
-                $proximo_viernes = time() + ((7 - ($nroDia - 5)) * 24 * 60 * 60);
-                $proximo_viernes_fecha = date('Y-m-d', $proximo_viernes);
-                $usuario = $this->ticket_model->getUserById($id_usuario);
-                $saldoUser = $usuario->saldo;
-                $data = [
-                    'titulo' => 'Devolucion de compras',
-                    'compras' => $this->ticket_model->getComprasInRangeByIdUser($proximo_lunes_fecha, $proximo_viernes_fecha, $id_usuario),
-                    'devolucion' => TRUE
-                ];
+        log_message('debug', 'DevolverCompra: Método iniciado.');
 
-                if ($this->input->method() == 'post') {
-                    $n_devolucion = 0;
-                    foreach (range(0, 4) as $numero) {
-                        if ($this->input->post("devolver_{$numero}")) {
-                            $saldo = $this->ticket_model->getSaldoByIDUser($id_usuario);
-                            $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
-                            $id_compra = $this->input->post("devolver_{$numero}");
-                            $compra = $this->ticket_model->getCompraById($id_compra);
-                            $data_log = [
-                                'fecha' => date('Y-m-d', time()),
-                                'hora' => date('H:i:s', time()),
-                                'dia_comprado' => $compra->dia_comprado,
-                                'id_usuario' => $id_usuario,
-                                'precio' => $compra->precio,
-                                'tipo' => $compra->tipo, 
-                                'turno' => $compra->turno,
-                                'menu' => $compra->menu,
-                                'transaccion_tipo' => 'Devolucion', 
-                                'transaccion_id' => -$id_usuario 
-                            ];
-                            if ($this->ticket_model->removeCompra($id_compra, $id_usuario)) {
-                                $this->ticket_model->updateSaldoByIDUser($id_usuario, $saldo + $costoVianda);
-                                $this->ticket_model->addLogCompra($data_log);
-                                $n_devolucion = $n_devolucion + 1;
-                            }
-                        }
-                    }
-                    //Si se generaron compras asiento la transaccion
-                    if ($n_devolucion > 0) {
-                        //Genero los datos de la transaccion
-                        $transaction_devolucion = [
-                            'fecha' => date('Y-m-d', time()),
-                            'hora' => date('H:i:s', time()),
-                            'id_usuario' => $id_usuario,
-                            'transaccion' => 'Devolucion',
-                            'monto' => $costoVianda * $n_devolucion,
-                        ];
-                        //Calculo el saldo final de la transaccion y lo seteo
-                        $saldo = $saldoUser + $costoVianda  * $n_devolucion;
-                        $transaction_devolucion['saldo'] = $saldo;
-                        //Inserto la transaccion y obtengo su ID
-                        $id_insert = $this->ticket_model->addTransaccion($transaction_devolucion);
-                        //Obtenemos los registros en la tabla 'log_compra' con el id provisorio y lo actualizamos
-                        $logcompras = $this->ticket_model->getLogComprasByIDTransaccion(-$id_usuario);
-                        foreach ($logcompras as $compra) {
-                            $id_compra = $compra->id;
-                            $this->ticket_model->updateTransactionInLogCompraByID($id_compra, $id_insert);
-                        }
-                    }
-
-                    $this->session->set_flashdata('transaccion', $id_insert);
-                    redirect(base_url('usuario/devolver/success'));
-
-                } else {
-                    $this->load->view('usuario/header', $data);
-                    $this->load->view('usuario/devolver_compra', $data);
-                    $this->load->view('general/footer');
-                }
-            } else {
-                $data = [
-                    'titulo' => 'Devolver Compras',
-                    'alerta' => "<p>Fuera del horario de devolucion</p><p>La devolucion se realiza desde el Lunes hasta el Viernes a las {$this->config->item('hora_final')}</p>"
-                ];
-
-                $this->load->view('usuario/header', $data);
-                $this->load->view('alerta_comedor_cerrado', $data);
-                $this->load->view('general/footer');
-            }
-        } else {
+        // Verifica si el comedor está abierto para devoluciones
+        if (!$this->estadoComedor()) {
             $data = [
                 'titulo' => 'Devolver Compras',
                 'alerta' => "<p>Comedor cerrado</p>"
             ];
-
             $this->load->view('usuario/header', $data);
             $this->load->view('alerta_comedor_cerrado', $data);
             $this->load->view('general/footer');
+            return;
         }
+
+        // Verifica si el horario de compra/devolución está habilitado
+        if (!$this->estadoCompra()) {
+            $data = [
+                'titulo' => 'Devolver Compras',
+                'alerta' => "<p>Fuera del horario de devolución</p><p>La devolución se realiza desde el Lunes hasta el Viernes a las {$this->config->item('hora_final')}</p>"
+            ];
+            $this->load->view('usuario/header', $data);
+            $this->load->view('alerta_comedor_cerrado', $data);
+            $this->load->view('general/footer');
+            return; // Detener ejecución
+        }
+
+        // datos del usuario logueado
+        $id_usuario = $this->session->userdata('id_usuario');
+        $usuario = $this->ticket_model->getUserById($id_usuario);
+        // el costo de la vianda
+        $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio); 
+        $saldoUser = $usuario->saldo; // Saldo actual del usuario
+
+        // RANGO DE FECHAS PARA LAS COMPRAS ELEGIBLES PARA DEVOLUCIÓN ---
+        // Este rango reflejará la lógica de 4 semanas a partir de la fecha actual.
+
+        // 1. Encuentra el lunes de la semana actual (base para el cálculo de 4 semanas)
+        $currentDate = new DateTime();
+        $mondayOfCurrentWeek = clone $currentDate;
+        if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes (1=lunes, 7=domingo)
+            $mondayOfCurrentWeek->modify('last monday'); // Retrocede al lunes anterior
+        }
+
+        // 2. Calcula la fecha del viernes de la cuarta semana a partir de ese lunes
+        $endOfFourthWeek = clone $mondayOfCurrentWeek;
+        $endOfFourthWeek->modify('+3 weeks'); // Avanza al lunes de la 4ª semana (semana 0, 1, 2, 3)
+        $endOfFourthWeek->modify('+4 days');  // Avanza 4 días desde ese lunes para llegar al viernes
+        
+        // 3. Establece el rango de fechas para la consulta de devoluciones
+        $start_date = date('Y-m-d'); // Las devoluciones son para viandas futuras, por lo tanto, desde hoy
+        $end_date = $endOfFourthWeek->format('Y-m-d'); // Hasta el viernes de la cuarta semana
+
+        // Caso de seguridad: Si por alguna razón la fecha de inicio es posterior a la de fin
+        if ($start_date > $end_date) {
+            $end_date = $start_date; 
+        }
+
+        log_message('debug', 'DevolverCompra: Rango de fechas para devoluciones: ' . $start_date . ' a ' . $end_date);
+
+        // Obtiene las compras del usuario en el rango definido.
+        $data['compras'] = $this->ticket_model->getComprasInRangeByIdUser($start_date, $end_date, $id_usuario);
+
+        $data['titulo'] = 'Devolucion de compras';
+        $data['devolucion'] = TRUE; // Bandera para la vista
+
+        // --- MANEJO DE LA SOLICITUD POST (cuando el usuario envía el formulario) ---
+        if ($this->input->method() == 'post') {
+            log_message('debug', 'DevolverCompra: Recibida solicitud POST.');
+            $ids_a_devolver = $this->input->post('devolver'); // Captura el array de IDs de los checkboxes
+
+            if (!empty($ids_a_devolver) && is_array($ids_a_devolver)) {
+                log_message('debug', 'DevolverCompra: IDs a devolver: ' . json_encode($ids_a_devolver));
+                $n_devolucion = 0; // Contador de devoluciones exitosas
+                $monto_total_devolucion = 0; // Suma total del dinero a devolver
+                $log_compras_insertadas_ids = []; // Para guardar IDs temporales de log_compra
+
+                foreach ($ids_a_devolver as $id_compra) {
+                    $compra = $this->ticket_model->getCompraById($id_compra); // Obtiene los detalles de la compra por su ID
+
+                    if ($compra && $compra->id_usuario == $id_usuario) {
+                        $data_log = [
+                            'fecha' => date('Y-m-d', time()),
+                            'hora' => date('H:i:s', time()),
+                            'dia_comprado' => $compra->dia_comprado,
+                            'id_usuario' => $id_usuario,
+                            'precio' => $compra->precio,
+                            'tipo' => $compra->tipo, 
+                            'turno' => $compra->turno,
+                            'menu' => $compra->menu,
+                            'transaccion_tipo' => 'Devolucion', 
+                            'transaccion_id' => -$id_usuario
+                        ];
+                        
+                        // Llama al modelo para eliminar la compra
+                        // Este método realiza un DELETE del registro de la compra.
+                        if ($this->ticket_model->removeCompra($id_compra)) { 
+                            $this->ticket_model->addLogCompra($data_log); // Registra la devolución en el log
+                            $log_id_temp = $this->db->insert_id(); // Obtiene el ID del log insertado
+                            $log_compras_insertadas_ids[] = $log_id_temp; // Guarda el ID temporal
+
+                            $n_devolucion++; // Incrementa el contador de devoluciones
+                            $monto_total_devolucion += $compra->precio; // Suma el precio de esta vianda al total a devolver
+                            log_message('debug', 'DevolverCompra: Compra ID ' . $id_compra . ' procesada para devolución (eliminada).');
+                        } else {
+                            log_message('error', 'DevolverCompra: Falló el proceso de eliminación de la compra ID: ' . $id_compra);                 
+                        }
+                    } else {
+                        log_message('warning', 'DevolverCompra: Intento de devolver compra inválida o no elegible: ' . $id_compra);
+                        // Mensaje si se intenta devolver una vianda que no cumple las reglas
+                    }
+                }
+
+                // Si se realizaron devoluciones exitosas
+                if ($n_devolucion > 0) {
+                    // Actualiza el saldo del usuario con el monto total devuelto
+                    $nuevo_saldo = $saldoUser + $monto_total_devolucion;
+                    $this->ticket_model->updateSaldoByIDUser($id_usuario, $nuevo_saldo);
+                    log_message('debug', 'DevolverCompra: Saldo de usuario ' . $id_usuario . ' actualizado a: ' . $nuevo_saldo);
+
+                    // Genera la transacción de devolución en la tabla de transacciones
+                    $transaction_devolucion = [
+                        'fecha' => date('Y-m-d', time()),
+                        'hora' => date('H:i:s', time()),
+                        'id_usuario' => $id_usuario,
+                        'transaccion' => 'Devolucion',
+                        'monto' => $monto_total_devolucion, // Monto total devuelto
+                        'saldo' => $nuevo_saldo // Saldo final después de la devolución
+                    ];
+                    $id_transaccion_real = $this->ticket_model->addTransaccion($transaction_devolucion);
+                    log_message('debug', 'DevolverCompra: Transacción de devolución creada con ID: ' . $id_transaccion_real);
+
+                    // Actualiza los registros de log_compra con el ID de transacción real
+                    foreach ($log_compras_insertadas_ids as $log_id) {
+                        $this->ticket_model->updateTransactionInLogCompraByID($log_id, $id_transaccion_real);
+                    }
+                    log_message('debug', 'DevolverCompra: Logs de compra actualizados con transacción real ID: ' . $id_transaccion_real);
+
+                    // Mensaje de éxito y redirección a la página de confirmación
+                    $this->session->set_flashdata('success', 'Se han devuelto ' . $n_devolucion . ' vianda(s) exitosamente. Tu saldo ha sido actualizado.');
+                    $this->session->set_flashdata('transaccion', $id_transaccion_real); // Pasa el ID de la transacción real
+                    redirect(base_url('usuario/devolver/success'));
+                } else {
+                    log_message('info', 'DevolverCompra: No se pudo devolver ninguna compra o no se seleccionaron viandas válidas.');
+                    $this->session->set_flashdata('info', 'No se pudieron devolver las viandas seleccionadas o no seleccionaste ninguna vianda válida para devolver.');
+                    redirect(base_url('usuario/devolver_compra')); // Redirige para refrescar y mostrar el mensaje
+                }
+            } else {
+                log_message('warning', 'DevolverCompra: No se seleccionaron compras para devolver (array vacío).');
+                $this->session->set_flashdata('info', 'Por favor, selecciona al menos una vianda para devolver.');
+                redirect(base_url('usuario/devolver_compra')); // Redirige para refrescar y mostrar el mensaje
+            }
+        } 
+        // --- FIN DEL MANEJO POST ---
+
+        // Si es una solicitud GET (carga inicial de la página) o después de una redirección POST,
+        // se carga la vista para mostrar las viandas disponibles.
+        $this->load->view('usuario/header', $data);
+        $this->load->view('usuario/devolver_compra', $data);
+        $this->load->view('general/footer');
     }
 
         public function devolverCompraSuccess()

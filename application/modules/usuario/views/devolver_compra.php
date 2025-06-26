@@ -1,6 +1,6 @@
 <?php setlocale(LC_ALL, "spanish"); ?>
 <?php
-    $diasSemana=[
+    $diasSemana = [
         "Monday"    => "Lunes",
         "Tuesday"   => "Martes",
         "Wednesday" => "Miércoles",
@@ -9,7 +9,7 @@
         "Saturday"  => "Sábado",
         "Sunday"    => "Domingo"
     ];
-    $meses=[
+    $meses = [
         "January"   => "Enero",
         "February"  => "Febrero",
         "March"     => "Marzo",
@@ -23,46 +23,76 @@
         "November"  => "Noviembre",
         "December"  => "Diciembre"
     ];
+
+    // Mapeo para nombres de turno amigables
+    $turnos = [
+        'manana' => 'Mañana (Mediodía)',
+        'noche'  => 'Noche'
+    ];
 ?>
 
-<div class="row justify-content-center">
-    <?php if (!empty($compras)) : ?>
+<div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-11 col-md-7 col-xl-6 text-center my-5">
-            <h1 class="text-center"> Devolver compras </h1>
-        <div style="background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 15px 20px; margin: 20px 0; border-radius: 4px; font-family: Arial, sans-serif; color: #31708f;">
-        <p style="margin: 0; font-size: 16px; line-height: 1.5;">
-            <strong>Advertencia:</strong> Cuando realiza la devolución de una compra, el importe se acredita como saldo en su cuenta de Mercado Pago.  
-            En la siguiente compra, dicho saldo se aplicará automáticamente para cubrir el total o parte del monto.  
-            Si el saldo es suficiente para cubrir el pago completo, la transacción se efectuará únicamente con ese saldo.
-        </p>
-        </div>
+        <div class="col-12 col-md-10 col-lg-9">
+            <div class="card shadow-lg mb-5 border-0">
+                <div id="card-titulo" class="card-header bg-primary text-white text-center py-3">
+                    <div><img class="header-logo img-fluid mx-auto d-block" src="<?= base_url('assets/img/utn.png'); ?>" alt="Logo UTN FRLP"></div>
+                    <div><h2 class="my-0 fw-bold">Ticket Web - Devolución de Viandas - UTN FRLP</h2></div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info d-flex align-items-center mb-4 border-0" role="alert">
+                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                        <div>
+                            <strong>Advertencia:</strong> Cuando realiza la devolución de una compra, el importe se acredita como saldo en su cuenta.
+                            Este saldo se aplicará automáticamente en sus próximas compras.
+                        </div>
+                    </div>
 
-            <?= form_open(current_url()); ?>
-            <?php foreach ($compras as $compra) : ?>
-            <div class="input-group mb-3">
-                <div class="form-check form-switch">
-                    <label class="form-check-label" for="flexSwitchCheckDefault">Devolver comedor del
-                        <b><?= $diasSemana[date('l', strtotime($compra->dia_comprado))].', '.date('d', strtotime($compra->dia_comprado)).' de '.$meses[date('F', strtotime($compra->dia_comprado))]; ?></b>
-                        (Menu: <b><?= $compra->menu; ?></b>)
-                    </label>
-                    <input class="form-check-input" type="checkbox" role="switch"
-                        name="devolver_<?= date("N", strtotime($compra->dia_comprado)) - 1; ?>"
-                        value=" <?= $compra->id; ?>">
+                    <?php if (!empty($compras)) : ?>
+                        <h1 class="text-center mb-4">Gestionar Devoluciones</h1>
+                        
+                        <?= form_open(current_url()); ?>
+                            <?php foreach ($compras as $compra) : ?>
+                                <div class="card mb-3 shadow-sm">
+                                    <div class="card-body d-flex align-items-center justify-content-between p-3">
+                                        <div class="form-check form-switch flex-grow-1">
+                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                id="devolver_<?= $compra->id; ?>"
+                                                name="devolver[]"
+                                                value="<?= $compra->id; ?>">
+                                            <label class="form-check-label ms-2" for="devolver_<?= $compra->id; ?>">
+                                                Devolver vianda del 
+                                                <b><?= $diasSemana[date('l', strtotime($compra->dia_comprado))]; ?>, 
+                                                <?= date('d', strtotime($compra->dia_comprado)); ?> de 
+                                                <?= $meses[date('F', strtotime($compra->dia_comprado))]; ?></b>
+                                                (Turno: <b><?= $turnos[$compra->turno]; ?></b> | Menú: <b><?= $compra->menu; ?></b>)
+                                            </label>
+                                        </div>
+                                        <span class="badge bg-secondary ms-auto me-2">Costo:</span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <div class="d-grid gap-3 d-md-flex justify-content-md-center mt-4">
+                                <button type="submit" id="btnDevolver" class="btn btn-danger btn-lg flex-fill py-3">
+                                    <i class="bi bi-arrow-return-left me-2"></i> Confirmar Devolución
+                                </button>
+                                <button type="reset" id="btnReset" class="btn btn-warning btn-lg flex-fill py-3">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i> Reiniciar Selección
+                                </button>
+                            </div>
+                        <?= form_close(); ?>
+
+                    <?php else : ?>
+                        <div class="text-center my-5">
+                            <h3 class="mb-4">No existen compras realizadas que puedan ser devueltas.</h3>
+                            <a href="<?= base_url('usuario'); ?>" class="btn btn-primary btn-lg">
+                                <i class="bi bi-cart-plus me-2"></i> Comprar Viandas
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
-            <?php endforeach; ?>
-            <button type="submit" id="btnCompra" class="btn btn-danger mx-3">Devolver</button>
-            <button type="reset" id="btnReset" class="btn btn-warning mx-3">Reset</button>
-            <?= form_close(); ?>
         </div>
     </div>
-    <?php else : ?>
-    <div class="row justify-content-center">
-        <h1 class="text-center"> No existen compras realizadas para la proxima semana </h1>
-        <div class="btn-group col-4" role="group" aria-label="Basic example">
-            <a href=" <?= base_url('usuario'); ?>" class="btn btn-info mx-3">Comprar</a>
-        </div>
-    </div>
-    <?php endif; ?>
 </div>
