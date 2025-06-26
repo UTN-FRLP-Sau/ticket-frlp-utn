@@ -72,9 +72,10 @@ body {
 .btn-close {
     font-size: 0.85rem;
 }
-
-
-
+/* Etiqueta se Comprado en el menu de compra de viandas */
+.badge.bg-secondary {
+    background-color: #198754 !important;
+}
 /* Estilos para el contenedor del carrusel de días */
 .days-carousel-container {
     display: flex; /* Alinea los elementos hijos (columnas de día) horizontalmente */

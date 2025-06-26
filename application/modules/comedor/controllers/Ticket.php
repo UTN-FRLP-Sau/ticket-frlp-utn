@@ -75,25 +75,21 @@ class Ticket extends CI_Controller
                 $weeksData = [];
                 $all_dates_in_range = []; // Para almacenar todas las fechas de todas las semanas
 
+                // fecha y hora actual con la zona horaria
+                $currentDateTime = new DateTime('now');
+                $currentDate = new DateTime($currentDateTime->format('Y-m-d')); // Solo la fecha de hoy, sin la hora
+
                 // Obtiene el lunes de la semana actual
-                $currentDate = new DateTime();
                 $mondayOfCurrentWeek = clone $currentDate;
                 if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes, va al lunes más cercano anterior
                     $mondayOfCurrentWeek->modify('last monday');
                 }
 
+                // Primera iteración para recolectar todas las fechas y hacer una única consulta
                 for ($w = 0; $w < $numWeeksToDisplay; $w++) {
-                    $week = [];
                     $mondayOfThisWeek = clone $mondayOfCurrentWeek;
                     $mondayOfThisWeek->modify('+' . $w . ' week');
 
-                    // Define el rango de fechas para cada semana
-                    $weekStartDate = $mondayOfThisWeek->format('Y-m-d');
-                    $fridayOfThisWeek = clone $mondayOfThisWeek;
-                    $fridayOfThisWeek->modify('+4 days'); // Lunes + 4 días = Viernes
-                    $weekEndDate = $fridayOfThisWeek->format('Y-m-d');
-
-                    // Almacenar todas las fechas para una única consulta de comprados y feriados
                     for ($d = 0; $d < 5; $d++) { // Lunes a Viernes
                         $dayDate = clone $mondayOfThisWeek;
                         $dayDate->modify('+' . $d . ' day');
@@ -102,8 +98,12 @@ class Ticket extends CI_Controller
                 }
                 
                 // Realizar una única consulta para todas las compras y feriados dentro del rango total
-                $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser(min($all_dates_in_range), max($all_dates_in_range), $id_usuario);
-                $feriados_total = $this->ticket_model->getFeriadosInRange(min($all_dates_in_range), max($all_dates_in_range));
+                $minDateRange = !empty($all_dates_in_range) ? min($all_dates_in_range) : date('Y-m-d');
+                $maxDateRange = !empty($all_dates_in_range) ? max($all_dates_in_range) : date('Y-m-d');
+
+
+                $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser($minDateRange, $maxDateRange, $id_usuario);
+                $feriados_total = $this->ticket_model->getFeriadosInRange($minDateRange, $maxDateRange);
 
                 // Formatea los comprados para fácil acceso
                 $comprados_con_turno = [];
@@ -122,23 +122,24 @@ class Ticket extends CI_Controller
                         $dayDate->modify('+' . $d . ' day');
 
                         $date_ymd = $dayDate->format('Y-m-d');
-                        // Usamos date('w') para el índice del día de la semana (0=domingo, 1=lunes)
-                        // y luego lo mapeamos a los nombres de los días en español.
                         $dayOfWeekNumber = $dayDate->format('N'); // 1 (for Monday) through 7 (for Sunday)
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-                        $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajusta indice para el array
+                        $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajuste de indice para el array
 
                         $dia_comprado_mediodia = in_array($date_ymd . '_manana', $comprados_con_turno);
                         $dia_comprado_noche = in_array($date_ymd . '_noche', $comprados_con_turno);
                         $es_feriado = in_array($date_ymd, array_column($feriados_total, 'fecha'));
+                        
+                        $es_pasado = ($dayDate < $currentDate); // Compara la fecha de la vianda con la fecha actual (solo día)
 
                         $week[] = [
-                            'day_name' => $dayName,
-                            'date_display' => $dayDate->format('d'),
-                            'date_ymd' => $date_ymd,
+                            'day_name'          => $dayName,
+                            'date_display'      => $dayDate->format('d'),
+                            'date_ymd'          => $date_ymd,
                             'comprado_mediodia' => $dia_comprado_mediodia,
-                            'comprado_noche' => $dia_comprado_noche,
-                            'es_feriado' => $es_feriado
+                            'comprado_noche'    => $dia_comprado_noche,
+                            'es_feriado'        => $es_feriado,
+                            'es_pasado'         => $es_pasado
                         ];
                     }
                     $weeksData[] = $week;
