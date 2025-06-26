@@ -169,6 +169,9 @@ class Ticket_model extends CI_Model
             $n_compras++;
         }
 
+        $saldo_actual_usuario = $this->getSaldoByIDUser($compra->id_usuario);
+        $saldo_final_transaccion = $saldo_actual_usuario - $saldo_utilizado;
+
         // Registramos una única transacción para todo el saldo utilizado
         $data_transaccion = [
             'fecha' => date('Y-m-d'),
@@ -176,7 +179,7 @@ class Ticket_model extends CI_Model
             'id_usuario' => $compra->id_usuario,
             'transaccion' => 'Compra con saldo',
             'monto' => -$saldo_utilizado,
-            'saldo' => null
+            'saldo' => $saldo_final_transaccion
         ];
 
         $id_transaccion = $this->addTransaccion($data_transaccion);
@@ -200,7 +203,7 @@ class Ticket_model extends CI_Model
         // Actualizamos saldo en tabla usuarios
         $saldo_actual = $this->getSaldoByIDUser($compra->id_usuario);
         $saldo_nuevo = $saldo_actual - $saldo_utilizado;
-        if (!$this->updateSaldoByIDUser($compra->id_usuario, $saldo_nuevo)) {
+        if (!$this->updateSaldoByIDUser($compra->id_usuario, $saldo_final_transaccion)) {
             $this->db->trans_rollback();
             return false;
         }
