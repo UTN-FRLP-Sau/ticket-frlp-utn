@@ -71,7 +71,7 @@ class Ticket extends CI_Controller
         if ($this->estadoComedor()) {
             if ($this->estadoCompra()) {
 
-                $numWeeksToDisplay = 4; // Define semanas a mostrar
+                $numWeeksToDisplay = 5; // Define 5 semanas a mostrar
                 $weeksData = [];
                 $all_dates_in_range = []; // Para almacenar todas las fechas de todas las semanas
 
@@ -97,7 +97,7 @@ class Ticket extends CI_Controller
                     }
                 }
                 
-                // Realizar una única consulta para todas las compras y feriados dentro del rango total
+                // Realiza una única consulta para todas las compras y feriados dentro del rango total
                 $minDateRange = !empty($all_dates_in_range) ? min($all_dates_in_range) : date('Y-m-d');
                 $maxDateRange = !empty($all_dates_in_range) ? max($all_dates_in_range) : date('Y-m-d');
 
@@ -105,10 +105,10 @@ class Ticket extends CI_Controller
                 $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser($minDateRange, $maxDateRange, $id_usuario);
                 $feriados_total = $this->ticket_model->getFeriadosInRange($minDateRange, $maxDateRange);
 
-                // Formatea los comprados para fácil acceso
+                // Formatea los comprados para fácil acceso, incluyendo el tipo de menú
                 $comprados_con_turno = [];
                 foreach ($compras_usuario_total as $compra) {
-                    $comprados_con_turno[] = $compra->dia_comprado . '_' . $compra->turno;
+                    $comprados_con_turno[$compra->dia_comprado][$compra->turno] = $compra->menu;
                 }
                 
                 // Itera para construir la estructura de datos para la vista
@@ -116,6 +116,37 @@ class Ticket extends CI_Controller
                     $week = [];
                     $mondayOfThisWeek = clone $mondayOfCurrentWeek;
                     $mondayOfThisWeek->modify('+' . $w . ' week');
+
+                    // Determinar si es la semana actual para deshabilitar la compra
+                    $isCurrentWeek = ($w === 0);
+
+                    // Calcula el viernes de la semana actual
+                    $fridayOfThisWeek = clone $mondayOfThisWeek;
+                    $fridayOfThisWeek->modify('+4 days'); // Lunes + 4 días = Viernes
+
+                    // Formatea la fecha del lunes para el título de la semana
+                    $weekStartDateDisplay = $mondayOfThisWeek->format('d \d\e F');
+                    // Formatea la fecha del viernes para el título de la semana
+                    $weekEndDateDisplay = $fridayOfThisWeek->format('d \d\e F');
+                    
+                    // Para que 'F' (nombre del mes) esté en español
+                    $meses = array(
+                        'January' => 'Enero',
+                        'February' => 'Febrero',
+                        'March' => 'Marzo',
+                        'April' => 'Abril',
+                        'May' => 'Mayo',
+                        'June' => 'Junio',
+                        'July' => 'Julio',
+                        'August' => 'Agosto',
+                        'September' => 'Septiembre',
+                        'October' => 'Octubre',
+                        'November' => 'Noviembre',
+                        'December' => 'Diciembre'
+                    );
+                    $weekStartDateDisplay = strtr($weekStartDateDisplay, $meses);
+                    $weekEndDateDisplay = strtr($weekEndDateDisplay, $meses); // Traduce el mes del viernes
+
 
                     for ($d = 0; $d < 5; $d++) { // Lunes a Viernes
                         $dayDate = clone $mondayOfThisWeek;
@@ -126,11 +157,20 @@ class Ticket extends CI_Controller
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
                         $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajuste de indice para el array
 
-                        $dia_comprado_mediodia = in_array($date_ymd . '_manana', $comprados_con_turno);
-                        $dia_comprado_noche = in_array($date_ymd . '_noche', $comprados_con_turno);
+                        // Obtiene el tipo de menú comprado para cada turno
+                        $comprado_mediodia_menu = isset($comprados_con_turno[$date_ymd]['manana']) ? $comprados_con_turno[$date_ymd]['manana'] : null;
+                        $comprado_noche_menu = isset($comprados_con_turno[$date_ymd]['noche']) ? $comprados_con_turno[$date_ymd]['noche'] : null;
+
+                        // Determina si hay compra
+                        $dia_comprado_mediodia = ($comprado_mediodia_menu !== null);
+                        $dia_comprado_noche = ($comprado_noche_menu !== null);
+
                         $es_feriado = in_array($date_ymd, array_column($feriados_total, 'fecha'));
                         
                         $es_pasado = ($dayDate < $currentDate); // Compara la fecha de la vianda con la fecha actual (solo día)
+                        // Si es la semana actual, las compras están deshabilitadas
+                        $disable_purchase = $isCurrentWeek || $es_pasado || $es_feriado;
+
 
                         $week[] = [
                             'day_name'          => $dayName,
@@ -138,11 +178,19 @@ class Ticket extends CI_Controller
                             'date_ymd'          => $date_ymd,
                             'comprado_mediodia' => $dia_comprado_mediodia,
                             'comprado_noche'    => $dia_comprado_noche,
+                            'comprado_mediodia_menu' => $comprado_mediodia_menu,
+                            'comprado_noche_menu'    => $comprado_noche_menu,
                             'es_feriado'        => $es_feriado,
-                            'es_pasado'         => $es_pasado
+                            'es_pasado'         => $es_pasado,
+                            'disable_purchase'  => $disable_purchase
                         ];
                     }
-                    $weeksData[] = $week;
+                    $weeksData[] = [
+                        'week_index' => $w,
+                        'week_start_date_display' => $weekStartDateDisplay,
+                        'week_end_date_display'   => $weekEndDateDisplay, // Fecha de fin de la semana
+                        'days' => $week
+                    ];
                 }
 
                 $data = [

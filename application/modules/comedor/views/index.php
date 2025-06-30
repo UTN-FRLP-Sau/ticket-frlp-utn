@@ -28,25 +28,41 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     <input type="number" id="costoVianda" value="<?= $costoVianda; ?>" hidden>
 
                     <form method="post" action="<?= base_url('usuario/comprar'); ?>" id="formCompraId">
-                        <?php foreach ($weeksData as $weekIndex => $week): ?>
+                        <?php foreach ($weeksData as $week): ?>
+                            <?php
+                                $weekIndex = $week['week_index'];
+                                $weekDays = $week['days'];
+                                $weekStartDateDisplay = $week['week_start_date_display']; // Obtenemos la fecha del lunes
+                                $weekEndDateDisplay = $week['week_end_date_display'];     // Obtenemos la fecha del viernes
+
+                                // Definición del título de la semana para incluir el rango
+                                if ($weekIndex === 0) {
+                                    $weekTitle = 'Esta Semana';
+                                } else {
+                                    $weekTitle = 'Semana del ' . $weekStartDateDisplay . ' al ' . $weekEndDateDisplay;
+                                }
+                            ?>
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header bg-light py-3">
-                                    <h5 class="mb-0 fw-bold text-center">Semana <?= $weekIndex + 1 ?></h5>
+                                    <h5 class="mb-0 fw-bold text-center"><?= $weekTitle ?></h5>
                                 </div>
                                 <div class="card-body p-3">
                                     <div class="days-carousel-container d-flex overflow-auto pb-3">
-                                        <?php foreach ($week as $dayData): ?>
+                                        <?php foreach ($weekDays as $dayData): ?>
                                             <?php
                                                 $date_ymd = $dayData['date_ymd'];
                                                 $dayName = $dayData['day_name']; // 'lunes', 'martes', etc.
                                                 $date_display = $dayData['date_display']; // Solo el día del mes
                                                 $comprado_mediodia = $dayData['comprado_mediodia'];
                                                 $comprado_noche = $dayData['comprado_noche'];
+                                                $comprado_mediodia_menu = $dayData['comprado_mediodia_menu'];
+                                                $comprado_noche_menu = $dayData['comprado_noche_menu'];
                                                 $es_feriado = $dayData['es_feriado'];
                                                 $es_pasado = $dayData['es_pasado'];
+                                                $disable_purchase = $dayData['disable_purchase'];
                                             ?>
                                             <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
-                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?>">
+                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?> <?= $disable_purchase ? 'meal-disabled' : '' ?>">
                                                     <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : 'bg-light' ?> py-2">
                                                         <h6 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h6>
                                                         <?php if ($es_feriado): ?>
@@ -56,14 +72,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="card-body">
-                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $es_feriado || $es_pasado) ? 'meal-disabled' : '' ?>">
+                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase) ? 'meal-disabled' : '' ?>">
                                                             <div class="form-check custom-checkbox d-flex align-items-center">
                                                                 <input class="form-check-input meal-checkbox check-vianda"
                                                                         type="checkbox"
                                                                         id="check<?= $date_ymd ?>Manana"
                                                                         name="check[<?= $date_ymd ?>][manana]"
                                                                         value="manana"
-                                                                        <?= ($comprado_mediodia || $es_feriado || $es_pasado) ? 'checked disabled' : '' ?>
+                                                                        <?= $comprado_mediodia ? 'checked' : '' ?>
+                                                                        <?= $disable_purchase ? 'disabled' : '' ?>
                                                                         data-date="<?= $date_ymd ?>"
                                                                         data-time="manana">
                                                                 <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Manana">
@@ -72,11 +89,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             </div>
                                                             <?php if ($comprado_mediodia): ?>
                                                                 <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado</span>
+                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_mediodia || $es_feriado || $es_pasado) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][manana]" <?= ($comprado_mediodia || $es_feriado || $es_pasado) ? 'disabled' : '' ?>>
+                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_mediodia || $disable_purchase) ? 'd-none' : '' ?>">
+                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][manana]" <?= ($comprado_mediodia || $disable_purchase) ? 'disabled' : '' ?>>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
                                                                     <option value="Celiaco">Sin TACC</option>
@@ -86,14 +103,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
                                                         <hr class="my-3">
 
-                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $es_feriado || $es_pasado) ? 'meal-disabled' : '' ?>">
+                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase) ? 'meal-disabled' : '' ?>">
                                                             <div class="form-check custom-checkbox d-flex align-items-center">
                                                                 <input class="form-check-input meal-checkbox check-vianda"
                                                                         type="checkbox"
                                                                         id="check<?= $date_ymd ?>Noche"
                                                                         name="check[<?= $date_ymd ?>][noche]"
                                                                         value="noche"
-                                                                        <?= ($comprado_noche || $es_feriado || $es_pasado) ? 'checked disabled' : '' ?>
+                                                                        <?= $comprado_noche ? 'checked' : '' ?>
+                                                                        <?= $disable_purchase ? 'disabled' : '' ?>
                                                                         data-date="<?= $date_ymd ?>"
                                                                         data-time="noche">
                                                                 <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Noche">
@@ -102,11 +120,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             </div>
                                                             <?php if ($comprado_noche): ?>
                                                                 <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado</span>
+                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_noche || $es_feriado || $es_pasado) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][noche]" <?= ($comprado_noche || $es_feriado || $es_pasado) ? 'disabled' : '' ?>>
+                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_noche || $disable_purchase) ? 'd-none' : '' ?>">
+                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][noche]" <?= ($comprado_noche || $disable_purchase) ? 'disabled' : '' ?>>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
                                                                     <option value="Celiaco">Sin TACC</option>
@@ -237,7 +255,8 @@ $(document).ready(function() {
         const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
         const selectElement = optionsDiv.find('select');
 
-        if (this.checked) {
+        // Check if the checkbox is checked AND not disabled
+        if (this.checked && !$(this).prop('disabled')) {
             optionsDiv.removeClass('d-none');
             selectElement.prop('disabled', false);
         } else {
@@ -269,7 +288,6 @@ $(document).ready(function() {
         const totalAPagarModal = Math.max(0, costoTotalViandas - saldoUsuario);
 
         if (cantidadViandasSeleccionadas === 0) {
-            // Esto debería ser manejado por el `disabled` del botón, pero es una buena validación extra.
             alert('Por favor seleccione al menos una vianda para comprar.');
             return;
         }
@@ -312,9 +330,16 @@ $(document).ready(function() {
 
         // Re-aplicar el estado 'checked disabled' y 'd-none' a los elementos que deben permanecer así
         // (comprados o feriados)
-        $('.meal-checkbox[checked][disabled]').each(function() {
-            $(this).closest('.meal-time-block').find('.vianda-options').addClass('d-none');
-            $(this).closest('.meal-time-block').find('.vianda-options select').prop('disabled', true);
+        $('.meal-checkbox[disabled]').each(function() { // Solo considera los deshabilitados por PHP
+            const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
+            const selectElement = optionsDiv.find('select');
+            
+            // Si el checkbox está marcado (lo que implica que fue comprado y deshabilitado desde PHP)
+            // o si simplemente está deshabilitado por lógica de negocio (pasado, feriado, semana actual)
+            if ($(this).prop('checked') || $(this).prop('disabled')) {
+                optionsDiv.addClass('d-none');
+                selectElement.prop('disabled', true);
+            }
         });
 
         actualizarTotal(); // Actualiza el total al resetear
@@ -325,6 +350,8 @@ $(document).ready(function() {
     $('.meal-checkbox').each(function() {
         const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
         const selectElement = optionsDiv.find('select');
+        // Si el checkbox está marcado (lo que implica que ya está comprado)
+        // O si está deshabilitado (lo que implica que es un día pasado, feriado, o de la semana actual donde no se permiten compras nuevas)
         if (this.checked || $(this).prop('disabled')) {
             optionsDiv.addClass('d-none');
             selectElement.prop('disabled', true);
