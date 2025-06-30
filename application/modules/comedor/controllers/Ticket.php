@@ -197,7 +197,8 @@ class Ticket extends CI_Controller
                     'titulo' => 'Comprar Viandas',
                     'usuario' => $usuario,
                     'weeksData' => $weeksData, // pasamos los datos estructurados por semana
-                    'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
+                    'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio),
+                    'permitir_ambos_turnos_mismo_dia' => $this->config->item('permitir_ambos_turnos_mismo_dia') // AÑADIDO
                 ];
 
                 $this->load->view('usuario/header', $data);
@@ -239,6 +240,13 @@ class Ticket extends CI_Controller
 
         if (!empty($postChecks)) {
             foreach ($postChecks as $date_ymd => $turnosSeleccionados) {
+                $permitir_ambos_turnos = $this->config->item('permitir_ambos_turnos_mismo_dia');
+                if (!$permitir_ambos_turnos && isset($turnosSeleccionados['manana']) && isset($turnosSeleccionados['noche'])) {
+                    log_message('error', 'Intento de compra dual de vianda para ' . $date_ymd . ' cuando la restricción está activa. Ignorando Noche.');
+                    unset($turnosSeleccionados['noche']); 
+
+                }
+
                 foreach ($turnosSeleccionados as $turno => $value) {
                     $tipoServicio = "Comer aqui"; 
                     $menuSeleccionado = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;

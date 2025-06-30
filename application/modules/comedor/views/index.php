@@ -221,6 +221,9 @@ $(document).ready(function() {
     const costoViandaUnitario = parseFloat($('#costoVianda').val());
     const saldoUsuarioInicial = parseFloat($('#saldoCuenta').val());
 
+    // Obtenemos el valor de la nueva variable PHP para la restricción
+    const permitirAmbosTurnosMismoDia = <?= json_encode($permitir_ambos_turnos_mismo_dia); ?>;
+
     // Función para actualizar el total a pagar, la cantidad de viandas y el saldo aplicado
     function actualizarTotal() {
         const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
@@ -255,13 +258,51 @@ $(document).ready(function() {
         const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
         const selectElement = optionsDiv.find('select');
 
-        // Check if the checkbox is checked AND not disabled
+        // Lógica de visibilidad/estado de select basada en el propio checkbox
         if (this.checked && !$(this).prop('disabled')) {
             optionsDiv.removeClass('d-none');
             selectElement.prop('disabled', false);
         } else {
             optionsDiv.addClass('d-none');
             selectElement.prop('disabled', true);
+        }
+
+        // Lógica para la restricción de un solo turno por día
+        if (!permitirAmbosTurnosMismoDia) {
+            const currentCheckbox = $(this);
+            const dateYMD = currentCheckbox.data('date');
+            const currentTime = currentCheckbox.data('time');
+
+            const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
+            const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+            const otherCheckbox = $(otherCheckboxId);
+
+            if (currentCheckbox.is(':checked')) {
+                // Si el checkbox actual está marcado, deshabilita el del turno opuesto
+                otherCheckbox.prop('disabled', true);
+
+                if (otherCheckbox.is(':checked')) {
+                    otherCheckbox.prop('checked', false);
+                    otherCheckbox.trigger('change'); // Dispara el evento change para actualizar el UI y el total
+                }
+
+                // Oculta las opciones de menú para el turno deshabilitado si no está comprado
+                if (!otherCheckbox.is(':checked')) { // Solo si no estaba previamente comprado
+                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
+                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
+                }
+
+            } else { // Si el checkbox actual se desmarca
+                // Solo re-habilita el turno opuesto si NO fue deshabilitado por el backend
+                // (es decir, no tiene la clase 'meal-disabled' que indica deshabilita por PHP)
+                const isOtherCheckboxBackendDisabled = otherCheckbox.closest('.meal-time-block').hasClass('meal-disabled');
+
+                if (!isOtherCheckboxBackendDisabled) {
+                    otherCheckbox.prop('disabled', false);
+                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').removeClass('d-none');
+                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', false);
+                }
+            }
         }
         actualizarTotal(); // Actualiza el total al cambiar el estado del checkbox
     });
@@ -342,6 +383,37 @@ $(document).ready(function() {
             }
         });
 
+        // restricción de turno al reiniciar, para el estado inicial
+        if (!permitirAmbosTurnosMismoDia) {
+            $('.meal-checkbox').each(function() {
+                const currentCheckbox = $(this);
+                const dateYMD = currentCheckbox.data('date');
+                const currentTime = currentCheckbox.data('time');
+
+                const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
+                const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+                const otherCheckbox = $(otherCheckboxId);
+
+                // Si el checkbox actual está marcado (ej. si era una vianda ya comprada que no se resetea)
+                // Y la restricción de un turno por día está activa
+                // Y el otro turno no está ya comprado (o deshabilitado por PHP por ser un día no disponible)
+                const otherComprado = $(`input[name="check[${dateYMD}][${otherTime}]"]`).is(':checked');
+                // re-habilitar el checkbox opuesto si no está deshabilitado por backend
+                const isOtherCheckboxBackendDisabled = otherCheckbox.closest('.meal-time-block').hasClass('meal-disabled');
+
+                if (currentCheckbox.is(':checked') && !otherComprado) {
+                    otherCheckbox.prop('disabled', true);
+                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
+                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
+                } else if (!currentCheckbox.is(':checked') && !otherComprado && !isOtherCheckboxBackendDisabled) {
+                    // Si este checkbox no está marcado, el otro no está comprado y NO está deshabilitado por backend,
+                    // asegura que el otro esté habilitado.
+                    otherCheckbox.prop('disabled', false);
+                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').removeClass('d-none');
+                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', false);
+                }
+            });
+        }
         actualizarTotal(); // Actualiza el total al resetear
     });
 
@@ -357,5 +429,26 @@ $(document).ready(function() {
             selectElement.prop('disabled', true);
         }
     });
+
+    // Lógica para aplicar la restricción al cargar la página
+    if (!permitirAmbosTurnosMismoDia) {
+        $('.meal-checkbox[checked]').each(function() {
+            const currentCheckbox = $(this);
+            const dateYMD = currentCheckbox.data('date');
+            const currentTime = currentCheckbox.data('time');
+
+            const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
+            const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+            const otherCheckbox = $(otherCheckboxId);
+
+            // Si el actual está comprado, deshabilita el opuesto, a menos que el opuesto también esté comprado
+            const otherComprado = $(`input[name="check[${dateYMD}][${otherTime}]"]`).is(':checked');
+            if (!otherComprado) {
+                otherCheckbox.prop('disabled', true);
+                otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
+                otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
+            }
+        });
+    }
 });
 </script>
