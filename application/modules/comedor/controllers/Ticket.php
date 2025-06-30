@@ -379,12 +379,16 @@ class Ticket extends CI_Controller
         $endOfFourthWeek->modify('+4 days');  // Avanza 4 días desde ese lunes para llegar al viernes
         
         // 3. Establece el rango de fechas para la consulta de devoluciones
-        $start_date = date('Y-m-d'); // Las devoluciones son para viandas futuras, por lo tanto, desde hoy
-        $end_date = $endOfFourthWeek->format('Y-m-d'); // Hasta el viernes de la cuarta semana
 
-        // Caso de seguridad: Si por alguna razón la fecha de inicio es posterior a la de fin
+        $start_date_dt = new DateTime();
+        $start_date_dt->modify('next monday'); // Comienza desde el lunes siguiente
+        $start_date = $start_date_dt->format('Y-m-d');
+
+        $end_date = $endOfFourthWeek->format('Y-m-d'); // Hasta el viernes de la 4ta semana
+
+        // Seguridad: Si el inicio supera el fin, ajusta
         if ($start_date > $end_date) {
-            $end_date = $start_date; 
+            $end_date = $start_date;
         }
 
         log_message('debug', 'DevolverCompra: Rango de fechas para devoluciones: ' . $start_date . ' a ' . $end_date);
