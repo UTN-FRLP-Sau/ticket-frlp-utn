@@ -149,9 +149,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                             <span class="text-muted">Costo total de viandas:</span>
                                             <strong class="fs-5 text-primary" id="costoDisplay">$0.00</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <span class="text-muted">Saldo aplicado:</span>
-                                            <strong class="fs-5 text-success" id="saldoAplicadoDisplay">-$<?= number_format($usuario->saldo, 2) ?></strong>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-muted">Saldo disponible:</span>
+                                            <strong class="fs-5 text-primary" id="saldoInicialDisplay"></strong>
                                         </div>
                                         <hr class="my-3">
                                         <div class="d-flex justify-content-between align-items-center fw-bold fs-4">
@@ -239,6 +239,7 @@ $(document).ready(function() {
         $('#costoDisplay').text('$' + costoTotalViandas.toFixed(2));
         $('#saldoAplicadoDisplay').text('-$' + saldoAplicado.toFixed(2));
         $('#totalPagar').text('$' + totalAPagar.toFixed(2));
+        $('#saldoInicialDisplay').text('$' + saldoUsuarioInicial.toFixed(2));
 
         // Aplica color al total a pagar según si es mayor que 0 o no
         if (totalAPagar > 0) {
@@ -264,12 +265,13 @@ $(document).ready(function() {
             const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
             const otherSelect = $(otherSelectId);
 
-            // Solo aplicar la lógica si el otro select no está deshabilitado por el backend
-            const isOtherSelectBackendDisabled = otherSelect.prop('disabled');
+            // Determinar si el bloque del turno opuesto está deshabilitado por el backend
+            const isOtherTimeBlockBackendDisabled = otherSelect.closest('.meal-time-block').hasClass('meal-disabled');
 
             if (isCurrentlySelected) {
                 // Si el select actual tiene una opción de menú seleccionada, deshabilita el del turno opuesto
-                if (!isOtherSelectBackendDisabled) {
+                // Solo si no fue deshabilitado por el backend
+                if (!isOtherTimeBlockBackendDisabled) {
                     otherSelect.prop('disabled', true);
                     // Si el otro select tenía algo seleccionado, resetéalo
                     if (otherSelect.val() !== 'seleccionar') {
@@ -278,7 +280,7 @@ $(document).ready(function() {
                 }
             } else { // Si el select actual vuelve a "Seleccionar"
                 // Solo re-habilita el turno opuesto si NO fue deshabilitado por el backend
-                if (!isOtherSelectBackendDisabled) {
+                if (!isOtherTimeBlockBackendDisabled) {
                     otherSelect.prop('disabled', false);
                 }
             }
@@ -286,8 +288,40 @@ $(document).ready(function() {
         actualizarTotal(); // Actualiza el total al cambiar el estado del select
     });
 
+    // Función para aplicar la lógica de restricción de un solo turno por día
+    // Se utilizará tanto en la carga inicial como después de un reset
+    function applySingleTurnRestriction() {
+        if (!permitirAmbosTurnosMismoDia) {
+            $('.meal-time-block').each(function() {
+                const mealTimeBlock = $(this);
+                // If this meal time block is disabled by the backend (bought, holiday, etc.)
+                if (mealTimeBlock.hasClass('meal-disabled')) {
+                    const selectedMealSelect = mealTimeBlock.find('.meal-select');
+                    const dateYMD = selectedMealSelect.data('date');
+                    const currentTime = selectedMealSelect.data('time');
+
+                    const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
+                    const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+                    const otherMealTimeBlock = $(otherSelectId).closest('.meal-time-block');
+                    const otherSelect = otherMealTimeBlock.find('.meal-select');
+
+                    // If the other block is not already disabled by backend, disable it
+                    if (!otherMealTimeBlock.hasClass('meal-disabled')) {
+                        otherSelect.prop('disabled', true);
+                        if (otherSelect.val() !== 'seleccionar') {
+                            otherSelect.val('seleccionar'); // Reset if it had a selection
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+
     // Inicializa el total al cargar la página
     actualizarTotal();
+    // Aplica la restricción de un solo turno al cargar la página
+    applySingleTurnRestriction();
 
     // Confirmación antes de comprar (Modal)
     $('#btnCompra').click(function(e) {
@@ -296,7 +330,7 @@ $(document).ready(function() {
         const cantidadViandasSeleccionadas = $('.meal-select:not([disabled])').filter(function() {
             return $(this).val() !== 'seleccionar';
         }).length;
-        
+
         const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
         const saldoUsuario = saldoUsuarioInicial; // Usamos el saldo inicial del usuario
 
@@ -304,7 +338,7 @@ $(document).ready(function() {
         if (costoTotalViandas > 0) {
             saldoAplicadoModal = Math.min(costoTotalViandas, saldoUsuario);
         }
-        
+
         const totalAPagarModal = Math.max(0, costoTotalViandas - saldoUsuario);
 
         if (cantidadViandasSeleccionadas === 0) {
@@ -315,7 +349,7 @@ $(document).ready(function() {
         $('#modalCantidad').text(cantidadViandasSeleccionadas);
         $('#modalCostoTotal').text('$' + costoTotalViandas.toFixed(2));
         $('#modalSaldoAplicado').text('-$' + saldoAplicadoModal.toFixed(2)); // Mostrar como negativo para indicar que se resta
-        
+
         // Se actualiza directamente el span con el valor final
         $('#modalPagar').html('Total a pagar: <span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');
 
@@ -331,51 +365,50 @@ $(document).ready(function() {
 
     // Confirma la compra al hacer clic en el botón de confirmación del modal
     $('#confirmBuy').click(function() {
+        // Store original names
+        const originalNames = {};
+        $('.meal-select').each(function() {
+            const $this = $(this);
+            // If the select is not chosen ("seleccionar") or is disabled, remove its name attribute
+            if ($this.val() === 'seleccionar' || $this.prop('disabled')) {
+                originalNames[$this.attr('id')] = $this.attr('name');
+                $this.removeAttr('name'); // Remove name to prevent submission
+            }
+        });
+
+        // Submit the form
         $('#formCompraId').submit();
+
+        // Restore original names after a short delay to ensure submission completes
+        // This is important so the client-side logic continues to work correctly after submission
+        setTimeout(function() {
+            for (const id in originalNames) {
+                $(`#${id}`).attr('name', originalNames[id]);
+            }
+        }, 100);
     });
 
     // Botón reiniciar selección
     $('#btnReset').click(function() {
         // Reiniciar todos los selects que NO están deshabilitados por PHP
-        $('.meal-select:not([disabled])').val('seleccionar');
+        $('.meal-select:not(.meal-disabled)').val('seleccionar'); // Excluir los que están deshabilitados por backend
 
         // Re-habilitar los selects que fueron deshabilitados por la lógica de un solo turno por día,
         // siempre y cuando no estuvieran deshabilitados por el backend inicialmente.
         if (!permitirAmbosTurnosMismoDia) {
-            $('.meal-select').each(function() {
-                const currentSelect = $(this);
-                // Si el select no estaba deshabilitado por PHP, asegúrate de que esté habilitado.
-                const isBackendDisabled = currentSelect.closest('.meal-time-block').hasClass('meal-disabled');
-                if (!isBackendDisabled) {
-                    currentSelect.prop('disabled', false);
+            $('.meal-time-block').each(function() {
+                const mealTimeBlock = $(this);
+                // Si el bloque de tiempo NO está deshabilitado por el backend, asegurarse de que su select esté habilitado.
+                if (!mealTimeBlock.hasClass('meal-disabled')) {
+                    mealTimeBlock.find('.meal-select').prop('disabled', false);
                 }
             });
+            // Después de resetear y re-habilitar, vuelve a aplicar la lógica de restricción
+            // Esto es crucial para que si un turno está comprado/feriado, el otro se deshabilite correctamente.
+            applySingleTurnRestriction();
         }
         actualizarTotal(); // Actualiza el total al resetear
     });
 
-    // Lógica para aplicar la restricción al cargar la página (para selects ya seleccionados/comprados)
-    if (!permitirAmbosTurnosMismoDia) {
-        $('.meal-select').each(function() {
-            const currentSelect = $(this);
-            // Solo si el select está deshabilitado por backend (lo que implica que fue comprado)
-            if (currentSelect.prop('disabled') && currentSelect.val() !== 'seleccionar') {
-                const dateYMD = currentSelect.data('date');
-                const currentTime = currentSelect.data('time');
-                const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
-                const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
-                const otherSelect = $(otherSelectId);
-
-                // Si el otro select no está ya deshabilitado por backend (ej. si no ha sido comprado),
-                // entonces deshabilitarlo.
-                if (!otherSelect.prop('disabled')) {
-                    otherSelect.prop('disabled', true);
-                    if (otherSelect.val() !== 'seleccionar') {
-                        otherSelect.val('seleccionar');
-                    }
-                }
-            }
-        });
-    }
 });
 </script>

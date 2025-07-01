@@ -235,23 +235,32 @@ class Ticket extends CI_Controller
         $seleccion = [];
         $totalCompraCalculado = 0;
 
-        $postChecks = $this->input->post('check');
         $postMenus = $this->input->post('selectMenu');
+        $erroresCompra = []; // Array para acumular mensajes de error
+        $seleccion = []; 
+        $totalCompraCalculado = 0;
 
-        if (!empty($postChecks)) {
-            foreach ($postChecks as $date_ymd => $turnosSeleccionados) {
+        if (!empty($postMenus)) {
+            foreach ($postMenus as $date_ymd => $turnosData) {
                 $permitir_ambos_turnos = $this->config->item('permitir_ambos_turnos_mismo_dia');
-                if (!$permitir_ambos_turnos && isset($turnosSeleccionados['manana']) && isset($turnosSeleccionados['noche'])) {
-                    log_message('error', 'Intento de compra dual de vianda para ' . $date_ymd . ' cuando la restricción está activa. Ignorando Noche.');
-                    unset($turnosSeleccionados['noche']); 
+                $selectedTurnsForDay = [];
 
+                foreach (['manana', 'noche'] as $turno) {
+                    if (isset($turnosData[$turno]) && !empty($turnosData[$turno])) {
+                        $selectedTurnsForDay[$turno] = $turnosData[$turno];
+                    }
                 }
 
-                foreach ($turnosSeleccionados as $turno => $value) {
-                    $tipoServicio = "Comer aqui"; 
-                    $menuSeleccionado = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;
+                // si se seleccionan ambos y no está permitido, generar error
+                if (!$permitir_ambos_turnos && count($selectedTurnsForDay) > 1) {
+                    $erroresCompra[] = "Error: Para el día " . date('d/m/Y', strtotime($date_ymd)) . " solo se permite seleccionar un turno de vianda (mañana o noche), no ambos.";
+                    $selectedTurnsForDay = []; // Limpiar las selecciones para este día
+                    log_message('error', 'Intento de compra dual de vianda para ' . $date_ymd . ' cuando la restricción está activa. Se ha impedido la compra para este día.');
+                }
 
-                    if ($menuSeleccionado) { 
+                foreach ($selectedTurnsForDay as $turno => $menuSeleccionado) {
+                    $tipoServicio = "Comer aqui"; 
+                    if ($menuSeleccionado) {
                         $dayOfWeek = new DateTime($date_ymd);
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
                         $dia_semana_nombre = $spanishDayNames[$dayOfWeek->format('N') - 1];
@@ -262,16 +271,26 @@ class Ticket extends CI_Controller
                             'tipo' => $tipoServicio,
                             'turno' => $turno,
                             'menu' => $menuSeleccionado,
-                            'precio' => $costoVianda // El precio de una vianda individual
+                            'precio' => $costoVianda
                         ];
-                        $totalCompraCalculado += $costoVianda; // Sumamos el costo de cada vianda al total
+                        $totalCompraCalculado += $costoVianda;
                     }
                 }
             }
         }
-        
+
+        //  Verifica si hay errores de validación específicos
+        if (!empty($erroresCompra)) {
+            $this->session->set_flashdata('error_compra', $erroresCompra);
+            redirect(base_url('comedor/ticket')); // Redirige a la página principal de selección con los errores
+            return;
+        }
+
+        //  Verifica si, después de todo el procesamiento y filtrado, no quedó nada en $seleccion
+        // Esto captura casos donde el formulario se envió vacío o todas las selecciones fueron invalidadas.
         if (empty($seleccion)) {
-            redirect(base_url('comedor/ticket'));
+            redirect(base_url('comedor/ticket')); // Redirige a la página principal de selección
+            return; // Detener la ejecución
         }
 
         $external_reference = $id_usuario . '-' . time();
@@ -446,7 +465,7 @@ class Ticket extends CI_Controller
                             $monto_total_devolucion += $compra->precio; // Suma el precio de esta vianda al total a devolver
                             log_message('debug', 'DevolverCompra: Compra ID ' . $id_compra . ' procesada para devolución (eliminada).');
                         } else {
-                            log_message('error', 'DevolverCompra: Falló el proceso de eliminación de la compra ID: ' . $id_compra);                 
+                            log_message('error', 'DevolverCompra: Falló el proceso de eliminación de la compra ID: ' . $id_compra);          
                         }
                     } else {
                         log_message('warning', 'DevolverCompra: Intento de devolver compra inválida o no elegible: ' . $id_compra);
