@@ -383,7 +383,7 @@ class Ticket extends CI_Controller
 
         // 2. Calcula la fecha del viernes de la cuarta semana a partir de ese lunes
         $endOfFourthWeek = clone $mondayOfCurrentWeek;
-        $endOfFourthWeek->modify('+3 weeks'); // Avanza al lunes de la 4ª semana (semana 0, 1, 2, 3)
+        $endOfFourthWeek->modify('+4 weeks'); // Avanza al lunes de la 5ª semana (semana 0, 1, 2, 3)
         $endOfFourthWeek->modify('+4 days');  // Avanza 4 días desde ese lunes para llegar al viernes
         
         // 3. Establece el rango de fechas para la consulta de devoluciones
