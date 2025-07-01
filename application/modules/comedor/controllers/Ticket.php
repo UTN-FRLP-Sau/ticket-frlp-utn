@@ -197,7 +197,8 @@ class Ticket extends CI_Controller
                     'titulo' => 'Comprar Viandas',
                     'usuario' => $usuario,
                     'weeksData' => $weeksData, // pasamos los datos estructurados por semana
-                    'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio)
+                    'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio),
+                    'permitir_ambos_turnos_mismo_dia' => $this->config->item('permitir_ambos_turnos_mismo_dia') // AÑADIDO
                 ];
 
                 $this->load->view('usuario/header', $data);
@@ -239,6 +240,13 @@ class Ticket extends CI_Controller
 
         if (!empty($postChecks)) {
             foreach ($postChecks as $date_ymd => $turnosSeleccionados) {
+                $permitir_ambos_turnos = $this->config->item('permitir_ambos_turnos_mismo_dia');
+                if (!$permitir_ambos_turnos && isset($turnosSeleccionados['manana']) && isset($turnosSeleccionados['noche'])) {
+                    log_message('error', 'Intento de compra dual de vianda para ' . $date_ymd . ' cuando la restricción está activa. Ignorando Noche.');
+                    unset($turnosSeleccionados['noche']); 
+
+                }
+
                 foreach ($turnosSeleccionados as $turno => $value) {
                     $tipoServicio = "Comer aqui"; 
                     $menuSeleccionado = isset($postMenus[$date_ymd][$turno]) ? $postMenus[$date_ymd][$turno] : null;
@@ -373,18 +381,18 @@ class Ticket extends CI_Controller
             $mondayOfCurrentWeek->modify('last monday'); // Retrocede al lunes anterior
         }
 
-        // 2. Calcula la fecha del viernes de la quinta semana mostrada (cuarta semana futura) a partir de ese lunes
-        $endOfFifthDisplayedWeek = clone $mondayOfCurrentWeek;
-        $endOfFifthDisplayedWeek->modify('+4 weeks'); // Avanza al lunes de la 5ª semana (semana 0, 1, 2, 3, 4)
-        $endOfFifthDisplayedWeek->modify('+4 days');  // Avanza 4 días desde ese lunes para llegar al viernes
+        // 2. Calcula la fecha del viernes de la cuarta semana a partir de ese lunes
+        $endOfFourthWeek = clone $mondayOfCurrentWeek;
+        $endOfFourthWeek->modify('+3 weeks'); // Avanza al lunes de la 4ª semana (semana 0, 1, 2, 3)
+        $endOfFourthWeek->modify('+4 days');  // Avanza 4 días desde ese lunes para llegar al viernes
         
         // 3. Establece el rango de fechas para la consulta de devoluciones
-        // La fecha de inicio para las devoluciones es el próximo lunes, como regla de negocio.
+
         $start_date_dt = new DateTime();
-        $start_date_dt->modify('next monday');
+        $start_date_dt->modify('next monday'); // Comienza desde el lunes siguiente
         $start_date = $start_date_dt->format('Y-m-d');
 
-        $end_date = $endOfFifthDisplayedWeek->format('Y-m-d'); // Hasta el viernes de la 5ta semana mostrada (4ta semana futura)
+        $end_date = $endOfFourthWeek->format('Y-m-d'); // Hasta el viernes de la 4ta semana
 
         // Seguridad: Si el inicio supera el fin, ajusta
         if ($start_date > $end_date) {
