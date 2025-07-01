@@ -33,7 +33,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                 $weekIndex = $week['week_index'];
                                 $weekDays = $week['days'];
                                 $weekStartDateDisplay = $week['week_start_date_display']; // Obtenemos la fecha del lunes
-                                $weekEndDateDisplay = $week['week_end_date_display'];     // Obtenemos la fecha del viernes
+                                $weekEndDateDisplay = $week['week_end_date_display'];    // Obtenemos la fecha del viernes
 
                                 // Definición del título de la semana para incluir el rango
                                 if ($weekIndex === 0) {
@@ -58,21 +58,24 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                 $comprado_mediodia_menu = $dayData['comprado_mediodia_menu'];
                                                 $comprado_noche_menu = $dayData['comprado_noche_menu'];
                                                 $es_feriado = $dayData['es_feriado'];
+                                                $es_receso_invernal = $dayData['es_receso_invernal'] ?? false; // Nuevo flag para receso invernal
                                                 $es_pasado = $dayData['es_pasado'];
-                                                $disable_purchase = $dayData['disable_purchase'];
+                                                $disable_purchase = $dayData['disable_purchase']; // This already includes backend disability (bought, holiday)
                                             ?>
                                             <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
-                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?> <?= $disable_purchase ? 'meal-disabled' : '' ?>">
-                                                    <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : 'bg-light' ?> py-2">
+                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?> <?= $es_receso_invernal ? 'border-info' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?> <?= $disable_purchase ? 'meal-disabled' : '' ?>">
+                                                    <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : ($es_receso_invernal ? 'bg-info text-white' : 'bg-light') ?> py-2">
                                                         <h6 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h6>
-                                                        <?php if ($es_feriado): ?>
+                                                        <?php if ($es_receso_invernal): ?>
+                                                            <span class="badge bg-primary text-white"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
+                                                        <?php elseif ($es_feriado): ?>
                                                             <span class="badge bg-warning text-dark"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
                                                         <?php elseif ($es_pasado): ?>
                                                             <span class="badge bg-info text-dark"><i class="bi bi-clock-history me-1"></i>Pasado</span>
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="card-body">
-                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase) ? 'meal-disabled' : '' ?>">
+                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
                                                             <div class="d-flex align-items-center">
                                                                 <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Manana">
                                                                     <i class="bi bi-sun me-2"></i>Mediodía
@@ -85,11 +88,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             <?php endif; ?>
                                                             <div class="vianda-options mt-2">
                                                                 <select class="form-select form-select-sm meal-select"
-                                                                        id="select<?= $date_ymd ?>Manana"
-                                                                        name="selectMenu[<?= $date_ymd ?>][manana]"
-                                                                        data-date="<?= $date_ymd ?>"
-                                                                        data-time="manana"
-                                                                        <?= ($comprado_mediodia || $disable_purchase) ? 'disabled' : '' ?>>
+                                                                            id="select<?= $date_ymd ?>Manana"
+                                                                            name="selectMenu[<?= $date_ymd ?>][manana]"
+                                                                            data-date="<?= $date_ymd ?>"
+                                                                            data-time="manana"
+                                                                            <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
                                                                     <option value="seleccionar" selected>Seleccionar</option>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
@@ -100,7 +103,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
                                                         <hr class="my-3">
 
-                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase) ? 'meal-disabled' : '' ?>">
+                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
                                                             <div class="d-flex align-items-center">
                                                                 <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Noche">
                                                                     <i class="bi bi-moon me-2"></i>Noche
@@ -113,11 +116,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             <?php endif; ?>
                                                             <div class="vianda-options mt-2">
                                                                 <select class="form-select form-select-sm meal-select"
-                                                                        id="select<?= $date_ymd ?>Noche"
-                                                                        name="selectMenu[<?= $date_ymd ?>][noche]"
-                                                                        data-date="<?= $date_ymd ?>"
-                                                                        data-time="noche"
-                                                                        <?= ($comprado_noche || $disable_purchase) ? 'disabled' : '' ?>>
+                                                                            id="select<?= $date_ymd ?>Noche"
+                                                                            name="selectMenu[<?= $date_ymd ?>][noche]"
+                                                                            data-date="<?= $date_ymd ?>"
+                                                                            data-time="noche"
+                                                                            <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
                                                                     <option value="seleccionar" selected>Seleccionar</option>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
@@ -195,7 +198,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             <div class="modal-body">
                 <p>Está a punto de comprar <strong id="modalCantidad">0</strong> viandas.</p>
                 <p>Costo total de viandas: <strong class="text-primary" id="modalCostoTotal">$0.00</strong>.</p>
-                <p>Se aplicará su saldo de <strong class="text-success" id="modalSaldoAplicado">$0.00</strong>.</p>
+                <p>Saldo disponible: <strong class="text-success" id="modalSaldoAplicado">$0.00</strong>.</p>
                 <p class="fw-bold fs-5 mt-3">Total a pagar: <span id="modalPagar">$0.00</span></p>
                 <p class="mt-4 text-center">¿Desea continuar con esta operación?</p>
             </div>
@@ -265,7 +268,7 @@ $(document).ready(function() {
             const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
             const otherSelect = $(otherSelectId);
 
-            // Determinar si el bloque del turno opuesto está deshabilitado por el backend
+            // Determinar si el bloque del turno opuesto está deshabilitado por el backend (incluyendo feriado/receso invernal)
             const isOtherTimeBlockBackendDisabled = otherSelect.closest('.meal-time-block').hasClass('meal-disabled');
 
             if (isCurrentlySelected) {
@@ -294,7 +297,7 @@ $(document).ready(function() {
         if (!permitirAmbosTurnosMismoDia) {
             $('.meal-time-block').each(function() {
                 const mealTimeBlock = $(this);
-                // If this meal time block is disabled by the backend (bought, holiday, etc.)
+                // Si este bloque de tiempo está deshabilitado por el backend (comprado, feriado, receso invernal, etc.)
                 if (mealTimeBlock.hasClass('meal-disabled')) {
                     const selectedMealSelect = mealTimeBlock.find('.meal-select');
                     const dateYMD = selectedMealSelect.data('date');
@@ -305,11 +308,11 @@ $(document).ready(function() {
                     const otherMealTimeBlock = $(otherSelectId).closest('.meal-time-block');
                     const otherSelect = otherMealTimeBlock.find('.meal-select');
 
-                    // If the other block is not already disabled by backend, disable it
+                    // Si el otro bloque no está ya deshabilitado por backend, deshabilitarlo
                     if (!otherMealTimeBlock.hasClass('meal-disabled')) {
                         otherSelect.prop('disabled', true);
                         if (otherSelect.val() !== 'seleccionar') {
-                            otherSelect.val('seleccionar'); // Reset if it had a selection
+                            otherSelect.val('seleccionar'); // Resetear si tenía una selección
                         }
                     }
                 }
@@ -348,7 +351,7 @@ $(document).ready(function() {
 
         $('#modalCantidad').text(cantidadViandasSeleccionadas);
         $('#modalCostoTotal').text('$' + costoTotalViandas.toFixed(2));
-        $('#modalSaldoAplicado').text('-$' + saldoAplicadoModal.toFixed(2)); // Mostrar como negativo para indicar que se resta
+        $('#modalSaldoAplicado').text('$' + saldoUsuario.toFixed(2));
 
         // Se actualiza directamente el span con el valor final
         $('#modalPagar').html('Total a pagar: <span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');

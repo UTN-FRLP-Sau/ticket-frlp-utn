@@ -433,6 +433,55 @@ body {
 }
 
 
+
+/* Background color for the card body */
+.day-option-card .card-header.bg-danger {
+    background-color: #ff0018 !important;
+    color: white !important;
+}
+
+
+/* Border color for the card (red) */
+.border-danger {
+    border-color: #ff0000 !important; /* Example: Orange */
+}
+
+/* Background color for the card header (darker red) */
+.bg-danger {
+    background-color: #ff0000 !important; /* Example: OrangeRed */
+}
+
+
+
+/* Custom styles for Winter Recess Cards */
+
+
+
+/* Background color for the card body */
+.bg-light-info {
+    background-color: #bbbfe4 !important; /* Light purple */
+}
+
+/* Border color for the card */
+.border-info {
+    border-color: #00b7ff !important; /* Medium purple */
+}
+
+/* Background color for the card header */
+.bg-info {
+    background-color: #2397d1 !important; /* Darker purple */
+}
+
+/* Text color for the header if needed (it's already white by text-white) */
+ .bg-info.text-white {
+    color: white !important;
+}
+
+.text-muted {
+    color: #323232 !important;
+}
+
+
 /* Responsive Adjustments */
 @media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
     .days-carousel-container {

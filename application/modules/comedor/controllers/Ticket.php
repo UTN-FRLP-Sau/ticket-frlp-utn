@@ -71,6 +71,10 @@ class Ticket extends CI_Controller
         if ($this->estadoComedor()) {
             if ($this->estadoCompra()) {
 
+                $configuracion = $this->ticket_model->getConfiguracion(); // Obtener configuración aquí para las vacaciones
+                $vacaciones_invierno_inicio = $configuracion[0]->vacaciones_i;
+                $vacaciones_invierno_fin = $configuracion[0]->vacaciones_f;
+
                 $numWeeksToDisplay = 5; // Define 5 semanas a mostrar
                 $weeksData = [];
                 $all_dates_in_range = []; // Para almacenar todas las fechas de todas las semanas
@@ -165,6 +169,8 @@ class Ticket extends CI_Controller
                         $dia_comprado_mediodia = ($comprado_mediodia_menu !== null);
                         $dia_comprado_noche = ($comprado_noche_menu !== null);
 
+                        $es_receso_invernal = ($dayDate >= new DateTime($vacaciones_invierno_inicio) && $dayDate <= new DateTime($vacaciones_invierno_fin));
+
                         $es_feriado = in_array($date_ymd, array_column($feriados_total, 'fecha'));
                         
                         $es_pasado = ($dayDate < $currentDate); // Compara la fecha de la vianda con la fecha actual (solo día)
@@ -173,16 +179,17 @@ class Ticket extends CI_Controller
 
 
                         $week[] = [
-                            'day_name'          => $dayName,
-                            'date_display'      => $dayDate->format('d'),
-                            'date_ymd'          => $date_ymd,
-                            'comprado_mediodia' => $dia_comprado_mediodia,
-                            'comprado_noche'    => $dia_comprado_noche,
+                            'day_name'            => $dayName,
+                            'date_display'        => $dayDate->format('d'),
+                            'date_ymd'            => $date_ymd,
+                            'comprado_mediodia'   => $dia_comprado_mediodia,
+                            'comprado_noche'      => $dia_comprado_noche,
                             'comprado_mediodia_menu' => $comprado_mediodia_menu,
-                            'comprado_noche_menu'    => $comprado_noche_menu,
-                            'es_feriado'        => $es_feriado,
-                            'es_pasado'         => $es_pasado,
-                            'disable_purchase'  => $disable_purchase
+                            'comprado_noche_menu'      => $comprado_noche_menu,
+                            'es_feriado'          => $es_feriado,
+                            'es_pasado'           => $es_pasado,
+                            'es_receso_invernal'  => $es_receso_invernal,
+                            'disable_purchase'    => $disable_purchase
                         ];
                     }
                     $weeksData[] = [
@@ -198,7 +205,10 @@ class Ticket extends CI_Controller
                     'usuario' => $usuario,
                     'weeksData' => $weeksData, // pasamos los datos estructurados por semana
                     'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio),
-                    'permitir_ambos_turnos_mismo_dia' => $this->config->item('permitir_ambos_turnos_mismo_dia') // AÑADIDO
+                    'permitir_ambos_turnos_mismo_dia' => $this->config->item('permitir_ambos_turnos_mismo_dia'), // AÑADIDO
+                    // NUEVO: Pasa las fechas de vacaciones de invierno a la vista
+                    'vacaciones_invierno_inicio' => $vacaciones_invierno_inicio,
+                    'vacaciones_invierno_fin' => $vacaciones_invierno_fin
                 ];
 
                 $this->load->view('usuario/header', $data);
