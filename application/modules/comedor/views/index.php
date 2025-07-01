@@ -73,17 +73,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                     </div>
                                                     <div class="card-body">
                                                         <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase) ? 'meal-disabled' : '' ?>">
-                                                            <div class="form-check custom-checkbox d-flex align-items-center">
-                                                                <input class="form-check-input meal-checkbox check-vianda"
-                                                                        type="checkbox"
-                                                                        id="check<?= $date_ymd ?>Manana"
-                                                                        name="check[<?= $date_ymd ?>][manana]"
-                                                                        value="manana"
-                                                                        <?= $comprado_mediodia ? 'checked' : '' ?>
-                                                                        <?= $disable_purchase ? 'disabled' : '' ?>
-                                                                        data-date="<?= $date_ymd ?>"
-                                                                        data-time="manana">
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Manana">
+                                                            <div class="d-flex align-items-center">
+                                                                <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Manana">
                                                                     <i class="bi bi-sun me-2"></i>Mediodía
                                                                 </label>
                                                             </div>
@@ -92,8 +83,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                     <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_mediodia || $disable_purchase) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][manana]" <?= ($comprado_mediodia || $disable_purchase) ? 'disabled' : '' ?>>
+                                                            <div class="vianda-options mt-2">
+                                                                <select class="form-select form-select-sm meal-select"
+                                                                        id="select<?= $date_ymd ?>Manana"
+                                                                        name="selectMenu[<?= $date_ymd ?>][manana]"
+                                                                        data-date="<?= $date_ymd ?>"
+                                                                        data-time="manana"
+                                                                        <?= ($comprado_mediodia || $disable_purchase) ? 'disabled' : '' ?>>
+                                                                    <option value="seleccionar" selected>Seleccionar</option>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
                                                                     <option value="Celiaco">Sin TACC</option>
@@ -104,17 +101,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                         <hr class="my-3">
 
                                                         <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase) ? 'meal-disabled' : '' ?>">
-                                                            <div class="form-check custom-checkbox d-flex align-items-center">
-                                                                <input class="form-check-input meal-checkbox check-vianda"
-                                                                        type="checkbox"
-                                                                        id="check<?= $date_ymd ?>Noche"
-                                                                        name="check[<?= $date_ymd ?>][noche]"
-                                                                        value="noche"
-                                                                        <?= $comprado_noche ? 'checked' : '' ?>
-                                                                        <?= $disable_purchase ? 'disabled' : '' ?>
-                                                                        data-date="<?= $date_ymd ?>"
-                                                                        data-time="noche">
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="check<?= $date_ymd ?>Noche">
+                                                            <div class="d-flex align-items-center">
+                                                                <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Noche">
                                                                     <i class="bi bi-moon me-2"></i>Noche
                                                                 </label>
                                                             </div>
@@ -123,8 +111,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                     <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
-                                                            <div class="vianda-options mt-2 ps-3 <?= ($comprado_noche || $disable_purchase) ? 'd-none' : '' ?>">
-                                                                <select class="form-select form-select-sm" name="selectMenu[<?= $date_ymd ?>][noche]" <?= ($comprado_noche || $disable_purchase) ? 'disabled' : '' ?>>
+                                                            <div class="vianda-options mt-2">
+                                                                <select class="form-select form-select-sm meal-select"
+                                                                        id="select<?= $date_ymd ?>Noche"
+                                                                        name="selectMenu[<?= $date_ymd ?>][noche]"
+                                                                        data-date="<?= $date_ymd ?>"
+                                                                        data-time="noche"
+                                                                        <?= ($comprado_noche || $disable_purchase) ? 'disabled' : '' ?>>
+                                                                    <option value="seleccionar" selected>Seleccionar</option>
                                                                     <option value="Basico">Menú Básico</option>
                                                                     <option value="Veggie">Menú Vegetariano</option>
                                                                     <option value="Celiaco">Sin TACC</option>
@@ -226,7 +220,11 @@ $(document).ready(function() {
 
     // Función para actualizar el total a pagar, la cantidad de viandas y el saldo aplicado
     function actualizarTotal() {
-        const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
+        // Contamos solo los selects que tienen un valor diferente de 'seleccionar' y no están deshabilitados
+        const cantidadViandasSeleccionadas = $('.meal-select:not([disabled])').filter(function() {
+            return $(this).val() !== 'seleccionar';
+        }).length;
+
         const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
 
         let saldoAplicado = 0;
@@ -253,62 +251,40 @@ $(document).ready(function() {
         $('#btnCompra').prop('disabled', cantidadViandasSeleccionadas === 0);
     }
 
-    // Alterna la visibilidad y el estado de los selects al cambiar el estado de los checkboxes
-    $(document).on('change', '.meal-checkbox', function() {
-        const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
-        const selectElement = optionsDiv.find('select');
+    // Lógica para la restricción de un solo turno por día
+    $(document).on('change', '.meal-select', function() {
+        const currentSelect = $(this);
+        const dateYMD = currentSelect.data('date');
+        const currentTime = currentSelect.data('time');
+        const isCurrentlySelected = currentSelect.val() !== 'seleccionar';
 
-        // Lógica de visibilidad/estado de select basada en el propio checkbox
-        if (this.checked && !$(this).prop('disabled')) {
-            optionsDiv.removeClass('d-none');
-            selectElement.prop('disabled', false);
-        } else {
-            optionsDiv.addClass('d-none');
-            selectElement.prop('disabled', true);
-        }
-
-        // Lógica para la restricción de un solo turno por día
+        // Si la restricción de un solo turno por día está activa
         if (!permitirAmbosTurnosMismoDia) {
-            const currentCheckbox = $(this);
-            const dateYMD = currentCheckbox.data('date');
-            const currentTime = currentCheckbox.data('time');
-
             const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
-            const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
-            const otherCheckbox = $(otherCheckboxId);
+            const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+            const otherSelect = $(otherSelectId);
 
-            if (currentCheckbox.is(':checked')) {
-                // Si el checkbox actual está marcado, deshabilita el del turno opuesto
-                otherCheckbox.prop('disabled', true);
+            // Solo aplicar la lógica si el otro select no está deshabilitado por el backend
+            const isOtherSelectBackendDisabled = otherSelect.prop('disabled');
 
-                if (otherCheckbox.is(':checked')) {
-                    otherCheckbox.prop('checked', false);
-                    otherCheckbox.trigger('change'); // Dispara el evento change para actualizar el UI y el total
+            if (isCurrentlySelected) {
+                // Si el select actual tiene una opción de menú seleccionada, deshabilita el del turno opuesto
+                if (!isOtherSelectBackendDisabled) {
+                    otherSelect.prop('disabled', true);
+                    // Si el otro select tenía algo seleccionado, resetéalo
+                    if (otherSelect.val() !== 'seleccionar') {
+                        otherSelect.val('seleccionar'); // Restablece a 'Seleccionar'
+                    }
                 }
-
-                // Oculta las opciones de menú para el turno deshabilitado si no está comprado
-                if (!otherCheckbox.is(':checked')) { // Solo si no estaba previamente comprado
-                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
-                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
-                }
-
-            } else { // Si el checkbox actual se desmarca
+            } else { // Si el select actual vuelve a "Seleccionar"
                 // Solo re-habilita el turno opuesto si NO fue deshabilitado por el backend
-                // (es decir, no tiene la clase 'meal-disabled' que indica deshabilita por PHP)
-                const isOtherCheckboxBackendDisabled = otherCheckbox.closest('.meal-time-block').hasClass('meal-disabled');
-
-                if (!isOtherCheckboxBackendDisabled) {
-                    otherCheckbox.prop('disabled', false);
-                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').removeClass('d-none');
-                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', false);
+                if (!isOtherSelectBackendDisabled) {
+                    otherSelect.prop('disabled', false);
                 }
             }
         }
-        actualizarTotal(); // Actualiza el total al cambiar el estado del checkbox
+        actualizarTotal(); // Actualiza el total al cambiar el estado del select
     });
-
-    // Actualiza el total al cambiar las opciones de vianda (los selects)
-    $(document).on('change', '.form-select', actualizarTotal);
 
     // Inicializa el total al cargar la página
     actualizarTotal();
@@ -317,7 +293,10 @@ $(document).ready(function() {
     $('#btnCompra').click(function(e) {
         e.preventDefault(); // Evita el envío directo del formulario
 
-        const cantidadViandasSeleccionadas = $('.check-vianda:checked:not(:disabled)').length;
+        const cantidadViandasSeleccionadas = $('.meal-select:not([disabled])').filter(function() {
+            return $(this).val() !== 'seleccionar';
+        }).length;
+        
         const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
         const saldoUsuario = saldoUsuarioInicial; // Usamos el saldo inicial del usuario
 
@@ -352,101 +331,49 @@ $(document).ready(function() {
 
     // Confirma la compra al hacer clic en el botón de confirmación del modal
     $('#confirmBuy').click(function() {
-        // Habilitar solo los selects de los checkboxes seleccionados y no deshabilitados
-        $('.check-vianda:checked:not(:disabled)').each(function() {
-            $(this).closest('.meal-time-block').find('.vianda-options select').prop('disabled', false);
-        });
         $('#formCompraId').submit();
     });
 
     // Botón reiniciar selección
     $('#btnReset').click(function() {
-        // Desmarcar todos los checkboxes que NO están deshabilitados
-        $('.check-vianda:not(:disabled)').prop('checked', false);
+        // Reiniciar todos los selects que NO están deshabilitados por PHP
+        $('.meal-select:not([disabled])').val('seleccionar');
 
-        // Ocultar todas las opciones de vianda y deshabilitar sus selects
-        // Esto incluye los que estaban deshabilitados por ser "pasado" o "comprado" para resetear su estado visual
-        $('.vianda-options').addClass('d-none');
-        $('.vianda-options select').prop('disabled', true);
-
-        // Re-aplicar el estado 'checked disabled' y 'd-none' a los elementos que deben permanecer así
-        // (comprados o feriados)
-        $('.meal-checkbox[disabled]').each(function() { // Solo considera los deshabilitados por PHP
-            const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
-            const selectElement = optionsDiv.find('select');
-            
-            // Si el checkbox está marcado (lo que implica que fue comprado y deshabilitado desde PHP)
-            // o si simplemente está deshabilitado por lógica de negocio (pasado, feriado, semana actual)
-            if ($(this).prop('checked') || $(this).prop('disabled')) {
-                optionsDiv.addClass('d-none');
-                selectElement.prop('disabled', true);
-            }
-        });
-
-        // restricción de turno al reiniciar, para el estado inicial
+        // Re-habilitar los selects que fueron deshabilitados por la lógica de un solo turno por día,
+        // siempre y cuando no estuvieran deshabilitados por el backend inicialmente.
         if (!permitirAmbosTurnosMismoDia) {
-            $('.meal-checkbox').each(function() {
-                const currentCheckbox = $(this);
-                const dateYMD = currentCheckbox.data('date');
-                const currentTime = currentCheckbox.data('time');
-
-                const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
-                const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
-                const otherCheckbox = $(otherCheckboxId);
-
-                // Si el checkbox actual está marcado (ej. si era una vianda ya comprada que no se resetea)
-                // Y la restricción de un turno por día está activa
-                // Y el otro turno no está ya comprado (o deshabilitado por PHP por ser un día no disponible)
-                const otherComprado = $(`input[name="check[${dateYMD}][${otherTime}]"]`).is(':checked');
-                // re-habilitar el checkbox opuesto si no está deshabilitado por backend
-                const isOtherCheckboxBackendDisabled = otherCheckbox.closest('.meal-time-block').hasClass('meal-disabled');
-
-                if (currentCheckbox.is(':checked') && !otherComprado) {
-                    otherCheckbox.prop('disabled', true);
-                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
-                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
-                } else if (!currentCheckbox.is(':checked') && !otherComprado && !isOtherCheckboxBackendDisabled) {
-                    // Si este checkbox no está marcado, el otro no está comprado y NO está deshabilitado por backend,
-                    // asegura que el otro esté habilitado.
-                    otherCheckbox.prop('disabled', false);
-                    otherCheckbox.closest('.meal-time-block').find('.vianda-options').removeClass('d-none');
-                    otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', false);
+            $('.meal-select').each(function() {
+                const currentSelect = $(this);
+                // Si el select no estaba deshabilitado por PHP, asegúrate de que esté habilitado.
+                const isBackendDisabled = currentSelect.closest('.meal-time-block').hasClass('meal-disabled');
+                if (!isBackendDisabled) {
+                    currentSelect.prop('disabled', false);
                 }
             });
         }
         actualizarTotal(); // Actualiza el total al resetear
     });
 
-    // Inicialmente oculta las opciones de vianda para checkboxes ya marcados (comprados) o deshabilitados (feriados/pasados)
-    // Esto se ejecuta una vez al cargar la página para el estado inicial.
-    $('.meal-checkbox').each(function() {
-        const optionsDiv = $(this).closest('.meal-time-block').find('.vianda-options');
-        const selectElement = optionsDiv.find('select');
-        // Si el checkbox está marcado (lo que implica que ya está comprado)
-        // O si está deshabilitado (lo que implica que es un día pasado, feriado, o de la semana actual donde no se permiten compras nuevas)
-        if (this.checked || $(this).prop('disabled')) {
-            optionsDiv.addClass('d-none');
-            selectElement.prop('disabled', true);
-        }
-    });
-
-    // Lógica para aplicar la restricción al cargar la página
+    // Lógica para aplicar la restricción al cargar la página (para selects ya seleccionados/comprados)
     if (!permitirAmbosTurnosMismoDia) {
-        $('.meal-checkbox[checked]').each(function() {
-            const currentCheckbox = $(this);
-            const dateYMD = currentCheckbox.data('date');
-            const currentTime = currentCheckbox.data('time');
+        $('.meal-select').each(function() {
+            const currentSelect = $(this);
+            // Solo si el select está deshabilitado por backend (lo que implica que fue comprado)
+            if (currentSelect.prop('disabled') && currentSelect.val() !== 'seleccionar') {
+                const dateYMD = currentSelect.data('date');
+                const currentTime = currentSelect.data('time');
+                const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
+                const otherSelectId = `#select${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
+                const otherSelect = $(otherSelectId);
 
-            const otherTime = (currentTime === 'manana') ? 'noche' : 'manana';
-            const otherCheckboxId = `#check${dateYMD}${otherTime.charAt(0).toUpperCase() + otherTime.slice(1)}`;
-            const otherCheckbox = $(otherCheckboxId);
-
-            // Si el actual está comprado, deshabilita el opuesto, a menos que el opuesto también esté comprado
-            const otherComprado = $(`input[name="check[${dateYMD}][${otherTime}]"]`).is(':checked');
-            if (!otherComprado) {
-                otherCheckbox.prop('disabled', true);
-                otherCheckbox.closest('.meal-time-block').find('.vianda-options').addClass('d-none');
-                otherCheckbox.closest('.meal-time-block').find('select').prop('disabled', true);
+                // Si el otro select no está ya deshabilitado por backend (ej. si no ha sido comprado),
+                // entonces deshabilitarlo.
+                if (!otherSelect.prop('disabled')) {
+                    otherSelect.prop('disabled', true);
+                    if (otherSelect.val() !== 'seleccionar') {
+                        otherSelect.val('seleccionar');
+                    }
+                }
             }
         });
     }

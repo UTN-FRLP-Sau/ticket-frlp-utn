@@ -17,7 +17,9 @@ body {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     overflow: hidden;
 }
-
+.col-lg-9 {
+    width: 100%;
+}    
 .header-logo {
     max-width: 50%;
     height: auto;
@@ -80,26 +82,23 @@ body {
 }
 /* Estilos para el contenedor del carrusel de días */
 .days-carousel-container {
-    display: flex; /* Alinea los elementos hijos (columnas de día) horizontalmente */
-    overflow-x: auto; /* Permite el scroll horizontal si el contenido es demasiado ancho */
-    flex-wrap: nowrap; /* Evita que los elementos se envuelvan a la siguiente línea */
-    -webkit-overflow-scrolling: touch; /* Para un scroll más suave en iOS */
-    padding-bottom: 1rem; /* Espacio para el scrollbar */
-    gap: 1rem; /* Espacio entre las columnas de día */
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
     /* scroll-snap-type: x mandatory; /* Opcional: para un "snap" al desplazar */
 }
 
 /* Estilos para cada columna de día dentro del carrusel */
 .day-column {
-    flex-shrink: 0; /* Evita que las columnas de día se achiquen */
-    min-width: 250px; /* Ancho mínimo para cada tarjeta de día */
-    /* Puedes ajustar el width si quieres que intenten ocupar más espacio,
-       pero `min-width` es clave para que no se achiquen demasiado */
-    /* width: 33%; */ /* Si quieres que intente mostrar 3 por fila, por ejemplo */
-    /* scroll-snap-align: start; /* Opcional: para el "snap" en cada columna */
+    flex: 1 1 250px; /* Crece, se encoge, tamaño base de 250px */
+    /* Quitar min-width fijo aquí para que flexbox controle el tamaño */
+    /* Ajustar max-width para forzar un número de columnas por fila en pantallas grandes */
+    max-width: calc(20% - 1rem); /* Ejemplo para 5 columnas por fila (100%/5 - gap) */
 }
 
-/* Estilos para el scrollbar (opcional, para navegadores WebKit como Chrome/Safari) */
+/* Estilos para el scrollbar */
 .days-carousel-container::-webkit-scrollbar {
     height: 8px; /* Altura de la barra de desplazamiento horizontal */
 }
@@ -189,7 +188,7 @@ body {
     border-color: #a2d2ff;
 }
 
-/* Custom Checkbox Styling */
+/* Custom Checkbox Styling (estos estilos ya no se usan si eliminaste los checkboxes) */
 .form-check.custom-checkbox {
     padding-left: 0;
     margin-bottom: 0.5rem;
@@ -250,12 +249,11 @@ body {
 /* Hidden Options (Selects) */
 .vianda-options {
     margin-top: 1rem;
-    padding-left: 1.5rem;
-    border-left: 3px solid #e9ecef;
     transition: all 0.3s ease-out;
     opacity: 1;
     max-height: 150px;
     overflow: hidden;
+
 }
 
 .vianda-options.d-none {
@@ -407,7 +405,7 @@ body {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* ==== Checkbox moderno ==== */
+/* ==== Checkbox moderno ==== (estos estilos ya no son necesarios si se eliminaron los checkboxes) */
 .custom-checkbox .form-check-input {
     width: 1.3em;
     height: 1.3em;
@@ -436,7 +434,25 @@ body {
 
 
 /* Responsive Adjustments */
-@media (max-width: 767.98px) {
+@media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
+    .days-carousel-container {
+        overflow-x: visible; /* Elimina la barra de desplazamiento horizontal si todos los elementos caben */
+        justify-content: center; /* Centra los días si no ocupan todo el ancho */
+    }
+    .day-column {
+        flex: 1 1 calc(20% - 1rem); /* Intenta mostrar 5 columnas por fila (100% / 5 - gap) */
+        max-width: calc(20% - 1rem);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) { /* Para tablets en portrait */
+    .day-column {
+        flex: 1 1 calc(33.33% - 1rem); /* Intenta mostrar 3 columnas por fila */
+        max-width: calc(33.33% - 1rem);
+    }
+}
+
+@media (max-width: 767.98px) { /* Para pantallas pequeñas (móviles) */
     .card-header h2 {
         font-size: 1.5rem;
     }
@@ -453,9 +469,16 @@ body {
         font-size: 0.95rem;
     }
 
-    .form-check-input.meal-checkbox {
-        width: 1.3em;
-        height: 1.3em;
+    /* Vuelve a comportarse como carrusel en pantallas pequeñas */
+    .days-carousel-container {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+    .day-column {
+        flex-shrink: 0; 
+        min-width: 250px; /* Mantiene un ancho mínimo para el scroll */
+        max-width: 250px; /* No permitir que se estiren demasiado en la vista de carrusel */
     }
 
     .vianda-options {

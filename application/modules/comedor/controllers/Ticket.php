@@ -372,9 +372,9 @@ class Ticket extends CI_Controller
         $saldoUser = $usuario->saldo; // Saldo actual del usuario
 
         // RANGO DE FECHAS PARA LAS COMPRAS ELEGIBLES PARA DEVOLUCIÓN ---
-        // Este rango reflejará la lógica de 4 semanas a partir de la fecha actual.
+        // Este rango reflejará la lógica de 5 semanas a partir de la fecha actual.
 
-        // 1. Encuentra el lunes de la semana actual (base para el cálculo de 4 semanas)
+        // 1. Encuentra el lunes de la semana actual (base para el cálculo de 5 semanas)
         $currentDate = new DateTime();
         $mondayOfCurrentWeek = clone $currentDate;
         if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes (1=lunes, 7=domingo)
