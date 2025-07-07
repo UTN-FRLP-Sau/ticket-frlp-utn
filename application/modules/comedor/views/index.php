@@ -150,16 +150,16 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="text-muted">Costo total de viandas:</span>
-                                            <strong class="fs-5 text-primary" id="costoDisplay">$0.00</strong>
+                                            <strong class="fs-5 text-danger" id="costoDisplay">$0.00</strong>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="text-muted">Saldo disponible:</span>
-                                            <strong class="fs-5 text-primary" id="saldoInicialDisplay"></strong>
+                                            <strong class="fs-5 text-success" id="saldoInicialDisplay"></strong>
                                         </div>
                                         <hr class="my-3">
                                         <div class="d-flex justify-content-between align-items-center fw-bold fs-4">
                                             <span>TOTAL A PAGAR:</span>
-                                            <span id="totalPagar">$0.00</span>
+                                            <span id="totalPagar" class="text-success">$0.00</span>
                                         </div>
                                     </div>
                                 </div>
@@ -197,7 +197,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             </div>
             <div class="modal-body">
                 <p>Está a punto de comprar <strong id="modalCantidad">0</strong> viandas.</p>
-                <p>Costo total de viandas: <strong class="text-primary" id="modalCostoTotal">$0.00</strong>.</p>
+                <p>Costo total de viandas: <strong class="text-danger" id="modalCostoTotal">$0.00</strong>.</p>
                 <p>Saldo disponible: <strong class="text-success" id="modalSaldoAplicado">$0.00</strong>.</p>
                 <p class="fw-bold fs-5 mt-3">Total a pagar: <span id="modalPagar">$0.00</span></p>
                 <p class="mt-4 text-center">¿Desea continuar con esta operación?</p>
