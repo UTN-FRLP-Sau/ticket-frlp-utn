@@ -35,6 +35,13 @@ body {
     font-size: 2rem;
 }
 
+#tarjetaSaldo{
+    display: flex;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: black;
+}
+
 .card-header {
     background-color: #007bff;
     color: rgb(0, 0, 0);

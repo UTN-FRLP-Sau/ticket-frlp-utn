@@ -11,19 +11,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     <div><h2 class="my-0 fw-bold">Ticket Web - Compra de Viandas - UTN FRLP</h2></div>
                 </div>
                 <div class="card-body p-4">
-                    <div class="alert alert-info d-flex align-items-center mb-4 border-0" role="alert">
+                    <div id="tarjetaSaldo" class="alert alert-info d-flex align-items-center mb-4 border-0" role="alert">
                         <i class="bi bi-wallet-fill me-3 fs-4"></i>
                         <div>
-                            <strong>Saldo disponible:</strong> $<span id="saldoUsuarioDisplay"><?= number_format($usuario->saldo, 2) ?></span> | Seleccione las viandas que desea adquirir.
+                            <strong>Saldo disponible:</strong> $<span id="saldoUsuarioDisplay"><?= number_format($usuario->saldo, 2) ?></span>
                         </div>
                     </div>
 
                     <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
                         <i class="bi bi-lightbulb-fill me-2"></i>
-                        <strong>Importante:</strong> El saldo se aplicará automáticamente. Si es suficiente, no necesitará pagar adicional. Si es parcial, solo abonará la diferencia.
+                        <strong>Importante:</strong> El saldo de tu cuenta se aplicará automáticamente para pagar la vianda. Si es suficiente, no necesitarás pagar adicionalmente. Si es parcial, solo abonarás la diferencia directamente a través de MercadoPago.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-
+                    <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
+                        <i class="bi bi-lightbulb-fill me-2"></i>
+                        <strong>Importante:</strong> La elección de una vianda turno mediodía o noche es excluyente. Solo podrás seleccionar la vianda de un solo turno en un mismo día.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     <input type="number" id="saldoCuenta" value="<?= $usuario->saldo; ?>" hidden>
                     <input type="number" id="costoVianda" value="<?= $costoVianda; ?>" hidden>
 

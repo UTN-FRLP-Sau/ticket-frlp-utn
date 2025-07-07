@@ -26,7 +26,7 @@
 
     // Mapeo para nombres de turno amigables
     $turnos = [
-        'manana' => 'Mañana (Mediodía)',
+        'manana' => 'Mediodía',
         'noche'  => 'Noche'
     ];
 ?>
@@ -62,11 +62,11 @@
                                                 value="<?= $compra->id; ?>"
                                                 data-precio="<?= $compra->precio;?>">
                                             <label class="form-check-label ms-2" for="devolver_<?= $compra->id; ?>">
-                                                Devolver vianda del 
-                                                <b><?= $diasSemana[date('l', strtotime($compra->dia_comprado))]; ?>, 
-                                                <?= date('d', strtotime($compra->dia_comprado)); ?> de 
-                                                <?= $meses[date('F', strtotime($compra->dia_comprado))]; ?></b>
-                                                (Turno: <b><?= $turnos[$compra->turno]; ?></b> | Menú: <b><?= $compra->menu; ?></b>)
+                                                Devolver vianda del&nbsp;
+                                                <b><?= $diasSemana[date('l', strtotime($compra->dia_comprado))]; ?>,
+                                                <?= date('d', strtotime($compra->dia_comprado)); ?> de
+                                                <?= $meses[date('F', strtotime($compra->dia_comprado))]; ?>&nbsp;</b>
+                                                (Turno: &nbsp;<b><?= $turnos[$compra->turno];?>&nbsp;</b> | Menú: <b><?= $compra->menu; ?></b>)
                                             </label>
                                         </div>
                                         <span class="badge bg-success ms-auto me-2">
