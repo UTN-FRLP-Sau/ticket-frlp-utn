@@ -56,6 +56,12 @@ body {
     margin-bottom: 0;
 }
 
+.badge.bg-primary {
+    margin-top: 0.2rem;
+}
+.badge.bg-warning{
+    margin-top: 0.2rem;
+}
 /* Alert Messages */
 .alert {
     border-radius: 8px;
@@ -188,6 +194,9 @@ body {
     border-radius: 8px;
     padding: 1rem;
     transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .meal-time-block:hover:not(.meal-disabled) {
@@ -443,7 +452,7 @@ body {
 
 /* Background color for the card body */
 .day-option-card .card-header.bg-danger {
-    background-color: #ff0018 !important;
+    background-color: #e01d1d !important;
     color: white !important;
 }
 

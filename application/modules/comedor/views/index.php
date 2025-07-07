@@ -67,9 +67,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                 $disable_purchase = $dayData['disable_purchase']; // This already includes backend disability (bought, holiday)
                                             ?>
                                             <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
-                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger bg-light-danger' : '' ?> <?= $es_receso_invernal ? 'border-info' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?> <?= $disable_purchase ? 'meal-disabled' : '' ?>">
-                                                    <div class="card-header d-flex justify-content-between align-items-center <?= $es_feriado ? 'bg-danger text-white' : ($es_receso_invernal ? 'bg-info text-white' : 'bg-light') ?> py-2">
-                                                        <h6 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h6>
+                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger' : '' ?> <?= $es_receso_invernal ? 'border-info' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?>">
+                                                    <div class="card-header d-flex flex-column align-items-center <?= $es_feriado ? 'bg-danger text-white' : ($es_receso_invernal ? 'bg-info text-white' : 'bg-light') ?> py-2">
+                                                        <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h5>
                                                         <?php if ($es_receso_invernal): ?>
                                                             <span class="badge bg-primary text-white"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
                                                         <?php elseif ($es_feriado): ?>
