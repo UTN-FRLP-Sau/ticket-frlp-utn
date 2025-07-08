@@ -204,6 +204,7 @@ body {
 /* Custom styles for Winter Recess Cards */
 .day-card-recess {
     border-color: #2397d1 !important;
+    background-color: #f0f9ff !important;
 }
 
 .day-card-recess-header-bg {
