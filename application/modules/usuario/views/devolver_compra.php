@@ -140,6 +140,13 @@
     </div>
 </div>
 
+<style>
+    .summary-card {
+    border: 1px solid rgb(167, 40, 40) !important;
+}
+</style>
+
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
