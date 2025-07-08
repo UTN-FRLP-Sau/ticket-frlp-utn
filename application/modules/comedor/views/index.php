@@ -77,9 +77,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                         <?php if ($es_receso_invernal): ?>
                                                             <span class="badge badge-recess"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
                                                         <?php elseif ($es_feriado): ?>
-                                                            <span class="badge badge-holiday"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
-                                                        <?php elseif ($es_pasado): ?>
-                                                            <span class="badge badge-past"><i class="bi bi-clock-history me-1"></i>Pasado</span>
+                                                            <span class="badge badge-holiday"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>                            
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="card-body">
