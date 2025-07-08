@@ -70,6 +70,7 @@ $route['usuario/recovery'] = 'usuario/login/passwordRecoveryRequest';
 $route['usuario/recovery/(:any)'] = 'usuario/login/newPasswordRequest';
 
 $route['contacto'] = 'comedor/contacto/index';
+$route['faq'] = 'comedor/faq/index';
 $route['menu'] = 'comedor/menu/index';
 $route['comentarios'] = 'comedor/comentarios/index';
 $route['comedor/agregar_comentario'] = 'comedor/comentarios/agregar_comentario';

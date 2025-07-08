@@ -38,6 +38,9 @@
                         <a class="nav-link" href="<?= base_url('menu'); ?>">Menu</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="<?= base_url('faq'); ?>">Preguntas Frecuentes</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="<?= base_url('contacto'); ?>">Contacto</a>
                     </li>
                     <?php if ($this->session->userdata('id_usuario')) : ?>
