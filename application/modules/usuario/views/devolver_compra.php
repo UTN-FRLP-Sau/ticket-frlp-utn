@@ -50,28 +50,70 @@
 
                     <?php if (!empty($compras)) : ?>
                         <h1 class="text-center mb-4">Gestionar Devoluciones</h1>
-                        
+
                         <?= form_open(current_url(), ['id' => 'formDevolucion']); ?>
-                            <?php foreach ($compras as $compra) : ?>
-                                <div class="card mb-3 shadow-sm">
-                                    <div class="card-body d-flex align-items-center justify-content-between p-3">
-                                        <div class="form-check form-switch flex-grow-1">
-                                            <input class="form-check-input checkbox-devolver" type="checkbox" role="switch"
-                                                id="devolver_<?= $compra->id; ?>"
-                                                name="devolver[]"
-                                                value="<?= $compra->id; ?>"
-                                                data-precio="<?= $compra->precio;?>">
-                                            <label class="form-check-label ms-2" for="devolver_<?= $compra->id; ?>">
-                                                Devolver vianda del&nbsp;
-                                                <b><?= $diasSemana[date('l', strtotime($compra->dia_comprado))]; ?>,
-                                                <?= date('d', strtotime($compra->dia_comprado)); ?> de
-                                                <?= $meses[date('F', strtotime($compra->dia_comprado))]; ?>&nbsp;</b>
-                                                (Turno: &nbsp;<b><?= $turnos[$compra->turno];?>&nbsp;</b> | Menú: <b><?= $compra->menu; ?></b>)
-                                            </label>
+                            <?php
+                            $compras_por_semana = [];
+                            foreach ($compras as $compra) {
+                                $fecha_compra = new DateTime($compra->dia_comprado);
+                                $semana_iso = $fecha_compra->format('o-W'); // Año y número de semana
+                                if (!isset($compras_por_semana[$semana_iso])) {
+                                    $compras_por_semana[$semana_iso] = [
+                                        'start_date' => (clone $fecha_compra)->modify('monday this week')->format('d \d\e F'),
+                                        'end_date' => (clone $fecha_compra)->modify('friday this week')->format('d \d\e F'),
+                                        'days' => []
+                                    ];
+                                }
+                                $compras_por_semana[$semana_iso]['days'][] = $compra;
+                            }
+
+                            // Para traducir los meses en el título de la semana
+                            $meses_titulo = array(
+                                'January' => 'Enero', 'February' => 'Febrero', 'March' => 'Marzo',
+                                'April' => 'Abril', 'May' => 'Mayo', 'June' => 'Junio',
+                                'July' => 'Julio', 'August' => 'Agosto', 'September' => 'Septiembre',
+                                'October' => 'Octubre', 'November' => 'Noviembre', 'December' => 'Diciembre'
+                            );
+                            ?>
+
+                            <?php foreach ($compras_por_semana as $semana_iso => $weekData): ?>
+                                <?php
+                                    $weekTitle = 'Semana del ' . strtr($weekData['start_date'], $meses_titulo) . ' al ' . strtr($weekData['end_date'], $meses_titulo);
+                                ?>
+                                <div class="card shadow-sm border mb-4">
+                                    <div class="card-header bg-light py-3">
+                                        <h5 class="mb-0 fw-bold text-center"><?= $weekTitle ?></h5>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row flex-nowrap overflow-scroll-x g-3 pb-3">
+                                            <?php foreach ($weekData['days'] as $compra): ?>
+                                                <div class="col-10 col-md-6 col-lg-4"> <div class="card h-100 day-option-card">
+                                                        <div class="card-header d-flex justify-content-between align-items-center py-2 day-card-normal-header-bg">
+                                                            <h6 class="mb-0 fw-bold text-capitalize">
+                                                                <?php
+                                                                    $dia_semana_ingles = date('l', strtotime($compra->dia_comprado));
+                                                                    echo $diasSemana[$dia_semana_ingles];
+                                                                ?>
+                                                                <span class="text-muted fw-normal ms-1"><?= (new DateTime($compra->dia_comprado))->format('d/m') ?></span>
+                                                            </h6>
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input checkbox-devolver" type="checkbox" role="switch"
+                                                                    id="devolver_<?= $compra->id; ?>"
+                                                                    name="devolver[]"
+                                                                    value="<?= $compra->id; ?>"
+                                                                    data-precio="<?= $compra->precio;?>">
+                                                                <label class="form-check-label visually-hidden" for="devolver_<?= $compra->id; ?>">Seleccionar para devolver</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="card-body py-3 px-3">
+                                                            <p class="card-text mb-1"><strong>Turno:</strong> <?= $turnos[$compra->turno];?></p>
+                                                            <p class="card-text mb-1"><strong>Menú:</strong> <?= $compra->menu; ?></p>
+                                                            <p class="card-text mb-0"><strong>Costo:</strong> <span class="fw-bold text-success">$<?= number_format($compra->precio, 2); ?></span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                        <span class="badge bg-success ms-auto me-2">
-                                            Costo: $<?= number_format($compra->precio, 2); ?>
-                                        </span>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -143,7 +185,29 @@
 <style>
     .summary-card {
     border: 1px solid rgb(167, 40, 40) !important;
-}
+    }
+
+    
+    .overflow-scroll-x {
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch; 
+        white-space: nowrap; 
+    }
+
+    
+    .overflow-scroll-x .col-10,
+    .overflow-scroll-x .col-md-6,
+    .overflow-scroll-x .col-lg-4 {
+        flex-shrink: 0; 
+    }
+
+    .col-lg-4 {
+        width: 20% !important;
+        min-width: 190px;
+    }
+    .form-switch .form-check-input {
+        margin-left: -2em;
+    }
 </style>
 
 
