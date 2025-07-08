@@ -26,13 +26,16 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* Title of the Web Ticket Purchase Menu */
 #card-titulo{
     display: flex;
     align-items: center;
+    background-color: #ff5e00 !important;
 }
 
 #card-titulo h2 {
     font-size: 2rem;
+    /* Color will be handled by the parent's text-white class */
 }
 
 #tarjetaSaldo{
@@ -43,7 +46,7 @@ body {
 }
 
 .card-header {
-    background-color: #007bff;
+    background-color: #ff5e00;
     color: rgb(0, 0, 0);
     font-weight: bold;
     border-bottom: none;
@@ -89,10 +92,27 @@ body {
 .btn-close {
     font-size: 0.85rem;
 }
-/* Etiqueta se Comprado en el menu de compra de viandas */
-.badge.bg-secondary {
+
+/* Specific Badge/Label Styles for Day Cards */
+.badge-purchased {
     background-color: #198754 !important;
 }
+
+.badge-holiday {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge-recess {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.badge-past {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
 /* Estilos para el contenedor del carrusel de días */
 .days-carousel-container {
     display: flex;
@@ -100,41 +120,38 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 1rem;
-    /* scroll-snap-type: x mandatory; /* Opcional: para un "snap" al desplazar */
 }
 
 /* Estilos para cada columna de día dentro del carrusel */
 .day-column {
-    flex: 1 1 250px; /* Crece, se encoge, tamaño base de 250px */
-    /* Quitar min-width fijo aquí para que flexbox controle el tamaño */
-    /* Ajustar max-width para forzar un número de columnas por fila en pantallas grandes */
-    max-width: calc(20% - 1rem); /* Ejemplo para 5 columnas por fila (100%/5 - gap) */
+    flex: 1 1 250px;
+    max-width: calc(20% - 1rem);
 }
 
 /* Estilos para el scrollbar */
 .days-carousel-container::-webkit-scrollbar {
-    height: 8px; /* Altura de la barra de desplazamiento horizontal */
+    height: 8px;
 }
 
 .days-carousel-container::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Color del fondo de la pista del scrollbar */
+    background: #f1f1f1;
     border-radius: 10px;
 }
 
 .days-carousel-container::-webkit-scrollbar-thumb {
-    background: #888; /* Color del "pulgar" del scrollbar */
+    background: #888;
     border-radius: 10px;
 }
 
 .days-carousel-container::-webkit-scrollbar-thumb:hover {
-    background: #555; /* Color del "pulgar" al pasar el mouse */
+    background: #555;
 }
 
-/* Clases de estilo para los estados de las viandas (mantener) */
+/* Clases de estilo para los estados de las viandas */
 .meal-disabled {
-    background-color: #f8f9fa !important; /* Gris claro para viandas deshabilitadas */
+    background-color: #f8f9fa !important;
     opacity: 0.7;
-    pointer-events: none; /* Deshabilita clics en todo el bloque */
+    pointer-events: none;
 }
 
 .meal-disabled .form-check-input,
@@ -142,13 +159,7 @@ body {
     cursor: not-allowed;
 }
 
-.bg-light-danger {
-    background-color: #fdd !important; /* Fondo más claro para días feriados */
-}
-
-
-
-/* Day Option Cards (Each Day's Block) */
+/* Day Option Cards (Each Day's Block) - Normal Days */
 .day-option-card {
     border: 1px solid #e0e0e0;
     border-radius: 10px;
@@ -156,36 +167,55 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
-.day-option-card:hover:not(.border-danger) {
+/* General hover effect for day cards, excluding specific states */
+.day-option-card:hover:not(.day-card-holiday):not(.day-card-recess):not(.day-card-past) {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
 }
 
 .day-option-card .card-header {
     border-radius: 10px 10px 0 0;
-    background-color: #f8f9fa;
-    color: #343a40;
     font-size: 1.1rem;
     border-bottom: 1px solid #e9ecef;
 }
 
-.day-option-card.border-danger {
-    border-color: #dc3545 !important;
-}
-
-.day-option-card.bg-light-danger {
-    background-color: #fff3f4;
-}
-
-.day-option-card .card-header.bg-danger {
-    background-color: #dc3545 !important;
-    color: white !important;
+/* Style for Normal Day Card Header */
+.day-card-normal-header-bg {
+    background-color: #f8f9fa !important;
+    color: #343a40 !important;
 }
 
 .day-option-card .card-header .badge {
     font-size: 0.75rem;
     padding: 0.4em 0.7em;
 }
+
+/* Custom styles for Holiday Cards */
+.day-card-holiday {
+    border-color: #ff0000 !important;
+    background-color: #fff3f4 !important;
+}
+
+.day-card-holiday-header-bg {
+    background-color: #e01d1d !important;
+    color: white !important;
+}
+
+/* Custom styles for Winter Recess Cards */
+.day-card-recess {
+    border-color: #2397d1 !important;
+}
+
+.day-card-recess-header-bg {
+    background-color: #2397d1 !important;
+    color: white !important;
+}
+
+/* Style for past days card (only applied if 'meal-past' class is present) */
+.day-card-past {
+    opacity: 0.8;
+}
+
 
 /* Meal Time Blocks (Mediodía/Noche) */
 .meal-time-block {
@@ -204,7 +234,7 @@ body {
     border-color: #a2d2ff;
 }
 
-/* Custom Checkbox Styling (estos estilos ya no se usan si eliminaste los checkboxes) */
+/* Custom Checkbox Styling */
 .form-check.custom-checkbox {
     padding-left: 0;
     margin-bottom: 0.5rem;
@@ -256,8 +286,6 @@ body {
 .form-check-label .badge {
     font-size: 0.7rem;
     font-weight: normal;
-    background-color: #6c757d;
-    color: white;
     padding: 0.3em 0.6em;
     border-radius: 0.3em;
 }
@@ -421,98 +449,26 @@ body {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* ==== Checkbox moderno ==== (estos estilos ya no son necesarios si se eliminaron los checkboxes) */
-.custom-checkbox .form-check-input {
-    width: 1.3em;
-    height: 1.3em;
-    margin-top: 0.2em;
-    border: 2px solid #0d6efd;
-    border-radius: 0.25em;
-    background-color: #fff;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.custom-checkbox .form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-
-.custom-checkbox .form-check-input:focus {
-    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
-}
-
-.custom-checkbox .form-check-label {
-    margin-left: 0.5em;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-
-
-/* Background color for the card body */
-.day-option-card .card-header.bg-danger {
-    background-color: #e01d1d !important;
-    color: white !important;
-}
-
-
-/* Border color for the card (red) */
-.border-danger {
-    border-color: #ff0000 !important; /* Example: Orange */
-}
-
-/* Background color for the card header (darker red) */
-.bg-danger {
-    background-color: #ff0000 !important; /* Example: OrangeRed */
-}
-
-
-
-/* Custom styles for Winter Recess Cards */
-
-
-
-/* Background color for the card body */
-.bg-light-info {
-    background-color: #bbbfe4 !important; /* Light purple */
-}
-
-/* Border color for the card */
-.border-info {
-    border-color: #00b7ff !important; /* Medium purple */
-}
-
-/* Background color for the card header */
-.bg-info {
-    background-color: #2397d1 !important; /* Darker purple */
-}
-
-/* Text color for the header if needed (it's already white by text-white) */
- .bg-info.text-white {
-    color: white !important;
-}
 
 .text-muted {
     color: #323232 !important;
 }
 
-
 /* Responsive Adjustments */
 @media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
     .days-carousel-container {
-        overflow-x: visible; /* Elimina la barra de desplazamiento horizontal si todos los elementos caben */
-        justify-content: center; /* Centra los días si no ocupan todo el ancho */
+        overflow-x: visible;
+        justify-content: center;
     }
     .day-column {
-        flex: 1 1 calc(20% - 1rem); /* Intenta mostrar 5 columnas por fila (100% / 5 - gap) */
+        flex: 1 1 calc(20% - 1rem);
         max-width: calc(20% - 1rem);
     }
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) { /* Para tablets en portrait */
     .day-column {
-        flex: 1 1 calc(33.33% - 1rem); /* Intenta mostrar 3 columnas por fila */
+        flex: 1 1 calc(33.33% - 1rem);
         max-width: calc(33.33% - 1rem);
     }
 }
@@ -542,8 +498,8 @@ body {
     }
     .day-column {
         flex-shrink: 0; 
-        min-width: 250px; /* Mantiene un ancho mínimo para el scroll */
-        max-width: 250px; /* No permitir que se estiren demasiado en la vista de carrusel */
+        min-width: 250px;
+        max-width: 250px;
     }
 
     .vianda-options {

@@ -67,15 +67,19 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                 $disable_purchase = $dayData['disable_purchase']; // This already includes backend disability (bought, holiday)
                                             ?>
                                             <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
-                                                <div class="card h-100 day-option-card <?= $es_feriado ? 'border-danger' : '' ?> <?= $es_receso_invernal ? 'border-info' : '' ?> <?= $es_pasado ? 'meal-past' : '' ?>">
-                                                    <div class="card-header d-flex flex-column align-items-center <?= $es_feriado ? 'bg-danger text-white' : ($es_receso_invernal ? 'bg-info text-white' : 'bg-light') ?> py-2">
+                                                <div class="card h-100 day-option-card
+                                                    <?= $es_feriado ? 'day-card-holiday' : '' ?>
+                                                    <?= $es_receso_invernal ? 'day-card-recess' : '' ?>
+                                                    <?= $es_pasado ? 'day-card-past' : '' ?>">
+                                                    <div class="card-header d-flex flex-column align-items-center py-2
+                                                        <?= $es_feriado ? 'day-card-holiday-header-bg' : ($es_receso_invernal ? 'day-card-recess-header-bg' : 'day-card-normal-header-bg') ?>">
                                                         <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h5>
                                                         <?php if ($es_receso_invernal): ?>
-                                                            <span class="badge bg-primary text-white"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
+                                                            <span class="badge badge-recess"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
                                                         <?php elseif ($es_feriado): ?>
-                                                            <span class="badge bg-warning text-dark"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
+                                                            <span class="badge badge-holiday"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
                                                         <?php elseif ($es_pasado): ?>
-                                                            <span class="badge bg-info text-dark"><i class="bi bi-clock-history me-1"></i>Pasado</span>
+                                                            <span class="badge badge-past"><i class="bi bi-clock-history me-1"></i>Pasado</span>
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="card-body">
@@ -87,7 +91,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             </div>
                                                             <?php if ($comprado_mediodia): ?>
                                                                 <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
+                                                                    <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
                                                             <div class="vianda-options mt-2">
@@ -115,7 +119,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             </div>
                                                             <?php if ($comprado_noche): ?>
                                                                 <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge bg-secondary"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
+                                                                    <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
                                                                 </div>
                                                             <?php endif; ?>
                                                             <div class="vianda-options mt-2">
@@ -232,18 +236,18 @@ $(document).ready(function() {
             return $(this).val() !== 'seleccionar';
         }).length;
 
-        const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
+        const costoTotalViendas = cantidadViandasSeleccionadas * costoViandaUnitario;
 
         let saldoAplicado = 0;
-        if (costoTotalViandas > 0) {
-            saldoAplicado = Math.min(costoTotalViandas, saldoUsuarioInicial);
+        if (costoTotalViendas > 0) {
+            saldoAplicado = Math.min(costoTotalViendas, saldoUsuarioInicial);
         }
 
-        const totalAPagar = Math.max(0, costoTotalViandas - saldoUsuarioInicial);
+        const totalAPagar = Math.max(0, costoTotalViendas - saldoUsuarioInicial);
 
         // --- Actualiza el Resumen de Compra en la página ---
         $('#cantidadViandas').text(cantidadViandasSeleccionadas);
-        $('#costoDisplay').text('$' + costoTotalViandas.toFixed(2));
+        $('#costoDisplay').text('$' + costoTotalViendas.toFixed(2));
         $('#saldoAplicadoDisplay').text('-$' + saldoAplicado.toFixed(2));
         $('#totalPagar').text('$' + totalAPagar.toFixed(2));
         $('#saldoInicialDisplay').text('$' + saldoUsuarioInicial.toFixed(2));
@@ -334,19 +338,26 @@ $(document).ready(function() {
     $('#btnCompra').click(function(e) {
         e.preventDefault(); // Evita el envío directo del formulario
 
-        const cantidadViandasSeleccionadas = $('.meal-select:not([disabled])').filter(function() {
+        // Declarar e inicializar las variables para asegurar que siempre estén definidas
+        let cantidadViandasSeleccionadas = 0;
+        let costoTotalViendas = 0;
+
+        // Calcular cantidad de viandas seleccionadas
+        cantidadViandasSeleccionadas = $('.meal-select:not([disabled])').filter(function() {
             return $(this).val() !== 'seleccionar';
         }).length;
 
-        const costoTotalViandas = cantidadViandasSeleccionadas * costoViandaUnitario;
+        // Calcular costo total de viandas
+        costoTotalViendas = cantidadViandasSeleccionadas * costoViandaUnitario;
+        
         const saldoUsuario = saldoUsuarioInicial; // Usamos el saldo inicial del usuario
 
         let saldoAplicadoModal = 0;
-        if (costoTotalViandas > 0) {
-            saldoAplicadoModal = Math.min(costoTotalViandas, saldoUsuario);
+        if (costoTotalViendas > 0) {
+            saldoAplicadoModal = Math.min(costoTotalViendas, saldoUsuario);
         }
 
-        const totalAPagarModal = Math.max(0, costoTotalViandas - saldoUsuario);
+        const totalAPagarModal = Math.max(0, costoTotalViendas - saldoUsuario);
 
         if (cantidadViandasSeleccionadas === 0) {
             alert('Por favor seleccione al menos una vianda para comprar.');
@@ -354,7 +365,7 @@ $(document).ready(function() {
         }
 
         $('#modalCantidad').text(cantidadViandasSeleccionadas);
-        $('#modalCostoTotal').text('$' + costoTotalViandas.toFixed(2));
+        $('#modalCostoTotal').text('$' + costoTotalViendas.toFixed(2));
         $('#modalSaldoAplicado').text('$' + saldoUsuario.toFixed(2));
 
         // Se actualiza directamente el span con el valor final
