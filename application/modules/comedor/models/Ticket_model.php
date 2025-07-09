@@ -430,4 +430,45 @@ class Ticket_model extends CI_Model
         $this->db->update('compras_pendientes', ['procesada' => 1]);
         return $this->db->affected_rows();
     }
+
+    public function updateCompraPendienteEstado($id_compra_pendiente, $estado) {
+        $this->db->where('id', $id_compra_pendiente);
+        $this->db->update('compras_pendientes', ['mp_estado' => $estado]);
+        return $this->db->affected_rows() > 0;
+    }
+
+    public function getMercadoPagoPayment($payment_id)
+    {
+        try {
+            $payment = MercadoPago\Payment::find_by_id($payment_id);
+            if ($payment) {
+                return $payment; // Retorna el objeto Payment de Mercado Pago
+            }
+            log_message('warning', 'No se encontró el pago en Mercado Pago con ID: ' . $payment_id);
+            return null;
+        } catch (Exception $e) {
+            log_message('error', 'Error al obtener pago de Mercado Pago (ID: ' . $payment_id . '): ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getViandasCompraPendiente($compra_id)
+    {
+        $this->db->select('datos');
+        $this->db->where('id', $compra_id);
+        $query = $this->db->get('compras_pendientes');
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row();
+            // Decodifica el JSON del campo 'datos'
+            $viandas = json_decode($row->datos, true); // true para obtener un array asociativo
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $viandas;
+            } else {
+                log_message('error', 'Error al decodificar JSON de viandas para compra_id ' . $compra_id . ': ' . json_last_error_msg());
+                return null;
+            }
+        }
+        return null;
+    }
 }

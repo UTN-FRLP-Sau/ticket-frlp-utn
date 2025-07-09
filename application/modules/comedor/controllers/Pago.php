@@ -28,25 +28,45 @@ class Pago extends CI_Controller
         log_message('debug', 'PAGO: Resultado de getCompraPendiente para ' . $external_reference . ': ' . ($compra ? json_encode($compra) : 'NO ENCONTRADA'));
 
         if (!$compra) {
-            // --- LOG DE REDIRECCIÓN POR COMPRA NO ENCONTRADA ---
+            // --- LOG DE REDIRECCIÓN POR COMPRA PENDIENTE NO ENCONTRADA ---
             log_message('error', 'PAGO: Compra pendiente no encontrada para external_reference: ' . $external_reference . '. Redirigiendo a comedor/ticket.');
             redirect('comedor/ticket');
-            return; // Añadir return.
+            return;
         }
 
-        $notificacion_url = 'https://88e0-181-85-147-154.ngrok-free.app/webhook/mercadopago';
-        $back_urls = [
-            "success" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_exitosa',
-            "failure" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_fallida',
-            "pending" => 'https://88e0-181-85-147-154.ngrok-free.app/comedor/pago/compra_pendiente'
-        ];
-        // --- LOG DE URLs DE RETORNO ---
-        log_message('debug', 'PAGO: back_urls configuradas: ' . json_encode($back_urls));
+        // Redirige según el estado actual de mp_estado en la compra pendiente
+        if (isset($compra->mp_estado)) {
+            if ($compra->mp_estado == 'approved') {
+                log_message('info', 'PAGO: Compra ' . $compra->id . ' ya aprobada. Redirigiendo a compra_exitosa.');
+                redirect('comedor/pago/compra_exitosa');
+                return;
+            }
+            
+            if ($compra->mp_estado == 'pending') {
+                log_message('info', 'PAGO: Compra ' . $compra->id . ' en estado pendiente. Redirigiendo a compra_pendiente.');
+                redirect('comedor/pago/compra_pendiente');
+                return;
+            }
+
+            if ($compra->mp_estado == 'rejected') {
+                log_message('info', 'PAGO: Compra ' . $compra->id . ' en estado rechazada. Redirigiendo a compra_fallida.');
+                redirect('comedor/pago/compra_fallida');
+                return;
+            }
+        }
+
+        // URLs de retorno y notificación para Mercado Pago
+        $notification_url = 'https://c648735dd6f5.ngrok-free.app/webhook/mercadopago';
+        $back_urls = array(
+            "success" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_exitosa',
+            "failure" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_fallida',
+            "pending" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_pendiente',
+        );
 
         $preferencia_info = $this->ticket_model->generarPreferenciaConSaldo(
             $external_reference,
             $access_token,
-            $notificacion_url,
+            $notification_url,
             $back_urls
         );
 
@@ -55,37 +75,40 @@ class Pago extends CI_Controller
 
 
         if ($preferencia_info === null) {
-            // Si el saldo alcanza para cubrir toda la compra llamo a procesarCompraConSaldo
+            // Si el saldo alcanza para cubrir toda la compra, procesar directamente
             log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Procesando directamente.');
-            $saldo_usuario = $this->ticket_model->getSaldoByIDUser($compra->id_usuario); // Puede ser útil para depuración, aunque el procesado lo hace el modelo.
+            
             $procesado = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
             
             if ($procesado) {
                 log_message('info', 'PAGO: Compra procesada exitosamente con saldo. Redirigiendo a compra_exitosa.');
-                $this->compra_exitosa();
-                return; // Para que no siga y no redirija a MP
+                $this->compra_exitosa(); // Llama al método para cargar la vista de éxito
+                return;
             } else {
                 log_message('error', 'PAGO: ERROR al procesar la compra directamente con saldo.');
                 show_error('Error procesando la compra con saldo disponible.');
+                return;
             }
         }
 
         if ($preferencia_info === false) {
             log_message('error', 'PAGO: ERROR en generarPreferenciaConSaldo (retornó FALSE).');
             show_error('Error procesando la preferencia de pago.');
+            return;
         }
 
-        // Si no se cubre todo con saldo, redirige a Mercado Pago
-        // --- LOG ANTES DE REDIRIGIR A MERCADO PAGO ---
+        // Si no se cubrió todo con saldo y se generó una preferencia de MP, redirige
         $init_point = isset($preferencia_info['init_point']) ? $preferencia_info['init_point'] : 'NO DEFINIDO';
         log_message('info', 'PAGO: Redirigiendo a Mercado Pago. init_point: ' . $init_point);
         
+        // Carga el SDK de Mercado Pago
         require_once FCPATH . 'vendor/autoload.php';
         MercadoPago\SDK::setAccessToken($access_token);
 
         if ($init_point === 'NO DEFINIDO' || empty($init_point)) {
              log_message('error', 'PAGO: init_point de Mercado Pago es inválido o no existe. No se puede redirigir.');
              show_error('No se pudo generar la URL de pago de Mercado Pago. Intente nuevamente.');
+             return;
         }
         redirect($init_point);
     }

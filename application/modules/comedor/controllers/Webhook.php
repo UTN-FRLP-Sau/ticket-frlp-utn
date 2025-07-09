@@ -1,5 +1,5 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
+defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Webhook extends CI_Controller
 {
@@ -22,205 +22,83 @@ class Webhook extends CI_Controller
         $access_token = $this->config->item('MP_ACCESS_TOKEN');
         MercadoPago\SDK::setAccessToken($access_token);
 
-
         $input = file_get_contents('php://input');
         $this->log_manual('Webhook recibido (RAW): ' . $input);
 
         $data = json_decode($input, true);
 
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->log_manual('ERROR JSON DECODE: Fallo al decodificar JSON. Mensaje: ' . json_last_error_msg() . '. RAW: ' . $input);
+            http_response_code(400); // Bad Request
+            return;
+        }
+        if (!is_array($data) || empty($data)) {
+            $this->log_manual('ERROR JSON DATA: Datos del webhook vacíos o no válidos después de json_decode. RAW: ' . $input);
+            http_response_code(400); // Bad Request
+            return;
+        }
+
+        // Obtener la instancia de CodeIgniter para acceder al modelo y la base de datos
         $CI = &get_instance();
         $CI->load->model('ticket_model');
 
+        // Inicia una transacción de base de datos para asegurar atomicidad
         $CI->db->trans_begin();
 
-        // try-catch para atrapar cualquier excepción que pueda causar un 500
         try {
-            if ((isset($data['type']) && $data['type'] === 'payment') || (isset($data['action']) && $data['action'] === 'payment.created')) {
-                $payment_id = isset($data['data']['id']) ? $data['data']['id'] : null;
+            // Verifica que la notificación es de tipo 'payment' y contiene un ID de pago
+            if ((isset($data['type']) && $data['type'] == 'payment' && isset($data['data']['id']))) {
+                $payment_id = $data['data']['id'];
+                $this->log_manual('Webhook tipo PAYO (payment). ID de pago: ' . $payment_id);
 
-                // Si no se encontró el payment_id en data.id, y es un 'topic' 'payment', buscar en 'resource'
-                // y limpiar la URL si es necesario
-                if (!$payment_id && isset($data['topic']) && $data['topic'] === 'payment' && isset($data['resource'])) {
-                    $payment_id = str_replace('https://api.mercadopago.com/v1/payments/', '', $data['resource']);
-                    $this->log_manual('Payment ID extraído de resource (posible URL): ' . $payment_id);
-                }
+                // Obtener la información completa del pago desde la API de Mercado Pago
+                $payment_info = $CI->ticket_model->getMercadoPagoPayment($payment_id);
 
-                if (!$payment_id) {
-                    $this->log_manual('ERROR: No se pudo obtener Payment ID de la notificación de pago. Data: ' . json_encode($data));
-                    $CI->db->trans_rollback();
-                    http_response_code(200);
-                    return;
-                }
+                if ($payment_info) {
+                    $external_reference = $payment_info->external_reference;
+                    $mp_status_from_mp = $payment_info->status; // Obtener el estado actual del pago de MP
+                    $this->log_manual('Estado de pago de MP para ' . $payment_id . ': ' . $mp_status_from_mp . '. External Reference: ' . $external_reference);
 
-                $this->log_manual('Payment ID final a buscar: ' . $payment_id);
-
-                $payment = MercadoPago\Payment::find_by_id($payment_id);
-
-                if ($payment) {
-                    $this->log_manual('Estado del pago: ' . $payment->status . '. External Reference de MP: ' . (isset($payment->external_reference) ? $payment->external_reference : 'N/A'));
-                } else {
-                    $this->log_manual('ERROR: No se pudo obtener el pago con ID: ' . $payment_id . ' desde la API de MP.');
-                    $CI->db->trans_rollback();
-                    http_response_code(200);
-                    return;
-                }
-
-                if ($payment->status === 'approved') {
-                    $external_reference = trim($payment->external_reference);
-                    $this->log_manual('External Reference (trimmed) obtenido de MP: ' . $external_reference);
-
+                    // Buscar la compra pendiente en la base de datos con la external_reference
                     $compra_pendiente = $CI->ticket_model->getCompraPendiente($external_reference);
 
-                    $this->log_manual('Estado inicial compra pendiente (desde DB): ' . print_r($compra_pendiente, true));
+                    if ($compra_pendiente) {
+                        $CI->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, $mp_status_from_mp);
+                        $this->log_manual('Actualizado mp_estado de compra_pendiente ' . $compra_pendiente->id . ' a: ' . $mp_status_from_mp);
 
-                    if ($compra_pendiente && isset($compra_pendiente->id) && $compra_pendiente->procesada == 0) {
-                        $this->log_manual('Iniciando procesamiento de compra pendiente. ID: ' . $compra_pendiente->id . ', External Ref: ' . $external_reference);
-
-                        $seleccion = json_decode($compra_pendiente->datos, true);
-                        if ($seleccion === null) {
-                            $this->log_manual('ERROR: Error al decodificar datos JSON de la compra pendiente. Datos: ' . $compra_pendiente->datos);
-                            $CI->db->trans_rollback();
-                            http_response_code(200);
-                            return;
-                        }
-                        $this->log_manual('JSON de datos decodificado con éxito. Ítems encontrados: ' . count($seleccion));
-
-                        $n_compras = 0;
-                        $dias = $seleccion;
-                        $id_usuario = $compra_pendiente->id_usuario;
-                        $monto_total_compra_pendiente = (float)$compra_pendiente->total;
-
-                        foreach ($dias as $index => $compra) {
-                            $this->log_manual('Procesando item de compra #' . ($index + 1) . ': ' . json_encode($compra));
-
-                            $data_compra = [
-                                'fecha' => date('Y-m-d'),
-                                'hora' => date('H:i:s'),
-                                'dia_comprado' => $compra['dia_comprado'],
-                                'id_usuario' => $id_usuario,
-                                'precio' => $compra['precio'],
-                                'tipo' => $compra['tipo'],
-                                'turno' => $compra['turno'],
-                                'menu' => $compra['menu'],
-                                'transaccion_id' => -1,
-                                'external_reference' => $external_reference
-                            ];
-
-                            $data_log = [
-                                'fecha' => date('Y-m-d'),
-                                'hora' => date('H:i:s'),
-                                'dia_comprado' => $compra['dia_comprado'],
-                                'id_usuario' => $id_usuario,
-                                'precio' => $compra['precio'],
-                                'tipo' => $compra['tipo'],
-                                'turno' => $compra['turno'],
-                                'menu' => $compra['menu'],
-                                'transaccion_tipo' => 'Compra por Mercado Pago',
-                                'transaccion_id' => -1,
-                                'external_reference' => $external_reference
-                            ];
-
-                            $resultado_add_compra = $CI->ticket_model->addCompra($data_compra);
-                            if ($resultado_add_compra) {
-                                $this->log_manual('Item de compra #' . ($index + 1) . ' añadido con éxito. DB insert ID: ' . $resultado_add_compra);
-                                $CI->ticket_model->addLogCompra($data_log);
-                                $this->log_manual('Log de item de compra #' . ($index + 1) . ' añadido.');
-                                $n_compras++;
+                        // Lógica basada en el estado de Mercado Pago
+                        if ($mp_status_from_mp == 'approved') {
+                            // Solo procesar si la compra pendiente aún no ha sido marcada como procesada
+                            if ($compra_pendiente->procesada == 0) {
+                                $this->log_manual('PAGO APROBADO: Procesando compra pendiente ' . $compra_pendiente->id);
+                                $this->processApprovedPayment($CI, $compra_pendiente, $payment_info);
+                                $this->log_manual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' procesada y marcada.');
                             } else {
-                                $db_error = $CI->db->error();
-                                $this->log_manual('ERROR: Fallo al insertar item de compra #' . ($index + 1) . ': ' . print_r($data_compra, true) . ' DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
-                                throw new Exception('Fallo al insertar item de compra en DB.');
+                                $this->log_manual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.');
                             }
-                        }
-                        $this->log_manual('Bucle de inserción de items de compra finalizado. Total de items insertados: ' . $n_compras);
-
-                        if ($n_compras > 0) {
-                            // saldo actual del usuario ANTES de la transacción
-                            $saldo_actual_usuario = $CI->ticket_model->getSaldoByIDUser($id_usuario);
-                            $this->log_manual('Saldo actual del usuario ' . $id_usuario . ' antes de la compra: ' . $saldo_actual_usuario);
-
-                            // Calcula el nuevo saldo después de la compra
-                            if($monto_total_compra_pendiente >= $saldo_actual_usuario){
-                                $saldo_final_transaccion = 0;
-                            }
-                            else{
-                                $saldo_final_transaccion = $saldo_actual_usuario - $monto_total_compra_pendiente;
-                            }
-                            $this->log_manual('Monto total de la compra: ' . $monto_total_compra_pendiente . '. Saldo calculado para la transacción: ' . $saldo_final_transaccion);
-
-                            $transaction_compra = [
-                                'fecha' => date('Y-m-d'),
-                                'hora' => date('H:i:s'),
-                                'id_usuario' => $id_usuario,
-                                'transaccion' => 'Compra por Mercado Pago',
-                                'monto' => -$monto_total_compra_pendiente,
-                                'saldo' => $saldo_final_transaccion
-                            ];
-                            $this->log_manual('Intentando insertar transacción principal con datos: ' . json_encode($transaction_compra));
-                            $id_insert = $CI->ticket_model->addTransaccion($transaction_compra);
-                            
-                            if ($id_insert === 0 || $id_insert === false) {
-                                $db_error = $CI->db->error();
-                                $this->log_manual('CRÍTICO: Fallo al insertar transacción principal: ' . print_r($transaction_compra, true) . ' DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
-                                throw new Exception('Fallo al insertar transacción principal en DB.');
-                            }
-                            $this->log_manual('ID de transacción principal insertada: ' . $id_insert);
-
-                            // Actualiza el transaccion_id en las compras y logs de compra
-                            $compras_actualizadas = $CI->ticket_model->updateTransactionInCompraByExternalReference($external_reference, $id_insert);
-                            $this->log_manual('Filas actualizadas en tabla "compra" por external_reference: ' . $compras_actualizadas);
-
-                            $logcompras_actualizadas = $CI->ticket_model->updateTransactionInLogCompraByExternalReference($external_reference, $id_insert);
-                            $this->log_manual('Filas actualizadas en tabla "log_compras" por external_reference: ' . $logcompras_actualizadas);
-
-                            // Actualiza el saldo del usuario en la tabla 'usuarios'
-                            if (!$CI->ticket_model->updateSaldoByIDUser($id_usuario, $saldo_final_transaccion)) {
-                                $db_error = $CI->db->error();
-                                $this->log_manual('CRÍTICO: Fallo al actualizar el saldo del usuario ' . $id_usuario . ' a ' . $saldo_final_transaccion . '. DB Error: ' . $db_error['message'] . ' Code: ' . $db_error['code']);
-                                throw new Exception('Fallo al actualizar saldo del usuario en DB.');
-                            } else {
-                                $this->log_manual('Saldo del usuario ' . $id_usuario . ' actualizado a: ' . $saldo_final_transaccion);
-                            }
-
-                            // Marca la compra pendiente como procesada
-                            $rows_affected = $CI->ticket_model->setCompraPendienteProcesada($external_reference);
-
-                            if ($rows_affected > 0) {
-                                $this->log_manual('ÉXITO: Compra pendiente marcada como procesada: ' . $external_reference . ' (Filas afectadas: ' . $rows_affected . ')');
-                            } else {
-                                $this->log_manual('ADVERTENCIA: setCompraPendienteProcesada NO actualizó ninguna fila para: ' . $external_reference . '. Esto puede significar que ya estaba procesada o que la external_reference no coincide. (Filas afectadas: ' . $rows_affected . ')');
-                            }
+                        } else if ($mp_status_from_mp == 'rejected') {
+                            $this->log_manual('PAGO RECHAZADO: Notificación para compra pendiente ' . $compra_pendiente->id . '. No se realizarán acciones de compra.');
+                            // agregar lógica adicional si lo consideras necesario:
+                            // - Enviar un email al usuario informando del rechazo.
+                            // - Registrar un log específico de rechazo.
+                            // - Podrías incluso eliminar la compra_pendiente si no hay posibilidad de reintento.
+                        } else if ($mp_status_from_mp == 'pending') {
+                            $this->log_manual('PAGO PENDIENTE: Notificación para compra pendiente ' . $compra_pendiente->id . '. Se espera confirmación futura.');
+                            // No se realiza ninguna acción de procesamiento de compra aquí.
+                            // El estado en la DB ya fue actualizado a 'pending'.
+                            // Si el pago se aprueba más tarde, Mercado Pago enviará otra notificación 'approved'.
                         } else {
-                            $this->log_manual('ERROR: No se pudo registrar ninguna compra individual para el usuario ID ' . $id_usuario . ' a partir de los datos decodificados. No se creó transacción principal.');
-                            throw new Exception('No se procesaron ítems de compra válidos.');
+                            $this->log_manual('ESTADO DESCONOCIDO/IGNORADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp);
                         }
                     } else {
-                        // Si la compra pendiente ya está procesada o no se encuentra
-                        if ($compra_pendiente === null) {
-                            $this->log_manual('ERROR: Compra pendiente NO encontrada para external_reference: ' . $external_reference . '. Esto podría indicar un problema de sincronización o que fue eliminada/modificada. No se procesará.');
-                        } else {
-                            $this->log_manual('ADVERTENCIA: Compra pendiente ID ' . $compra_pendiente->id . ' con External Ref: ' . $external_reference . ' ya estaba procesada (procesada=' . $compra_pendiente->procesada . '). Ignorando reintento.');
-                        }
-                        $CI->db->trans_commit(); // commit si no hay nada que procesar
-                        http_response_code(200); // Responder 200 OK si ya fue procesada o no se encontró
-                        return;
+                        $this->log_manual('ADVERTENCIA: Compra pendiente no encontrada para external_reference: ' . $external_reference . '. ID de pago: ' . $payment_id);
                     }
                 } else {
-                    $this->log_manual('ADVERTENCIA: Pago no aprobado o inválido para el ID: ' . $payment_id . ' (Estado: ' . ($payment ? $payment->status : 'N/A') . '). No se procesará la compra.');
-                    $CI->db->trans_commit(); // commit si el pago no es aprobado
-                    http_response_code(200); // Responder 200 OK aunque no esté aprobado, para que MP no reintente este pago.
-                    return;
+                    $this->log_manual('ADVERTENCIA: No se pudo obtener la información de pago de MP para ID: ' . $payment_id);
                 }
-            } elseif (isset($data['topic']) && $data['topic'] === 'merchant_order') {
-                $this->log_manual('Notification type: merchant_order. Resource: ' . $data['resource']);
-                $CI->db->trans_commit();
-                http_response_code(200);
-                return;
             } else {
-                $this->log_manual('Webhook recibido con formato desconocido o ignorado: ' . $input);
-                $CI->db->trans_commit();
-                http_response_code(200); // Responde 200 si el tipo de notificación no es el esperado
-                return;
+                // Si el tipo no es 'payment' o no tiene 'data.id', podría ser una notificación de 'merchant_order' o 'payment' con otro formato..
+                $this->log_manual("Webhook recibido con formato desconocido o tipo no 'payment' (o sin data.id): " . $input);
             }
 
             // Confirmar que la transacción de DB se realizó con éxito y hacer commit
@@ -233,7 +111,7 @@ class Webhook extends CI_Controller
             } else {
                 $CI->db->trans_commit();
                 $this->log_manual('TRANSACCIÓN COMMIT: Proceso de webhook completado exitosamente.');
-                http_response_code(200);
+                http_response_code(200); // Responde 200 OK a Mercado Pago
                 return;
             }
 
@@ -245,4 +123,146 @@ class Webhook extends CI_Controller
             return;
         }
     }
+
+    /**
+     * Encapsula la lógica de procesamiento para pagos aprobados.
+     * @param object $CI Instancia del controlador de CodeIgniter
+     * @param object $compra_pendiente Objeto de la compra pendiente de la DB
+     * @param object $payment_info Objeto de información del pago de Mercado Pago
+     */
+    private function processApprovedPayment($CI, $compra_pendiente, $payment_info) {
+        log_message('debug', 'processApprovedPayment: Iniciando procesamiento de pago aprobado desde MP.');
+
+        $id_usuario = $compra_pendiente->id_usuario;
+        $total_compra = (float)$compra_pendiente->total;
+        $external_reference = $compra_pendiente->external_reference;
+        $payment_id = $payment_info->id; // ID de pago de Mercado Pago
+        
+        // Obtener el saldo del usuario
+        $saldo_inicial_usuario = $CI->ticket_model->getSaldoByIDUser($id_usuario);
+        log_message('debug', 'processApprovedPayment: Saldo actual del usuario ' . $id_usuario . ' (antes de deducción): ' . $saldo_inicial_usuario);
+
+        $monto_pagado_mp = 0;
+        if (isset($payment_info->transaction_amount)) {
+            $monto_pagado_mp = (float)$payment_info->transaction_amount;
+        } elseif (isset($payment_info->total_paid_amount)) {
+            $monto_pagado_mp = (float)$payment_info->total_paid_amount;
+        }
+        log_message('debug', 'processApprovedPayment: Monto pagado por MP: ' . $monto_pagado_mp);
+
+        $saldo_a_deducir_en_webhook = $total_compra - $monto_pagado_mp;
+
+        $saldo_a_deducir_en_webhook = max(0, min($saldo_a_deducir_en_webhook, $saldo_inicial_usuario));
+        log_message('debug', 'processApprovedPayment: Saldo a deducir calculado: ' . $saldo_a_deducir_en_webhook);
+
+        // Calcular el saldo final después de la deducción
+        $saldo_final_despues_deduccion = $saldo_inicial_usuario - $saldo_a_deducir_en_webhook;
+        log_message('debug', 'processApprovedPayment: Saldo final después de la deducción calculada: ' . $saldo_final_despues_deduccion);
+
+
+        if ($saldo_a_deducir_en_webhook > 0) {
+            // Usar updateSaldoByIDUser, pasando el saldo final resultante
+            if (!$CI->ticket_model->updateSaldoByIDUser($id_usuario, $saldo_final_despues_deduccion)) {
+                log_message('error', 'processApprovedPayment: Fallo al deducir saldo parcial (updateSaldoByIDUser) para usuario ' . $id_usuario . ' a saldo: ' . $saldo_final_despues_deduccion);
+                throw new Exception('Fallo al actualizar el saldo del usuario en el webhook.');
+            }
+            log_message('info', 'processApprovedPayment: Saldo de usuario ' . $id_usuario . ' actualizado a: ' . $saldo_final_despues_deduccion . ' (por pago MP, se dedujo ' . $saldo_a_deducir_en_webhook . ').');
+        } else {
+            log_message('info', 'processApprovedPayment: No se descontó saldo en webhook. Saldo a deducir calculado: ' . $saldo_a_deducir_en_webhook . '. Saldo inicial: ' . $saldo_inicial_usuario);
+        }
+
+        // Obtener el saldo final del usuario de la DB
+        $saldo_para_registro_transaccion = $CI->ticket_model->getSaldoByIDUser($id_usuario);
+        log_message('debug', 'processApprovedPayment: Saldo final del usuario de la DB para registro: ' . $saldo_para_registro_transaccion);
+
+        try {
+            log_message('debug', 'processApprovedPayment: Intentando obtener viandas para compra pendiente ' . $compra_pendiente->id);
+            // Obtener los ítems de vianda asociados a esta compra pendiente
+            $viandas_en_compra = $CI->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
+            log_message('debug', 'processApprovedPayment: viandas_en_compra: ' . (empty($viandas_en_compra) ? 'VACIO' : json_encode($viandas_en_compra)));
+
+
+            if (!$viandas_en_compra) {
+                log_message('error', 'processApprovedPayment: No se encontraron viandas para la compra pendiente ' . $compra_pendiente->id . '. No se procederá con la inserción de compras/logs.');
+                throw new Exception('No se encontraron viandas para procesar.');
+            }
+
+            foreach ($viandas_en_compra as $vianda_item) {
+                log_message('debug', 'processApprovedPayment: Procesando item de vianda: ' . json_encode($vianda_item));
+                // Inserta cada vianda en la tabla 'compra'
+                $data_compra = [
+                    'fecha' => date('Y-m-d'),
+                    'hora' => date('H:i:s'),
+                    'dia_comprado' => $vianda_item['dia_comprado'],
+                    'id_usuario' => $id_usuario,
+                    'precio' => $vianda_item['precio'],
+                    'tipo' => $vianda_item['tipo'],
+                    'turno' => $vianda_item['turno'],
+                    'menu' => $vianda_item['menu'],
+                    'external_reference' => $external_reference,
+                    'transaccion_id' => $payment_id, // ID de pago de Mercado Pago
+                ];
+
+                $id_compra_item = $CI->ticket_model->addCompra($data_compra);
+
+                if ($id_compra_item === false) {
+                    log_message('error', 'processApprovedPayment: Falló la inserción de un item de compra. Datos: ' . json_encode($data_compra));
+                    throw new Exception('No se pudo insertar un item de compra en la base de datos.');
+                }
+                log_message('debug', 'processApprovedPayment: Item de compra insertado, ID: ' . $id_compra_item);
+
+
+                // Registrar cada vianda en el log de compras
+                $log_data = [
+                    'id_usuario'       => $id_usuario,
+                    'fecha'            => date('Y-m-d'),
+                    'hora'             => date('H:i:s'),
+                    'dia_comprado'     => $vianda_item['dia_comprado'],
+                    'precio'           => $vianda_item['precio'],
+                    'tipo'             => $vianda_item['tipo'],
+                    'turno'            => $vianda_item['turno'],
+                    'menu'             => $vianda_item['menu'],
+                    'external_reference' => $external_reference,
+                    'transaccion_tipo' => 'Compra por Mercado Pago',
+                    'transaccion_id'   => $payment_id
+                ];
+                $CI->ticket_model->addLogCompra($log_data);
+                log_message('debug', 'processApprovedPayment: Log de compra insertado para item: ' . $vianda_item['menu']);
+            }
+
+            // Registrar la transacción principal en la tabla 'transacciones'
+            $data_transaccion = [
+                'id_usuario' => $id_usuario,
+                'monto' => $total_compra, // El monto total de la compra
+                'fecha' => date('Y-m-d'),
+                'hora' => date('H:i:s'),
+                'transaccion' => 'Compra por Mercado Pago',
+                'saldo' => $saldo_para_registro_transaccion,
+            ];
+            $id_transaccion = $CI->ticket_model->addTransaccion($data_transaccion);
+            
+            if ($id_transaccion === false) {
+                log_message('error', 'processApprovedPayment: Falló la inserción de la transacción principal. Datos: ' . json_encode($data_transaccion));
+                throw new Exception('No se pudo insertar la transacción principal.');
+            }
+            log_message('debug', 'processApprovedPayment: Transacción principal insertada, ID: ' . $id_transaccion);
+
+
+            // Marca la compra pendiente como procesada
+            if (!$CI->ticket_model->setCompraPendienteProcesada($external_reference)) {
+                 log_message('error', 'processApprovedPayment: Fallo al marcar compra pendiente ' . $external_reference . ' como procesada.');
+                 throw new Exception('Fallo al marcar la compra pendiente como procesada.');
+            }
+            log_message('debug', 'processApprovedPayment: Compra pendiente ' . $external_reference . ' marcada como procesada.');
+
+
+            log_message('info', 'processApprovedPayment: Compra procesada exitosamente con MP para ' . $external_reference);
+
+        } catch (Exception $e) {
+            log_message('error', 'processApprovedPayment: EXCEPCIÓN AL PROCESAR VIANDAS/COMPRA: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine());
+            // Relanza la excepción para que mercadopago() la capture y haga rollback
+            throw $e;
+        }
+    }
+
 }
