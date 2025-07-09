@@ -32,116 +32,129 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     <input type="number" id="costoVianda" value="<?= $costoVianda; ?>" hidden>
 
                     <form method="post" action="<?= base_url('usuario/comprar'); ?>" id="formCompraId">
-                        <?php foreach ($weeksData as $week): ?>
-                            <?php
-                                $weekIndex = $week['week_index'];
-                                $weekDays = $week['days'];
-                                $weekStartDateDisplay = $week['week_start_date_display']; // Obtenemos la fecha del lunes
-                                $weekEndDateDisplay = $week['week_end_date_display'];    // Obtenemos la fecha del viernes
+                        <div class="accordion mb-4" id="accordionSemanas">
+                            <?php foreach ($weeksData as $week): ?>
+                                <?php
+                                    $weekIndex = $week['week_index'];
+                                    $weekDays = $week['days'];
+                                    $weekStartDateDisplay = $week['week_start_date_display'];
+                                    $weekEndDateDisplay = $week['week_end_date_display'];
 
-                                // Definición del título de la semana para incluir el rango
-                                if ($weekIndex === 0) {
-                                    $weekTitle = 'Esta Semana';
-                                } else {
-                                    $weekTitle = 'Semana del ' . $weekStartDateDisplay . ' al ' . $weekEndDateDisplay;
-                                }
-                            ?>
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-light py-3">
-                                    <h5 class="mb-0 fw-bold text-center"><?= $weekTitle ?></h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="days-carousel-container d-flex overflow-auto pb-3">
-                                        <?php foreach ($weekDays as $dayData): ?>
-                                            <?php
-                                                $date_ymd = $dayData['date_ymd'];
-                                                $dayName = $dayData['day_name']; // 'lunes', 'martes', etc.
-                                                $date_display = $dayData['date_display']; // Solo el día del mes
-                                                $comprado_mediodia = $dayData['comprado_mediodia'];
-                                                $comprado_noche = $dayData['comprado_noche'];
-                                                $comprado_mediodia_menu = $dayData['comprado_mediodia_menu'];
-                                                $comprado_noche_menu = $dayData['comprado_noche_menu'];
-                                                $es_feriado = $dayData['es_feriado'];
-                                                $es_receso_invernal = $dayData['es_receso_invernal'] ?? false; // Nuevo flag para receso invernal
-                                                $es_pasado = $dayData['es_pasado'];
-                                                $disable_purchase = $dayData['disable_purchase']; // This already includes backend disability (bought, holiday)
-                                            ?>
-                                            <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
-                                                <div class="card h-100 day-option-card
-                                                    <?= $es_feriado ? 'day-card-holiday' : '' ?>
-                                                    <?= $es_receso_invernal ? 'day-card-recess' : '' ?>
-                                                    <?= $es_pasado ? 'day-card-past' : '' ?>">
-                                                    <div class="card-header d-flex flex-column align-items-center py-2
-                                                        <?= $es_feriado ? 'day-card-holiday-header-bg' : ($es_receso_invernal ? 'day-card-recess-header-bg' : 'day-card-normal-header-bg') ?>">
-                                                        <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h5>
-                                                        <?php if ($es_receso_invernal): ?>
-                                                            <span class="badge badge-recess"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
-                                                        <?php elseif ($es_feriado): ?>
-                                                            <span class="badge badge-holiday"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>                            
-                                                        <?php endif; ?>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
-                                                            <div class="d-flex align-items-center">
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Manana">
-                                                                    <i class="bi bi-sun me-2"></i>Mediodía
-                                                                </label>
+                                    $weekTitle = $weekIndex === 0
+                                    ? '<strong>Esta Semana</strong>'
+                                    : 'Semana del&nbsp;<strong>' . $weekStartDateDisplay . '</strong>&nbsp;al&nbsp;<strong>' . $weekEndDateDisplay . '</strong>';
+
+
+
+                                    $collapseId = "collapseSemana" . $weekIndex;
+                                    $headingId = "headingSemana" . $weekIndex;
+                                    $isFirst = $weekIndex === 0;
+                                ?>
+                                <div class="accordion-item mb-3 shadow-sm border">
+                                    <h2 class="accordion-header" id="<?= $headingId ?>">
+                                        <button class="accordion-button <?= $isFirst ? '' : 'collapsed' ?>" type="button"
+                                                data-bs-toggle="collapse" data-bs-target="#<?= $collapseId ?>"
+                                                aria-expanded="<?= $isFirst ? 'true' : 'false' ?>"
+                                                aria-controls="<?= $collapseId ?>">
+                                            <?= $weekTitle ?>
+                                        </button>
+                                    </h2>
+                                    <div id="<?= $collapseId ?>" class="accordion-collapse collapse <?= $isFirst ? 'show' : '' ?>"
+                                        aria-labelledby="<?= $headingId ?>" data-bs-parent="#accordionSemanas">
+                                        <div class="accordion-body p-3">
+                                            <div class="days-carousel-container d-flex overflow-auto pb-3">
+                                                <?php foreach ($weekDays as $dayData): ?>
+                                                    <?php
+                                                        $date_ymd = $dayData['date_ymd'];
+                                                        $dayName = $dayData['day_name'];
+                                                        $date_display = $dayData['date_display'];
+                                                        $comprado_mediodia = $dayData['comprado_mediodia'];
+                                                        $comprado_noche = $dayData['comprado_noche'];
+                                                        $comprado_mediodia_menu = $dayData['comprado_mediodia_menu'];
+                                                        $comprado_noche_menu = $dayData['comprado_noche_menu'];
+                                                        $es_feriado = $dayData['es_feriado'];
+                                                        $es_receso_invernal = $dayData['es_receso_invernal'] ?? false;
+                                                        $es_pasado = $dayData['es_pasado'];
+                                                        $disable_purchase = $dayData['disable_purchase'];
+                                                    ?>
+                                                    <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
+                                                        <div class="card h-100 day-option-card
+                                                            <?= $es_feriado ? 'day-card-holiday' : '' ?>
+                                                            <?= $es_receso_invernal ? 'day-card-recess' : '' ?>
+                                                            <?= $es_pasado ? 'day-card-past' : '' ?>">
+                                                            <div class="card-header d-flex flex-column align-items-center py-2
+                                                                <?= $es_feriado ? 'day-card-holiday-header-bg' : ($es_receso_invernal ? 'day-card-recess-header-bg' : 'day-card-normal-header-bg') ?>">
+                                                                <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h5>
+                                                                <?php if ($es_receso_invernal): ?>
+                                                                    <span class="badge badge-recess"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
+                                                                <?php elseif ($es_feriado): ?>
+                                                                    <span class="badge badge-holiday"><i class="bi bi-calendar-x me-1"></i>FERIADO</span>
+                                                                <?php endif; ?>
                                                             </div>
-                                                            <?php if ($comprado_mediodia): ?>
-                                                                <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
+                                                            <div class="card-body">
+                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Manana">
+                                                                            <i class="bi bi-sun me-2"></i>Mediodía
+                                                                        </label>
+                                                                    </div>
+                                                                    <?php if ($comprado_mediodia): ?>
+                                                                        <div class="d-flex justify-content-end mt-1">
+                                                                            <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                    <div class="vianda-options mt-2">
+                                                                        <select class="form-select form-select-sm meal-select"
+                                                                                id="select<?= $date_ymd ?>Manana"
+                                                                                name="selectMenu[<?= $date_ymd ?>][manana]"
+                                                                                data-date="<?= $date_ymd ?>"
+                                                                                data-time="manana"
+                                                                                <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
+                                                                            <option value="seleccionar" selected>Seleccionar</option>
+                                                                            <option value="Basico">Menú Básico</option>
+                                                                            <option value="Veggie">Menú Vegetariano</option>
+                                                                            <option value="Celiaco">Sin TACC</option>
+                                                                        </select>
+                                                                    </div>
                                                                 </div>
-                                                            <?php endif; ?>
-                                                            <div class="vianda-options mt-2">
-                                                                <select class="form-select form-select-sm meal-select"
-                                                                            id="select<?= $date_ymd ?>Manana"
-                                                                            name="selectMenu[<?= $date_ymd ?>][manana]"
-                                                                            data-date="<?= $date_ymd ?>"
-                                                                            data-time="manana"
-                                                                            <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
-                                                                    <option value="seleccionar" selected>Seleccionar</option>
-                                                                    <option value="Basico">Menú Básico</option>
-                                                                    <option value="Veggie">Menú Vegetariano</option>
-                                                                    <option value="Celiaco">Sin TACC</option>
-                                                                </select>
+
+                                                                <hr class="my-3">
+
+                                                                <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Noche">
+                                                                            <i class="bi bi-moon me-2"></i>Noche
+                                                                        </label>
+                                                                    </div>
+                                                                    <?php if ($comprado_noche): ?>
+                                                                        <div class="d-flex justify-content-end mt-1">
+                                                                            <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                    <div class="vianda-options mt-2">
+                                                                        <select class="form-select form-select-sm meal-select"
+                                                                                id="select<?= $date_ymd ?>Noche"
+                                                                                name="selectMenu[<?= $date_ymd ?>][noche]"
+                                                                                data-date="<?= $date_ymd ?>"
+                                                                                data-time="noche"
+                                                                                <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
+                                                                            <option value="seleccionar" selected>Seleccionar</option>
+                                                                            <option value="Basico">Menú Básico</option>
+                                                                            <option value="Veggie">Menú Vegetariano</option>
+                                                                            <option value="Celiaco">Sin TACC</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-
-                                                        <hr class="my-3">
-
-                                                        <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
-                                                            <div class="d-flex align-items-center">
-                                                                <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Noche">
-                                                                    <i class="bi bi-moon me-2"></i>Noche
-                                                                </label>
-                                                            </div>
-                                                            <?php if ($comprado_noche): ?>
-                                                                <div class="d-flex justify-content-end mt-1">
-                                                                    <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
-                                                                </div>
-                                                            <?php endif; ?>
-                                                            <div class="vianda-options mt-2">
-                                                                <select class="form-select form-select-sm meal-select"
-                                                                            id="select<?= $date_ymd ?>Noche"
-                                                                            name="selectMenu[<?= $date_ymd ?>][noche]"
-                                                                            data-date="<?= $date_ymd ?>"
-                                                                            data-time="noche"
-                                                                            <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
-                                                                    <option value="seleccionar" selected>Seleccionar</option>
-                                                                    <option value="Basico">Menú Básico</option>
-                                                                    <option value="Veggie">Menú Vegetariano</option>
-                                                                    <option value="Celiaco">Sin TACC</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
                                                     </div>
-                                                </div>
+                                                <?php endforeach; ?>
                                             </div>
-                                        <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </div>
 
                         <div class="row mt-5 justify-content-center">
                             <div class="col-md-8 col-lg-6">

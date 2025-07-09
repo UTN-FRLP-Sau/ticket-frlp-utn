@@ -67,56 +67,70 @@
                                 $compras_por_semana[$semana_iso]['days'][] = $compra;
                             }
 
-                            // Para traducir los meses en el título de la semana
-                            $meses_titulo = array(
+                            $meses_titulo = [
                                 'January' => 'Enero', 'February' => 'Febrero', 'March' => 'Marzo',
                                 'April' => 'Abril', 'May' => 'Mayo', 'June' => 'Junio',
                                 'July' => 'Julio', 'August' => 'Agosto', 'September' => 'Septiembre',
                                 'October' => 'Octubre', 'November' => 'Noviembre', 'December' => 'Diciembre'
-                            );
+                            ];
                             ?>
 
-                            <?php foreach ($compras_por_semana as $semana_iso => $weekData): ?>
-                                <?php
-                                    $weekTitle = 'Semana del ' . strtr($weekData['start_date'], $meses_titulo) . ' al ' . strtr($weekData['end_date'], $meses_titulo);
+                            <div class="accordion" id="accordionSemanas">
+                                <?php 
+                                $isFirst = true;
+                                foreach ($compras_por_semana as $semana_iso => $weekData): 
                                 ?>
-                                <div class="card shadow-sm border mb-4">
-                                    <div class="card-header bg-light py-3">
-                                        <h5 class="mb-0 fw-bold text-center"><?= $weekTitle ?></h5>
-                                    </div>
-                                    <div class="card-body p-3">
-                                        <div class="row flex-nowrap overflow-scroll-x g-3 pb-3">
-                                            <?php foreach ($weekData['days'] as $compra): ?>
-                                                <div class="col-10 col-md-6 col-lg-4"> <div class="card h-100 day-option-card">
-                                                        <div class="card-header d-flex justify-content-between align-items-center py-2 day-card-normal-header-bg">
-                                                            <h6 class="mb-0 fw-bold text-capitalize">
-                                                                <?php
-                                                                    $dia_semana_ingles = date('l', strtotime($compra->dia_comprado));
-                                                                    echo $diasSemana[$dia_semana_ingles];
-                                                                ?>
-                                                                <span class="text-muted fw-normal ms-1"><?= (new DateTime($compra->dia_comprado))->format('d/m') ?></span>
-                                                            </h6>
-                                                            <div class="form-check form-switch">
-                                                                <input class="form-check-input checkbox-devolver" type="checkbox" role="switch"
-                                                                    id="devolver_<?= $compra->id; ?>"
-                                                                    name="devolver[]"
-                                                                    value="<?= $compra->id; ?>"
-                                                                    data-precio="<?= $compra->precio;?>">
-                                                                <label class="form-check-label visually-hidden" for="devolver_<?= $compra->id; ?>">Seleccionar para devolver</label>
+                                    <?php
+                                        $weekTitle = 'Semana del&nbsp;<strong>' . strtr($weekData['start_date'], $meses_titulo) . '</strong>&nbsp;al&nbsp;<strong>' . strtr($weekData['end_date'], $meses_titulo) . '</strong>';
+                                        $collapseId = 'collapse_' . str_replace(['-', ' '], '_', $semana_iso);
+                                        $headingId = 'heading_' . str_replace(['-', ' '], '_', $semana_iso);
+                                    ?>
+                                    <div class="accordion-item mb-3 shadow-sm border">
+                                        <h2 class="accordion-header" id="<?= $headingId ?>">
+                                            <button class="accordion-button <?= $isFirst ? '' : 'collapsed' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $collapseId ?>" aria-expanded="<?= $isFirst ? 'true' : 'false' ?>" aria-controls="<?= $collapseId ?>">
+                                                <?= $weekTitle ?>
+                                            </button>
+                                        </h2>
+                                        <div id="<?= $collapseId ?>" class="accordion-collapse collapse <?= $isFirst ? 'show' : '' ?>" aria-labelledby="<?= $headingId ?>" data-bs-parent="#accordionSemanas">
+                                            <div class="accordion-body p-3">
+                                                <div class="row flex-nowrap overflow-scroll-x g-3 pb-3">
+                                                    <?php foreach ($weekData['days'] as $compra): ?>
+                                                        <div class="col-10 col-md-6 col-lg-4">
+                                                            <div class="card h-100 day-option-card">
+                                                                <div class="card-header d-flex justify-content-between align-items-center py-2 day-card-normal-header-bg">
+                                                                    <h6 class="mb-0 fw-bold text-capitalize">
+                                                                        <?php
+                                                                            $dia_semana_ingles = date('l', strtotime($compra->dia_comprado));
+                                                                            echo $diasSemana[$dia_semana_ingles];
+                                                                        ?>
+                                                                        <span class="text-muted fw-normal ms-1"><?= (new DateTime($compra->dia_comprado))->format('d/m') ?></span>
+                                                                    </h6>
+                                                                    <div class="form-check form-switch">
+                                                                        <input class="form-check-input checkbox-devolver" type="checkbox" role="switch"
+                                                                            id="devolver_<?= $compra->id; ?>"
+                                                                            name="devolver[]"
+                                                                            value="<?= $compra->id; ?>"
+                                                                            data-precio="<?= $compra->precio;?>">
+                                                                        <label class="form-check-label visually-hidden" for="devolver_<?= $compra->id; ?>">Seleccionar para devolver</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body py-3 px-3">
+                                                                    <p class="card-text mb-1"><strong>Turno:</strong> <?= $turnos[$compra->turno];?></p>
+                                                                    <p class="card-text mb-1"><strong>Menú:</strong> <?= $compra->menu; ?></p>
+                                                                    <p class="card-text mb-0"><strong>Costo:</strong> <span class="fw-bold text-success">$<?= number_format($compra->precio, 2); ?></span></p>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div class="card-body py-3 px-3">
-                                                            <p class="card-text mb-1"><strong>Turno:</strong> <?= $turnos[$compra->turno];?></p>
-                                                            <p class="card-text mb-1"><strong>Menú:</strong> <?= $compra->menu; ?></p>
-                                                            <p class="card-text mb-0"><strong>Costo:</strong> <span class="fw-bold text-success">$<?= number_format($compra->precio, 2); ?></span></p>
-                                                        </div>
-                                                    </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php 
+                                $isFirst = false;
+                                endforeach; 
+                                ?>
+                            </div>
 
                             <div class="row mt-5 justify-content-center">
                                 <div class="col-md-8 col-lg-6">
@@ -184,16 +198,14 @@
 
 <style>
     .summary-card {
-    border: 1px solid rgb(167, 40, 40) !important;
+        border: 1px solid rgb(167, 40, 40) !important;
     }
-
     
     .overflow-scroll-x {
         overflow-x: auto; 
         -webkit-overflow-scrolling: touch; 
         white-space: nowrap; 
     }
-
     
     .overflow-scroll-x .col-10,
     .overflow-scroll-x .col-md-6,
@@ -207,6 +219,10 @@
     }
     .form-switch .form-check-input {
         margin-left: -2em;
+    }
+
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
     }
 </style>
 
