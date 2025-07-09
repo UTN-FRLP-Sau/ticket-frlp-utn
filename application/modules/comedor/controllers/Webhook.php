@@ -238,9 +238,11 @@ class Webhook extends CI_Controller
                 'hora' => date('H:i:s'),
                 'transaccion' => 'Compra por Mercado Pago',
                 'saldo' => $saldo_para_registro_transaccion,
+                'external_reference' => $external_reference,
             ];
             $id_transaccion = $CI->ticket_model->addTransaccion($data_transaccion);
-            
+           
+
             if ($id_transaccion === false) {
                 log_message('error', 'processApprovedPayment: Falló la inserción de la transacción principal. Datos: ' . json_encode($data_transaccion));
                 throw new Exception('No se pudo insertar la transacción principal.');

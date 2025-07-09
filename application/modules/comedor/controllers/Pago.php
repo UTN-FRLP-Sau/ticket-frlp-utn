@@ -73,7 +73,7 @@ class Pago extends CI_Controller
         // --- LOG DEL RESULTADO DE generarPreferenciaConSaldo ---
         log_message('debug', 'PAGO: Resultado de generarPreferenciaConSaldo: ' . ($preferencia_info === null ? 'NULL (Saldo suficiente)' : ($preferencia_info === false ? 'FALSE (Error)' : json_encode($preferencia_info))));
 
-
+        // Compra con Saldo de la cuenta
         if ($preferencia_info === null) {
             // Si el saldo alcanza para cubrir toda la compra, procesar directamente
             log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Procesando directamente.');
@@ -82,7 +82,7 @@ class Pago extends CI_Controller
             
             if ($procesado) {
                 log_message('info', 'PAGO: Compra procesada exitosamente con saldo. Redirigiendo a compra_exitosa.');
-                $this->compra_exitosa(); // Llama al método para cargar la vista de éxito
+                redirect(base_url('comedor/pago/compra_exitosa?external_reference=' . $external_reference));
                 return;
             } else {
                 log_message('error', 'PAGO: ERROR al procesar la compra directamente con saldo.');
@@ -116,10 +116,70 @@ class Pago extends CI_Controller
     public function compra_exitosa()
     {
         log_message('debug', 'PAGO: Método compra_exitosa() alcanzado.');
+
+        $external_reference = $this->input->get('external_reference');
+        log_message('debug', 'PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
+
+        if (!$external_reference) {
+            log_message('error', 'PAGO: external_reference no encontrada en la URL de compra_exitosa. Redirigiendo.');
+            redirect(base_url('comedor'));
+            return;
+        }
+
+        $this->load->model('ticket_model');
+        $this->load->model('general/general_model', 'generalticket');
+
+        $transaccion_data = $this->ticket_model->getTransaccionByExternalReference($external_reference);
+        log_message('debug', 'PAGO: transaccion_data desde getTransaccionByExternalReference: ' . ($transaccion_data ? json_encode($transaccion_data) : 'NO ENCONTRADA'));
+
+        if (!$transaccion_data) {
+            log_message('error', 'PAGO: No se encontró la transacción para external_reference: ' . $external_reference);
+            redirect(base_url('comedor/compra_fallida'));
+            return;
+        }
+
+        $id_transaccion = $transaccion_data->id;
+        $id_usuario = $transaccion_data->id_usuario;
+
+        log_message('debug', 'PAGO: id_transaccion en compra_exitosa (obtenido de DB): ' . $id_transaccion);
+        log_message('debug', 'PAGO: id_usuario en compra_exitosa (obtenido de DB): ' . $id_usuario);
+
+        $usuario = $this->ticket_model->getUserById($id_usuario);
+        log_message('debug', 'PAGO: Usuario recuperado en compra_exitosa: ' . ($usuario ? json_encode($usuario) : 'NO ENCONTRADO'));
+
+        $compras = $this->ticket_model->getComprasByExternalReference($external_reference);
+        log_message('debug', 'PAGO: Compras recuperadas en compra_exitosa (desde tabla "compra" por external_reference): ' . ($compras ? json_encode($compras) : 'NO ENCONTRADAS'));
+
+
+        if ($usuario && $compras) {
+            $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
+            $dataRecivo['compras'] = $compras;
+            $dataRecivo['total'] = $costoVianda * count($compras);
+            $dataRecivo['fechaHoy'] = date('d/m/Y', time());
+            $dataRecivo['horaAhora'] = date('H:i:s', time());
+            $dataRecivo['recivoNumero'] = $id_transaccion;
+
+            $subject = "Recibo de compra del comedor";
+            $message = $this->generalticket->load->view('general/correos/recibo_compra', $dataRecivo, true);
+
+            if (!$this->session->flashdata('mail_enviado')) {
+                log_message('debug', 'PAGO: flashdata("mail_enviado") es FALSE. Procediendo a enviar email.');
+                $this->generalticket->smtpSendEmail($usuario->mail, $subject, $message);
+                $this->session->set_flashdata('mail_enviado', true);
+                log_message('debug', 'PAGO: Email enviado y flashdata("mail_enviado") seteado a TRUE.');
+            } else {
+                log_message('debug', 'PAGO: flashdata("mail_enviado") ya estaba TRUE. No se reenvía el email.');
+            }
+        } else {
+            log_message('error', 'PAGO: Condición ($usuario && $compras) es FALSE. No se pudo enviar el correo de confirmación. Posiblemente datos no encontrados con ID de usuario o transacción.');
+        }
+
         $this->load->view('usuario/header', ['titulo' => '¡Pago exitoso!']);
         $this->load->view('compra_exitosa');
         $this->load->view('general/footer');
     }
+
+
 
     public function compra_fallida()
     {

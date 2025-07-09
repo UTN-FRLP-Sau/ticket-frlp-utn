@@ -86,7 +86,6 @@ class Ticket_model extends CI_Model
             return null;
         }
 
-        // Carga SDK MercadoPago y setea Access Token
         require_once FCPATH . 'vendor/autoload.php';
         MercadoPago\SDK::setAccessToken($access_token);
 
@@ -103,20 +102,28 @@ class Ticket_model extends CI_Model
         $preference->auto_return = "approved";
         $preference->notification_url = $notification_url;
 
-        $saved = $preference->save();
+        // Envuelve el guardado en un try-catch para capturar excepciones
+        try {
+            $saved = $preference->save();
 
-        if (!$saved) {
-            log_message('error', 'Error guardando preferencia Mercado Pago: ' . print_r($preference->getLastApiResponse(), true));
+            if (!$saved) {
+                log_message('error', 'Error guardando preferencia Mercado Pago: La validación de la preferencia falló o los datos son inválidos.');
+                return false;
+            }
+
+            return [
+                'id' => $preference->id,
+                'init_point' => $preference->init_point,
+                'monto_a_pagar' => $monto_a_pagar,
+                'saldo_usuario' => $saldo_usuario
+            ];
+        } catch (Exception $e) {
+            // Captura cualquier excepción que Mercado Pago SDK pueda lanzar (ej. errores de conexión, errores de API).
+            log_message('error', 'Excepción al intentar guardar la preferencia de Mercado Pago: ' . $e->getMessage());
             return false;
         }
-
-        return [
-            'id' => $preference->id,
-            'init_point' => $preference->init_point,
-            'monto_a_pagar' => $monto_a_pagar,
-            'saldo_usuario' => $saldo_usuario
-        ];
     }
+
 
 
 
@@ -187,7 +194,8 @@ class Ticket_model extends CI_Model
             'id_usuario' => $compra->id_usuario,
             'transaccion' => 'Compra con saldo',
             'monto' => -$saldo_utilizado,
-            'saldo' => $saldo_final_transaccion
+            'saldo' => $saldo_final_transaccion,
+            'external_reference' => $compra->external_reference
         ];
 
         $id_transaccion = $this->addTransaccion($data_transaccion);
@@ -295,15 +303,11 @@ class Ticket_model extends CI_Model
         return $query->result();
     }
 
-    public function getLogComprasByIDTransaccion($id_trans)
+    public function getComprasByExternalReference($external_reference)
     {
-        /* Usado en:
-        compra
-        devolverCompra
-        */
         $this->db->select('*');
-        $this->db->where('transaccion_id', $id_trans);
-        $query = $this->db->get('log_compra');
+        $this->db->where('external_reference', $external_reference);
+        $query = $this->db->get('compra');
         return $query->result();
     }
 
@@ -369,16 +373,23 @@ class Ticket_model extends CI_Model
 
     public function getUserById($id)
     {
-        /* Usado en:
-        index
-        compra
-        devolverCompra
-        */
+        log_message('debug', 'Ticket_model: getUserById() llamado con ID: ' . $id); // Nuevo log
         $this->db->select('*');
         $this->db->where('id', $id);
         $query = $this->db->get('usuarios');
-        return $query->row();
+        
+        log_message('debug', 'Ticket_model: getUserById() - Número de filas encontradas: ' . $query->num_rows()); // Nuevo log
+        
+        $result = $query->row();
+        if ($result) {
+            log_message('debug', 'Ticket_model: getUserById() - Usuario encontrado: ' . json_encode($result)); // Nuevo log
+        } else {
+            log_message('debug', 'Ticket_model: getUserById() - Usuario NO encontrado para ID: ' . $id); // Nuevo log
+        }
+        return $result;
     }
+
+    
 
     public function getConfiguracion()
     {
@@ -470,5 +481,15 @@ class Ticket_model extends CI_Model
             }
         }
         return null;
+    }
+
+    public function getTransaccionByExternalReference($external_reference)
+        {
+            $this->db->where('external_reference', $external_reference);
+            $query = $this->db->get('transacciones');
+            if ($query->num_rows() > 0) {
+                return $query->row();
+            }
+            return null;
     }
 }
