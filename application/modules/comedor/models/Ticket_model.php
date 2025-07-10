@@ -240,7 +240,17 @@ class Ticket_model extends CI_Model
 
 
 
-
+    public function getLogComprasByIDTransaccion($id_trans)
+    {
+        /* Usado en:
+        compra
+        devolverCompra
+        */
+        $this->db->select('*');
+        $this->db->where('transaccion_id', $id_trans);
+        $query = $this->db->get('log_compra');
+        return $query->result();
+    }
 
 
 
