@@ -14,7 +14,7 @@ class Pago extends CI_Controller
         $external_reference = $this->session->userdata('external_reference');
         // --- LOG DE VERIFICACIÓN DE external_reference ---
         log_message('debug', 'PAGO: external_reference de sesión: ' . ($external_reference ? $external_reference : 'VACIA'));
-        
+
         if (!$external_reference) {
             // --- LOG DE REDIRECCIÓN POR FALTA DE external_reference ---
             log_message('error', 'PAGO: external_reference vacía. Redirigiendo a comedor/ticket.');
@@ -34,83 +34,64 @@ class Pago extends CI_Controller
             return;
         }
 
-        // Redirige según el estado actual de mp_estado en la compra pendiente
-        if (isset($compra->mp_estado)) {
-            if ($compra->mp_estado == 'approved') {
-                log_message('info', 'PAGO: Compra ' . $compra->id . ' ya aprobada. Redirigiendo a compra_exitosa.');
-                redirect('comedor/pago/compra_exitosa');
-                return;
-            }
-            
-            if ($compra->mp_estado == 'pending') {
-                log_message('info', 'PAGO: Compra ' . $compra->id . ' en estado pendiente. Redirigiendo a compra_pendiente.');
-                redirect('comedor/pago/compra_pendiente');
-                return;
-            }
-
-            if ($compra->mp_estado == 'rejected') {
-                log_message('info', 'PAGO: Compra ' . $compra->id . ' en estado rechazada. Redirigiendo a compra_fallida.');
-                redirect('comedor/pago/compra_fallida');
-                return;
-            }
-        }
-
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://c648735dd6f5.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://8ffead6fbe57.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
-            "success" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_exitosa',
-            "failure" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_fallida',
-            "pending" => 'https://c648735dd6f5.ngrok-free.app/comedor/pago/compra_pendiente',
+            "success" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
+        // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
         $preferencia_info = $this->ticket_model->generarPreferenciaConSaldo(
             $external_reference,
             $access_token,
             $notification_url,
             $back_urls
         );
-
-        // --- LOG DEL RESULTADO DE generarPreferenciaConSaldo ---
         log_message('debug', 'PAGO: Resultado de generarPreferenciaConSaldo: ' . ($preferencia_info === null ? 'NULL (Saldo suficiente)' : ($preferencia_info === false ? 'FALSE (Error)' : json_encode($preferencia_info))));
 
-        // Compra con Saldo de la cuenta
+        // --- LÓGICA DE PROCESAMIENTO DE COMPRA ---
+
+        // Caso 1: Saldo de la cuenta cubre toda la compra
         if ($preferencia_info === null) {
-            // Si el saldo alcanza para cubrir toda la compra, procesar directamente
-            log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Procesando directamente.');
-            
-            $procesado = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
-            
-            if ($procesado) {
+            log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Intentando procesar directamente.');
+
+            // Llama a procesarCompraConSaldo
+            $procesado_con_saldo = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
+
+            if ($procesado_con_saldo) {
                 log_message('info', 'PAGO: Compra procesada exitosamente con saldo. Redirigiendo a compra_exitosa.');
-                redirect(base_url('comedor/pago/compra_exitosa?external_reference=' . $external_reference));
+                redirect('comedor/pago/compra_exitosa?external_reference=' . $external_reference); // Redirigir directamente
                 return;
             } else {
-                log_message('error', 'PAGO: ERROR al procesar la compra directamente con saldo.');
-                show_error('Error procesando la compra con saldo disponible.');
+                log_message('error', 'PAGO: ERROR al procesar la compra directamente con saldo. Falló procesarCompraConSaldo.');
+                show_error('No se pudo procesar la compra con el saldo disponible. Intente nuevamente.');
                 return;
             }
         }
-
-        if ($preferencia_info === false) {
+        // Caso 2: Error al generar la preferencia de Mercado Pago (e.g., API issues)
+        else if ($preferencia_info === false) {
             log_message('error', 'PAGO: ERROR en generarPreferenciaConSaldo (retornó FALSE).');
-            show_error('Error procesando la preferencia de pago.');
+            show_error('Error al generar la preferencia de pago. Intente nuevamente.');
             return;
         }
+        // Caso 3: Saldo insuficiente, se generó preferencia de Mercado Pago
+        else {
+            $init_point = isset($preferencia_info['init_point']) ? $preferencia_info['init_point'] : 'NO DEFINIDO';
+            log_message('info', 'PAGO: Saldo insuficiente. Redirigiendo a Mercado Pago. init_point: ' . $init_point);
 
-        // Si no se cubrió todo con saldo y se generó una preferencia de MP, redirige
-        $init_point = isset($preferencia_info['init_point']) ? $preferencia_info['init_point'] : 'NO DEFINIDO';
-        log_message('info', 'PAGO: Redirigiendo a Mercado Pago. init_point: ' . $init_point);
-        
-        // Carga el SDK de Mercado Pago
-        require_once FCPATH . 'vendor/autoload.php';
-        MercadoPago\SDK::setAccessToken($access_token);
+            if ($init_point === 'NO DEFINIDO' || empty($init_point)) {
+                log_message('error', 'PAGO: init_point de Mercado Pago es inválido o vacío. No se puede redirigir.');
+                show_error('No se pudo obtener la URL de pago de Mercado Pago. Intente nuevamente.');
+                return;
+            }
 
-        if ($init_point === 'NO DEFINIDO' || empty($init_point)) {
-             log_message('error', 'PAGO: init_point de Mercado Pago es inválido o no existe. No se puede redirigir.');
-             show_error('No se pudo generar la URL de pago de Mercado Pago. Intente nuevamente.');
-             return;
+            // Redirigir al usuario al init_point de Mercado Pago
+            log_message('debug', 'PAGO: Redirigiendo a: ' . $init_point);
+            redirect($init_point);
+            return;
         }
-        redirect($init_point);
     }
 
     public function compra_exitosa()

@@ -224,8 +224,14 @@ class Ticket_model extends CI_Model
             return false;
         }
 
-        // Marcamos la compra pendiente como procesada
+        // Actualizamos el estado 'mp_estado' a 'approved' y marcamos 'procesada' en la tabla 'compras_pendientes'
+        $this->db->set('mp_estado', 'approved');
+        $this->db->set('procesada', 1);
+        $this->db->where('id', $compra->id);
+        $this->db->update('compras_pendientes');
+
         $this->setCompraPendienteProcesada($compra->external_reference);
+
 
         $this->db->trans_complete();
 
