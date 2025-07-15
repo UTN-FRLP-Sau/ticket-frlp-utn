@@ -33,13 +33,19 @@ class Pago extends CI_Controller
             redirect('comedor/ticket');
             return;
         }
-
+        //  Actualizar estado a 'pasarela' si aún no ha sido procesada ---
+        // Esto marca que la orden ya entró en el flujo de Mercado Pago desde nuestro lado
+        // Se considera 'null' o cadena vacía como el estado inicial antes de ir a MP
+        if ($compra->mp_estado === null || $compra->mp_estado === '') {
+            $this->ticket_model->updateCompraPendienteEstado($compra->id, 'pasarela', 'Usuario redirigido a pasarela de pago');
+            log_message('debug', 'PAGO: mp_estado actualizado a "pasarela" para ' . $external_reference);
+        }
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://ab68e3cc42ec.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://25cb635e9c65.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
-            "success" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
@@ -186,5 +192,47 @@ class Pago extends CI_Controller
         $this->load->view('usuario/header', ['titulo' => 'Pago pendiente']);
         $this->load->view('compra_pendiente');
         $this->load->view('general/footer');
+    }
+
+
+        public function cancelar_compra_ajax()
+    {
+        // Asegurarse de que la solicitud es AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404(); // O redirigir a una página de error
+        }
+
+        $external_reference = $this->input->post('external_reference');
+
+        if (empty($external_reference)) {
+            echo json_encode(['success' => false, 'message' => 'Referencia externa no proporcionada.']);
+            return;
+        }
+
+        $this->load->model('ticket_model');
+        $compra_pendiente = $this->ticket_model->getCompraPendiente($external_reference);
+
+        if (!$compra_pendiente) {
+            echo json_encode(['success' => false, 'message' => 'Compra pendiente no encontrada para la referencia proporcionada.']);
+            return;
+        }
+
+        // --- PRECAUCIÓN DE RACE CONDITION: Verificar el estado actual antes de cancelar ---
+        // Si el estado ya cambió a aprobado o rechazado por un webhook, no permitir cancelar.
+        if ($compra_pendiente->mp_estado === 'approved' || $compra_pendiente->mp_estado === 'rejected' || $compra_pendiente->mp_estado === 'cancelled') {
+            echo json_encode(['success' => false, 'message' => 'Esta compra ya no está pendiente de acción por el usuario. Estado actual: ' . $compra_pendiente->mp_estado . '.']);
+            return;
+        }
+
+        // --- Actualizar estado a 'cancelled_by_user' (RECOMENDADO sobre borrar) ---
+        // Asumo que updateCompraPendienteEstado existe y actualiza el estado por ID
+        $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'cancelled_by_user', 'Usuario canceló orden desde modal en el menú principal');
+        log_message('debug', 'PAGO: Compra pendiente ' . $compra_pendiente->id . ' marcada como cancelada por usuario.');
+
+
+        // --- Limpiar la external_reference de la sesión del usuario ---
+        $this->session->unset_userdata('external_reference');
+
+        echo json_encode(['success' => true, 'message' => 'Orden cancelada exitosamente. Ahora puedes seleccionar nuevas viandas.']);
     }
 }

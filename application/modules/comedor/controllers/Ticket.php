@@ -43,8 +43,50 @@ class Ticket extends CI_Controller
 
     public function index()
     {
+        // Carga de modelos y helpers, y lógica de autenticación (mantén tu código existente aquí)
+        // Por ejemplo, las líneas que cargan el modelo ticket_model y obtienen los datos del usuario:
         $id_usuario = $this->session->userdata('id_usuario');
         $usuario = $this->ticket_model->getUserById($id_usuario);
+
+        // --- DIAGNÓSTICO: Cargar explícitamente la base de datos si no está ya cargada ---
+        // Esto puede ayudar si hay algún problema con la carga automática en este contexto específico.
+        $this->load->database(); 
+
+        // --- Lógica para el modal de compra pendiente ---
+        $show_pending_purchase_modal = false;
+        $pending_purchase_details = null;
+        $pending_purchase_viandas = [];
+
+        $external_reference_from_session = $this->session->userdata('external_reference');
+        log_message('debug', 'TICKET_INDEX: external_reference_from_session: ' . ($external_reference_from_session ? $external_reference_from_session : 'VACIO'));
+
+        if ($external_reference_from_session) {
+            // **IMPORTANTE: Primero llamas al modelo y asignas el resultado**
+            $compra_pendiente = $this->ticket_model->getCompraPendiente($external_reference_from_session);
+
+            // **Luego, realizas los logs con el valor YA asignado de $compra_pendiente**
+            log_message('debug', 'TICKET_INDEX: Raw result of getCompraPendiente: ' . print_r($compra_pendiente, true));
+
+            // **CORRECCIÓN DE LÓGICA:** Aseguramos que $compra_pendiente sea un objeto válido antes de acceder a sus propiedades
+            if ($compra_pendiente && property_exists($compra_pendiente, 'mp_estado')) { 
+                log_message('debug', 'TICKET_INDEX: mp_estado from retrieved purchase: ' . $compra_pendiente->mp_estado); 
+
+                if ($compra_pendiente->mp_estado !== 'approved') {
+                    $show_pending_purchase_modal = true;
+                    $pending_purchase_details = $compra_pendiente;
+                    $pending_purchase_viandas = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
+                    log_message('debug', 'TICKET_INDEX: Modal de compra pendiente marcado para mostrar.');
+                } else {
+                    // Si la compra se encontró y está aprobada, la limpiamos de la sesión para no volver a preguntar
+                    $this->session->unset_userdata('external_reference'); 
+                    log_message('debug', 'TICKET_INDEX: Modal de compra pendiente NO marcado. Razón: Compra aprobada. external_reference limpiada.');
+                }
+            } else {
+                // Si $compra_pendiente es nulo/falso (no se encontró) o no tiene la propiedad mp_estado, limpiar la referencia
+                $this->session->unset_userdata('external_reference');
+                log_message('debug', 'TICKET_INDEX: Modal de compra pendiente NO marcado. Razón: No se encontró compra o es inválida. external_reference limpiada.');
+            }
+        }
 
         if ($this->estadoComedor()) {
             // Obtener la configuración aquí para todas las validaciones de fechas y horarios

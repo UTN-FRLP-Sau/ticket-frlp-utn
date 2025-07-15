@@ -229,10 +229,40 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     </div>
 </div>
 
+<div class="modal fade" id="pendingPurchaseModal" tabindex="-1" aria-labelledby="pendingPurchaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="pendingPurchaseModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Compra Pendiente Detectada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Hemos detectado una compra de viandas que dejaste pendiente de pago. Aquí están los detalles:</p>
+                <p><strong>Referencia:</strong> <span id="modalExternalReference"></span></p>
+                <p><strong>Monto Total:</strong> $<span id="modalAmount"></span></p>
+                <h6>Viandas Seleccionadas:</h6>
+                <ul id="modalViandasList" class="list-group list-group-flush">
+                    </ul>
+                <p class="mt-3">¿Deseas retomar el pago de esta orden o prefieres cancelarla para iniciar una nueva compra?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-danger" id="cancelPendingPurchaseBtn">Cancelar Orden</button>
+                <button type="button" class="btn btn-primary" id="resumePendingPurchaseBtn">Retomar Pago</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
 
 <script>
 $(document).ready(function() {
+    // Aquí puedes añadir una verificación simple para asegurar que jQuery está listo
+    console.log('jQuery está cargado:', typeof $ !== 'undefined' ? 'Sí' : 'No');
+    console.log('Objeto Bootstrap está cargado:', typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined' ? 'Sí' : 'No');
+
     // Obtenemos el costo unitario de la vianda y el saldo inicial del usuario
     const costoViandaUnitario = parseFloat($('#costoVianda').val());
     const saldoUsuarioInicial = parseFloat($('#saldoCuenta').val());
@@ -259,9 +289,12 @@ $(document).ready(function() {
         // --- Actualiza el Resumen de Compra en la página ---
         $('#cantidadViandas').text(cantidadViandasSeleccionadas);
         $('#costoDisplay').text('$' + costoTotalViendas.toFixed(2));
-        $('#saldoAplicadoDisplay').text('-$' + saldoAplicado.toFixed(2));
-        $('#totalPagar').text('$' + totalAPagar.toFixed(2));
+        // There's no #saldoAplicadoDisplay in your HTML for this specific purpose,
+        // it seems saldoInicialDisplay is used to show the initial balance.
+        // If you intended to show the *applied* balance, you'd need a new span.
+        // For now, we'll keep it showing the initial balance as it is.
         $('#saldoInicialDisplay').text('$' + saldoUsuarioInicial.toFixed(2));
+        $('#totalPagar').text('$' + totalAPagar.toFixed(2));
 
         // Aplica color al total a pagar según si es mayor que 0 o no
         if (totalAPagar > 0) {
@@ -360,7 +393,7 @@ $(document).ready(function() {
 
         // Calcular costo total de viandas
         costoTotalViendas = cantidadViandasSeleccionadas * costoViandaUnitario;
-        
+
         const saldoUsuario = saldoUsuarioInicial; // Usamos el saldo inicial del usuario
 
         let saldoAplicadoModal = 0;
@@ -389,7 +422,9 @@ $(document).ready(function() {
             $('#modalFinalPagarValor').removeClass('text-danger').addClass('text-success');
         }
 
-        $('#confirmModal').modal('show');
+        // Initialize and show the modal correctly using Bootstrap's API
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        confirmModal.show();
     });
 
     // Confirma la compra al hacer clic en el botón de confirmación del modal
@@ -439,5 +474,64 @@ $(document).ready(function() {
         actualizarTotal(); // Actualiza el total al resetear
     });
 
+    // --- Lógica para mostrar el modal de compra pendiente ---
+    <?php if (isset($show_pending_purchase_modal) && $show_pending_purchase_modal && !empty($pending_purchase_details)): ?>
+    const pendingPurchaseDetails = <?php echo json_encode($pending_purchase_details); ?>;
+    const pendingPurchaseViandas = <?php echo json_encode($pending_purchase_viandas); ?>;
+    console.log('Detected pending purchase:', pendingPurchaseDetails);
+
+    // Llenar los datos del modal
+    $('#modalExternalReference').text(pendingPurchaseDetails.external_reference);
+    $('#modalAmount').text(parseFloat(pendingPurchaseDetails.total).toFixed(2));
+
+    const viandasList = $('#modalViandasList');
+    viandasList.empty();
+    if (pendingPurchaseViandas && pendingPurchaseViandas.length > 0) {
+        pendingPurchaseViandas.forEach(function(vianda) {
+            viandasList.append(`<li class="list-group-item">${vianda.dia_comprado_display || 'Día Desconocido'} - ${vianda.turno || 'Turno Desconocido'} (${vianda.menu || 'Vianda Desconocida'})</li>`);
+        });
+    } else {
+        viandasList.append('<li class="list-group-item text-muted">No se encontraron detalles de viandas para esta orden.</li>');
+    }
+
+    // Crear la instancia del modal
+    const pendingPurchaseModalElement = document.getElementById('pendingPurchaseModal');
+    const pendingPurchaseModal = new bootstrap.Modal(pendingPurchaseModalElement, {
+        backdrop: 'static',
+        keyboard: false
+    });
+    
+    // Mostrar el modal
+    pendingPurchaseModal.show();
+
+    // Manejar botón "Retomar Pago"
+    $('#resumePendingPurchaseBtn').on('click', function() {
+        window.location.href = '<?= base_url("pago/comprar"); ?>';
+    });
+
+    // Manejar botón "Cancelar Orden"
+    $('#cancelPendingPurchaseBtn').on('click', function() {
+        if (confirm('¿Estás seguro de que deseas cancelar esta orden? No podrás retomarla después.')) {
+            $.ajax({
+                url: '<?= base_url("pago/cancelar_compra_ajax"); ?>',
+                type: 'POST',
+                data: { external_reference: pendingPurchaseDetails.external_reference },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        pendingPurchaseModal.hide();
+                        window.location.reload();
+                    } else {
+                        alert('Error al cancelar: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Error de comunicación con el servidor al intentar cancelar la compra.');
+                }
+            });
+        }
+    });
+<?php endif; ?>
 });
 </script>

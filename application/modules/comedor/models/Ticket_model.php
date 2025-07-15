@@ -438,14 +438,23 @@ class Ticket_model extends CI_Model
     }
 
     public function getCompraPendiente($external_reference) {
-        /* Usado en:
-        Pago 
-        comprar()
+        log_message('debug', 'TICKET_MODEL: getCompraPendiente llamado con external_reference: ' . $external_reference);
 
-        Webhook
-        mercadopago()
-        */
-        return $this->db->get_where('compras_pendientes', ['external_reference' => $external_reference])->row();
+        $this->db->where('external_reference', $external_reference);
+        $query = $this->db->get('compras_pendientes');
+
+        // **AÑADE ESTAS LÍNEAS DE LOG**
+        log_message('debug', 'TICKET_MODEL: getCompraPendiente - SQL Query: ' . $this->db->last_query());
+        log_message('debug', 'TICKET_MODEL: getCompraPendiente - Número de filas encontradas: ' . $query->num_rows());
+
+        if ($query->num_rows() > 0) {
+            $result = $query->row();
+            log_message('debug', 'TICKET_MODEL: getCompraPendiente - Compra pendiente encontrada: ' . json_encode($result));
+            return $result;
+        } else {
+            log_message('debug', 'TICKET_MODEL: getCompraPendiente - No se encontró compra pendiente para la referencia.');
+            return null;
+        }
     }
 
     public function setCompraPendienteProcesada($external_reference) {
