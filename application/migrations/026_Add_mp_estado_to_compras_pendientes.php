@@ -11,8 +11,8 @@ class Migration_Add_mp_estado_to_compras_pendientes extends CI_Migration {
             'mp_estado' => array(
                 'type'       => 'VARCHAR',
                 'constraint' => '20',
-                'default'    => 'pending', // Estado inicial por defecto
-                'null'       => FALSE,
+                'default'    => null,
+                'null'       => null,
                 'after'      => 'procesada' // Posiciona la columna después de la columna 'procesada'
             )
         );
