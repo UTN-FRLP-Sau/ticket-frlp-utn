@@ -35,11 +35,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://8ffead6fbe57.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://ab68e3cc42ec.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
-            "success" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://8ffead6fbe57.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://ab68e3cc42ec.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
@@ -62,7 +62,8 @@ class Pago extends CI_Controller
 
             if ($procesado_con_saldo) {
                 log_message('info', 'PAGO: Compra procesada exitosamente con saldo. Redirigiendo a compra_exitosa.');
-                redirect('comedor/pago/compra_exitosa?external_reference=' . $external_reference); // Redirigir directamente
+                $this->session->set_flashdata('send_balance_purchase_email', true);
+                redirect('comedor/pago/compra_exitosa?external_reference=' . $external_reference);
                 return;
             } else {
                 log_message('error', 'PAGO: ERROR al procesar la compra directamente con saldo. Falló procesarCompraConSaldo.');
@@ -131,40 +132,48 @@ class Pago extends CI_Controller
         $compras = $this->ticket_model->getComprasByExternalReference($external_reference);
         log_message('debug', 'PAGO: Compras recuperadas en compra_exitosa (desde tabla "compra" por external_reference): ' . ($compras ? json_encode($compras) : 'NO ENCONTRADAS'));
 
+        // Solo envia el correo si este es un flujo de compra con saldo
+        if ($this->session->flashdata('send_balance_purchase_email')) {
+            log_message('debug', 'PAGO: Flashdata "send_balance_purchase_email" detectado. Preparando envío de correo para compra con saldo.');
 
-        if ($usuario && $compras) {
-            $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
-            $dataRecivo['compras'] = $compras;
-            $dataRecivo['total'] = $costoVianda * count($compras);
-            $dataRecivo['fechaHoy'] = date('d/m/Y', time());
-            $dataRecivo['horaAhora'] = date('H:i:s', time());
-            $dataRecivo['recivoNumero'] = $id_transaccion;
+            if ($usuario && $compras) {
+                // Genera el HTML del correo
+                $dataEmail['compras'] = $compras;
+                // Usa el total de la transacción, que debería ser el total final de la compra
+                $dataEmail['total'] = $transaccion_data->monto; 
+                $dataEmail['total'] = abs($transaccion_data->monto); 
+                
+                $dataEmail['fechaHoy'] = date('d/m/Y', time());
+                $dataEmail['horaAhora'] = date('H:i:s', time());
+                $dataEmail['recivoNumero'] = $external_reference; // external_reference como número de recibo
 
-            $subject = "Recibo de compra del comedor";
-            $message = $this->generalticket->load->view('general/correos/recibo_compra', $dataRecivo, true);
+                $subject = "Confirmación de Compra - Comedor Universitario";
+                $message = $this->load->view('general/correos/recibo_compra', $dataEmail, true);
 
-            if (!$this->session->flashdata('mail_enviado')) {
-                log_message('debug', 'PAGO: flashdata("mail_enviado") es FALSE. Procediendo a enviar email.');
-                $this->generalticket->smtpSendEmail($usuario->mail, $subject, $message);
-                $this->session->set_flashdata('mail_enviado', true);
-                log_message('debug', 'PAGO: Email enviado y flashdata("mail_enviado") seteado a TRUE.');
+                log_message('debug', 'PAGO: Intentando enviar email de confirmación para compra con saldo.');
+                if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                    log_message('info', 'PAGO: Email de confirmación de compra con saldo enviado a ' . $usuario->mail . ' para external_reference ' . $external_reference . '.');
+                } else {
+                    log_message('error', 'PAGO: Fallo al enviar email de confirmación de compra con saldo a ' . $usuario->mail . ' para external_reference ' . $external_reference . '.');
+                }
             } else {
-                log_message('debug', 'PAGO: flashdata("mail_enviado") ya estaba TRUE. No se reenvía el email.');
+                log_message('error', 'PAGO: No se pudo enviar el correo de confirmación de compra con saldo. Usuario o compras no encontrados para external_reference ' . $external_reference . '.');
             }
         } else {
-            log_message('error', 'PAGO: Condición ($usuario && $compras) es FALSE. No se pudo enviar el correo de confirmación. Posiblemente datos no encontrados con ID de usuario o transacción.');
+            log_message('debug', 'PAGO: Flashdata "send_balance_purchase_email" NO detectado. Se asume que el correo se maneja por webhook de MP o ya fue enviado.');
         }
+
+        $this->session->unset_userdata('external_reference'); 
 
         $this->load->view('usuario/header', ['titulo' => '¡Pago exitoso!']);
         $this->load->view('compra_exitosa');
         $this->load->view('general/footer');
     }
 
-
-
     public function compra_fallida()
     {
         log_message('debug', 'PAGO: Método compra_fallida() alcanzado.');
+        $this->session->unset_userdata('external_reference');
         $this->load->view('usuario/header', ['titulo' => 'Pago fallido']);
         $this->load->view('compra_fallida');
         $this->load->view('general/footer');
@@ -173,6 +182,7 @@ class Pago extends CI_Controller
     public function compra_pendiente()
     {
         log_message('debug', 'PAGO: Método compra_pendiente() alcanzado.');
+        $this->session->unset_userdata('external_reference');
         $this->load->view('usuario/header', ['titulo' => 'Pago pendiente']);
         $this->load->view('compra_pendiente');
         $this->load->view('general/footer');
