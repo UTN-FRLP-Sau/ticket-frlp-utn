@@ -6,8 +6,8 @@
           <div class="mb-4">
             <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
           </div>
-          <h2 class="card-title fw-bold mb-3">¡Pago realizado con éxito!</h2>
-          <p class="card-text mb-4 fs-5 text-muted">Gracias por su compra.</p>
+          <h2 class="card-title fw-bold mb-3">¡Gracias por tu pago!</h2>
+          <p class="card-text mb-4 fs-5 text-muted">Estamos procesando tu compra. Recibirás la confirmación por correo.</p>
           <a href="<?= base_url('usuario'); ?>" class="btn btn-primary btn-lg px-5 shadow-sm">
             Volver al inicio
           </a>

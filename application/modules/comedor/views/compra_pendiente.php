@@ -6,8 +6,8 @@
           <div class="mb-4">
             <i class="bi bi-hourglass-split text-warning" style="font-size: 4rem;"></i>
           </div>
-          <h2 class="card-title fw-bold mb-3 text-warning">Pago pendiente</h2>
-          <p class="card-text mb-4 fs-5 text-muted">Su pago está pendiente de confirmación. Le notificaremos cuando se complete.</p>
+          <h2 class="card-title fw-bold mb-3 text-warning">Tu compra está pendiente.</h2>
+          <p class="card-text mb-4 fs-5 text-muted">Te avisaremos por correo la confirmación de tu compra, cuando se acredite el pago.</p>
           <a href="<?php echo base_url('usuario'); ?>" class="btn btn-warning btn-lg px-5 shadow-sm">
             Volver al inicio
           </a>
