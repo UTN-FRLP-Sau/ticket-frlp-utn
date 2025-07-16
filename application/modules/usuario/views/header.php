@@ -26,26 +26,28 @@
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container"> <a class="navbar-brand" href="<?= base_url('usuario'); ?>">Ticket</a>
+        <div class="container-fluid"> 
+            <a class="navbar-brand" href="<?= base_url('usuario'); ?>">Ticket</a>
             
-            <a class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarHeader"
-                aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation" href="#">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHeader"
+                aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
-            </a>
+            </button>
             
             <div class="collapse navbar-collapse" id="navbarHeader">
-                <ul class="navbar-nav ms-auto"> <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('menu'); ?>">Menu</a>
+                <ul class="navbar-nav ms-auto d-flex justify-content-center">
+                    <li class="nav-item">
+                        <a class="nav-link text-center" href="<?= base_url('menu'); ?>">Menu</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('faq'); ?>">Preguntas Frecuentes</a>
+                        <a class="nav-link text-center" href="<?= base_url('faq'); ?>">Preguntas Frecuentes</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('contacto'); ?>">Contacto</a>
+                        <a class="nav-link text-center" href="<?= base_url('contacto'); ?>">Contacto</a>
                     </li>
                     <?php if ($this->session->userdata('id_usuario')) : ?>
                        <li class="nav-item">
-                            <a class="nav-link" href="<?= base_url('comentarios'); ?>">¡Haz un comentario!</a>
+                            <a class="nav-link text-center" href="<?= base_url('comentarios'); ?>">¡Haz un comentario!</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
