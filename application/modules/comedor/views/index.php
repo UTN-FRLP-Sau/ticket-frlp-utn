@@ -130,7 +130,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                             <?= $es_pasado ? 'day-card-past' : '' ?>">
                                                             <div class="card-header d-flex flex-column align-items-center py-2
                                                                 <?= $es_feriado ? 'day-card-holiday-header-bg' : ($es_receso_invernal ? 'day-card-recess-header-bg' : 'day-card-normal-header-bg') ?>">
-                                                                <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="text-muted fw-normal fs-6 ms-1"><?= $date_display ?></span></h5>
+                                                                <h5 class="mb-0 fw-bold text-capitalize"><?= $dayName ?> <span class="<?= ($es_feriado || $es_receso_invernal) ? 'text-black-custom' : 'text-white-custom' ?>"><?= $date_display ?></span></h5>
                                                                 <?php if ($es_receso_invernal): ?>
                                                                     <span class="badge badge-recess"><i class="bi bi-snow me-1"></i>RECESO INVERNAL</span>
                                                                 <?php elseif ($es_feriado): ?>

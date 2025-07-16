@@ -30,7 +30,7 @@ body {
 #card-titulo{
     display: flex;
     align-items: center;
-    background-color: #ff5e00 !important;
+    background-color: #2f96ff !important;
 }
 
 #card-titulo h2 {
@@ -99,18 +99,18 @@ body {
 }
 
 .badge-holiday {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
+    background-color: #5d5d5d !important;
+    color: #ffffff !important;
 }
 
 .badge-recess {
-    background-color: #0d6efd !important;
+    background-color: #5d5d5d  !important;
     color: white !important;
 }
 
 .badge-past {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
+    background-color: #5d5d5d !important;
+    color: #ffffff !important;
 }
 
 /* Estilos para el contenedor del carrusel de días */
@@ -161,7 +161,7 @@ body {
 
 /* Day Option Cards (Each Day's Block) - Normal Days */
 .day-option-card {
-    border: 1px solid #e0e0e0;
+    border: 1px solid #7b7b7b;
     border-radius: 10px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -181,8 +181,8 @@ body {
 
 /* Style for Normal Day Card Header */
 .day-card-normal-header-bg {
-    background-color: #f8f9fa !important;
-    color: #343a40 !important;
+    background-color: #2f96ff !important;
+    color: #ffffff !important;
 }
 
 .day-option-card .card-header .badge {
@@ -190,26 +190,36 @@ body {
     padding: 0.4em 0.7em;
 }
 
+/* assets/css/style.css */
+
+.text-white-custom {
+    color: #FFFFFF !important; /* Blanco puro */
+}
+
+.text-black-custom {
+    color: #000000 !important; /* Negro puro */
+}
+
 /* Custom styles for Holiday Cards */
 .day-card-holiday {
-    border-color: #ff0000 !important;
-    background-color: #fff3f4 !important;
+    border-color: #7b7b7b !important;
+    background-color: #e7e7e7 !important;
 }
 
 .day-card-holiday-header-bg {
-    background-color: #e01d1d !important;
-    color: white !important;
+    background-color: #aaaaaa  !important;
+    color: rgb(0, 0, 0) !important;
 }
 
 /* Custom styles for Winter Recess Cards */
 .day-card-recess {
-    border-color: #2397d1 !important;
-    background-color: #f0f9ff !important;
+    border-color: #7b7b7b !important;
+    background-color: #e7e7e7 !important;
 }
 
 .day-card-recess-header-bg {
-    background-color: #2397d1 !important;
-    color: white !important;
+    background-color: #aaaaaa  !important;
+    color: rgb(0, 0, 0)tant;
 }
 
 /* Style for past days card (only applied if 'meal-past' class is present) */
