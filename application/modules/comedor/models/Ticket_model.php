@@ -513,6 +513,16 @@ class Ticket_model extends CI_Model
         return array_values($unique_viandas);
     }
 
+    public function getAllComprasPendientes(string $estado)
+    {
+        $this->db->where('mp_estado', $estado);
+        $this->db->where('procesada', 0); // Solo las que no han sido procesadas aún
+        $query = $this->db->get('compras_pendientes');
+        return $query->result();
+    }
+
+
+
     public function getAnyPasarelaPurchaseForUser(int $id_usuario)
     {
         $this->db->where('id_usuario', $id_usuario);

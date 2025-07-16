@@ -1,16 +1,21 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 ?>
-<?php if ($this->session->flashdata('error_compra')): ?>
-    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-start gap-3" role="alert">
-        <i class="bi bi-exclamation-triangle-fill fs-4 mt-1"></i>
-        <div>
-            <h6 class="alert-heading fw-semibold mb-2">¡Error en la compra!</h6>
-            <?php foreach ($this->session->flashdata('error_compra') as $error): ?>
-                <p class="mb-1"><?= $error; ?></p>
-            <?php endforeach; ?>
+<?php if ($this->session->has_userdata('error_compra')): ?>
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-4 shadow-sm border-0 py-3 px-4" role="alert" style="font-size: 1.05rem;">
+        <div class="flex-shrink-0">
+            <i class="bi bi-exclamation-triangle-fill fs-2 text-danger"></i>
         </div>
-        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        <div class="flex-grow-1">
+            <h6 class="alert-heading fw-bold mb-2 text-danger">¡Atención!</h6>
+            <?php foreach ($this->session->userdata('error_compra') as $error): ?>
+                <p class="mb-2"><?= $error; ?></p>
+            <?php endforeach; ?>
+            <button type="button" class="btn btn-outline-danger btn-sm px-4 fw-semibold mt-2 shadow-sm" id="btnAbrirModalRetomarPago">
+                <i class="bi bi-currency-dollar me-2"></i>Retomar Pago Pendiente
+            </button>
+        </div>
+        <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="Cerrar"></button>
     </div>
 <?php endif; ?>
 
@@ -33,6 +38,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             <p class="mb-1"><?= $this->session->flashdata('info'); ?></p>
         </div>
         <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($this->session->flashdata('error_message')): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <?= $this->session->flashdata('error_message'); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
     </div>
 <?php endif; ?>
 
@@ -660,5 +673,13 @@ $(document).ready(function() {
         });
     <?php endif; ?>
 
+    $('#btnAbrirModalRetomarPago').on('click', function() {
+        // Usá la API de Bootstrap para abrir el modal
+        var modal = document.getElementById('pendingPurchaseModal');
+        if (modal) {
+            var instance = bootstrap.Modal.getOrCreateInstance(modal);
+            instance.show();
+        }
+    });
 });
 </script>

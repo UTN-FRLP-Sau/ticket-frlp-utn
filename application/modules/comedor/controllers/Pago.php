@@ -64,8 +64,10 @@ class Pago extends CI_Controller
             $this->ticket_model->updateCompraPendienteEstado($compra->id, 'expired_by_date_cutoff', 'Compra expirada por revalidación de fecha en el momento del pago.');
             $this->session->unset_userdata('external_reference'); // Limpiar la referencia de sesión
 
+
             $this->session->set_flashdata('error_message', 'Tu compra pendiente no pudo ser completada. Algunas viandas ya no pueden ser compradas debido a que sus plazos de pedido han expirado. Por favor, inicia una nueva compra.');
             redirect('comedor/ticket');
+            $this->session->unset_userdata('error_compra');
             return;
         }
         // --- FIN DE LA REVALIDACIÓN DE FECHAS DE VIANDAS ---
@@ -80,12 +82,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        // Asegúrate de que estas URLs de ngrok-free.app sean reemplazadas por tus URLs de producción.
-        $notification_url = 'https://5df4d5a2cef3.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://d347a9b3c20e.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
-            "success" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
@@ -208,7 +209,8 @@ class Pago extends CI_Controller
             log_message('debug', 'PAGO: Flashdata "send_balance_purchase_email" NO detectado. Se asume que el correo se maneja por webhook de MP o ya fue enviado.');
         }
 
-        $this->session->unset_userdata('external_reference'); 
+        $this->session->unset_userdata('external_reference');
+        $this->session->unset_userdata('error_compra');
 
         $this->load->view('usuario/header', ['titulo' => '¡Pago exitoso!']);
         $this->load->view('compra_exitosa');
@@ -271,6 +273,7 @@ class Pago extends CI_Controller
 
         // --- Limpiar la external_reference de la sesión del usuario ---
         $this->session->unset_userdata('external_reference');
+        $this->session->unset_userdata('error_compra');
 
         echo json_encode(['success' => true, 'message' => 'Orden cancelada exitosamente. Ahora puedes seleccionar nuevas viandas.']);
     }

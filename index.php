@@ -190,6 +190,18 @@ $view_folder = '';
 // Set the current directory correctly for CLI requests
 if (defined('STDIN')) {
     chdir(dirname(__FILE__));
+
+    //  para que el router de HMVC procese los argumentos de CLI
+    if (isset($_SERVER['argv'][1])) {
+        // Toma el primer argumento (ej. 'comedorcron/cleanupExpiredOrders')
+        $_SERVER['REQUEST_URI'] = $_SERVER['argv'][1];
+        //  PATH_INFO para mayor compatibilidad
+        $_SERVER['PATH_INFO'] = $_SERVER['REQUEST_URI'];
+    } else {
+        // En caso de que no se pasen argumentos, se asume la raíz
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['PATH_INFO'] = '/';
+    }
 }
 
 if (($_temp = realpath($system_path)) !== FALSE) {

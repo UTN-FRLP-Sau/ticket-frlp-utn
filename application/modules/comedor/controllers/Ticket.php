@@ -69,19 +69,43 @@ class Ticket extends CI_Controller
         // --- COMPRAS PENDIENTES ---
 
         // 1. Obtener todas las compras pendientes del usuario con sus estados de MP
-        // Asegúrate de que esta función en Ticket_model.php esté actualizada para traer 'mp_estado' y 'menu'.
         $pendingPurchases = $this->ticket_model->getComprasPendientes($usuario->id);
+
+        // Limpiar los datos de sesión de error_compra inicialmente, se establecerán más tarde si es necesario
+        $this->session->unset_userdata('error_compra');
 
         // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
         $pendingPurchasesByDateMeal = [];
+        $validPendingPurchaseExists = false; // Bandera para rastrear si existe alguna compra pendiente *válida*
         foreach ($pendingPurchases as $purchase) {
             $date = $purchase['dia_comprado'];
             $turno = $purchase['turno'];
 
-            $pendingPurchasesByDateMeal[$date][$turno] = [
-                'mp_estado' => $purchase['mp_estado'],
-                'menu' => $purchase['menu']
-            ];
+            // Verificar si la compra está en estado 'pasarela' y si la fecha de la vianda sigue siendo válida
+            if ($purchase['mp_estado'] === 'pasarela') {
+                // Verificar si la fecha de la vianda es aún ordenable
+                if ($this->ticket_model->esFechaViandaAunOrdenable($date)) { // Llama a la función de validación
+                    $pendingPurchasesByDateMeal[$date][$turno] = [
+                        'mp_estado' => $purchase['mp_estado'],
+                        'menu' => $purchase['menu']
+                    ];
+                    $validPendingPurchaseExists = true;
+                } else {
+                    // Si la fecha de la vianda no es válida, actualiza el estado de la compra en la DB a 'expired_by_date_cutoff'
+                    $this->ticket_model->updateCompraPendienteEstado($purchase['id'], 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar el menú principal');
+                    log_message('warning', 'TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
+                }
+            }
+        }
+
+        if (!$validPendingPurchaseExists) {
+            $this->session->unset_userdata('external_reference'); // Asegurarse de que no haya una referencia a una compra caducada
+            log_message('debug', 'TICKET_INDEX: No se encontraron compras pendientes válidas. external_reference de sesión limpiada.');
+        } else {
+            
+            $this->session->set_userdata('error_compra', [
+                'Tienes una compra pendiente de pago. Por favor, retómala o cancélala antes de iniciar una nueva.'
+            ]);
         }
 
         // --- FIN COMPRAS PENDIENTES ---
@@ -94,17 +118,37 @@ class Ticket extends CI_Controller
             $compra_desde_sesion = $this->ticket_model->getCompraPendiente($external_reference_from_session);
             log_message('debug', 'TICKET_INDEX: Raw result of getCompraPendiente (desde sesión): ' . print_r($compra_desde_sesion, true));
 
+            // Idealmente, getCompraPendiente debería devolver SOLO compras no expiradas por fecha.
             if ($compra_desde_sesion && property_exists($compra_desde_sesion, 'mp_estado')) {
                 log_message('debug', 'TICKET_INDEX: mp_estado de compra de sesión: ' . $compra_desde_sesion->mp_estado);
 
-                if ($compra_desde_sesion->mp_estado === 'pasarela') {
-                    $compra_a_mostrar = $compra_desde_sesion; // Esta es la compra que queremos mostrar
-                    log_message('debug', 'TICKET_INDEX: Compra de sesión es "pasarela", la asignamos para mostrar.');
+                // Obtener las viandas de esta compra para validarlas una por una.
+                $viandas_en_sesion_compra = $this->ticket_model->getViandasCompraPendiente($compra_desde_sesion->id);
+                $is_session_purchase_valid_by_date = true;
+                if (is_array($viandas_en_sesion_compra)) {
+                    foreach ($viandas_en_sesion_compra as $vianda) {
+                        if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) {
+                            $is_session_purchase_valid_by_date = false;
+                            break;
+                        }
+                    }
                 } else {
-                    // Si la compra de la sesión no es 'pasarela' (ej. 'rejected', 'approved'),
-                    // limpiamos la referencia de la sesión porque ya no está "pendiente de mostrar".
+                    $is_session_purchase_valid_by_date = false; // Si no es un array, es inválido
+                    log_message('error', 'TICKET_INDEX: getViandasCompraPendiente no devolvió un array para compra de sesión ID: ' . $compra_desde_sesion->id);
+                }
+
+                if ($compra_desde_sesion->mp_estado === 'pasarela' && $is_session_purchase_valid_by_date) {
+                    $compra_a_mostrar = $compra_desde_sesion; // Esta es la compra que queremos mostrar
+                    log_message('debug', 'TICKET_INDEX: Compra de sesión es "pasarela" y viandas válidas, la asignamos para mostrar.');
+                } else {
+                    // Si la compra de la sesión no es 'pasarela' (ej. 'rejected', 'approved')
+                    // o tiene viandas inválidas, limpiamos la referencia de la sesión y la marcamos como expirada si es necesario.
                     $this->session->unset_userdata('external_reference');
-                    log_message('debug', 'TICKET_INDEX: external_reference de sesión limpiada. Razón: Estado no es "pasarela" (' . $compra_desde_sesion->mp_estado . ').');
+                    log_message('debug', 'TICKET_INDEX: external_reference de sesión limpiada. Razón: Estado no es "pasarela" (' . $compra_desde_sesion->mp_estado . ') o viandas inválidas (' . ($is_session_purchase_valid_by_date?'false':'true') . ').');
+                 
+                    if ($compra_desde_sesion->mp_estado === 'pasarela' && !$is_session_purchase_valid_by_date) {
+                        $this->ticket_model->updateCompraPendienteEstado($compra_desde_sesion->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde sesión).');
+                    }
                 }
             } else {
                 // No se encontró compra para la external_reference en sesión o es inválida, limpiar.
@@ -118,11 +162,32 @@ class Ticket extends CI_Controller
         if (!$compra_a_mostrar) {
             $usuario_id = $this->session->userdata('id_usuario');
             if ($usuario_id) {
+                // Modificar getAnyPasarelaPurchaseForUser para que también valide las fechas de las viandas
                 $compra_pasarela_db = $this->ticket_model->getAnyPasarelaPurchaseForUser($usuario_id);
                 if ($compra_pasarela_db) {
-                    $compra_a_mostrar = $compra_pasarela_db;
-                    log_message('debug', 'TICKET_INDEX: Se encontró una compra "pasarela" activa en la BD para el usuario (ID: ' . $usuario_id . ').');
-                    $this->session->set_userdata('external_reference', $compra_a_mostrar->external_reference);
+                    // Validar las viandas de esta compra recuperada de la DB
+                    $viandas_en_db_compra = $this->ticket_model->getViandasCompraPendiente($compra_pasarela_db->id);
+                    $is_db_purchase_valid_by_date = true;
+                    if (is_array($viandas_en_db_compra)) {
+                        foreach ($viandas_en_db_compra as $vianda) {
+                            if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) {
+                                $is_db_purchase_valid_by_date = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        $is_db_purchase_valid_by_date = false; // Si no es un array, es inválido
+                        log_message('error', 'TICKET_INDEX: getViandasCompraPendiente no devolvió un array para compra de DB ID: ' . $compra_pasarela_db->id);
+                    }
+
+                    if ($is_db_purchase_valid_by_date) {
+                        $compra_a_mostrar = $compra_pasarela_db;
+                        log_message('debug', 'TICKET_INDEX: Se encontró una compra "pasarela" activa y válida en la BD para el usuario (ID: ' . $usuario_id . ').');
+                        $this->session->set_userdata('external_reference', $compra_a_mostrar->external_reference);
+                    } else {
+                         log_message('warning', 'TICKET_INDEX: Compra "pasarela" ID ' . $compra_pasarela_db->id . ' encontrada en BD, pero contiene viandas expiradas. Marcándola como expired_by_date_cutoff.');
+                         $this->ticket_model->updateCompraPendienteEstado($compra_pasarela_db->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde DB).');
+                    }
                 } else {
                      log_message('debug', 'TICKET_INDEX: No se encontraron compras "pasarela" en la BD para el usuario (ID: ' . $usuario_id . ').');
                 }
@@ -346,7 +411,7 @@ class Ticket extends CI_Controller
         $existing_pending_purchase = $this->ticket_model->getAnyPasarelaPurchaseForUser($id_usuario);
         if ($existing_pending_purchase) {
             log_message('info', 'TICKET_COMPRA: Usuario ' . $id_usuario . ' intentó iniciar una nueva compra pero ya tiene una pendiente con external_reference: ' . $existing_pending_purchase->external_reference);
-            $this->session->set_flashdata('error_compra', ['Ya tienes una compra pendiente de pago. Por favor, retómala o cancélala antes de iniciar una nueva.']);
+            $this->session->set_userdata('error_compra', ['Ya tienes una compra pendiente de pago. Por favor, retómala o cancélala antes de iniciar una nueva.']);
             redirect(base_url('comedor/ticket'));
             return; // Detener la ejecución
         }
@@ -394,7 +459,7 @@ class Ticket extends CI_Controller
 
         //  Verifica si hay errores de validación específicos
         if (!empty($erroresCompra)) {
-            $this->session->set_flashdata('error_compra', $erroresCompra);
+            $this->session->set_userdata('error_compra', $erroresCompra);
             redirect(base_url('comedor/ticket')); // Redirige a la página principal de selección con los errores
             return;
         }
