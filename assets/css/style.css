@@ -454,6 +454,22 @@ body {
 .text-muted {
     color: #323232 !important;
 }
+.navbar-nav .dropdown-menu {
+    min-width: auto;
+    max-width: calc(100vw - 20px);
+    
+
+    left: auto !important; 
+    transform: none !important;
+    right: auto !important;
+    float: none !important;
+}
+.navbar-nav .dropdown-item {
+    white-space: normal;  
+    word-wrap: break-word;
+    padding-left: 1rem;   
+    padding-right: 1rem;
+}
 
 /* Responsive Adjustments */
 @media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
@@ -465,6 +481,7 @@ body {
         flex: 1 1 calc(20% - 1rem);
         max-width: calc(20% - 1rem);
     }
+    
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) { /* Para tablets en portrait */
@@ -517,5 +534,24 @@ body {
     }
     .accordion-button {
         font-size: 0.8rem;
+    }
+        .navbar-nav .dropdown-menu {
+        width: 100%;
+        position: static;
+        
+    
+        margin: 0 !important; 
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        
+    
+        text-align: center;
+    }
+
+
+    .navbar-nav .dropdown-menu .dropdown-item {
+        width: 100%;
+    
     }
 }
