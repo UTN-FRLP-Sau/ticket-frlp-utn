@@ -49,12 +49,12 @@
                        <li class="nav-item">
                             <a class="nav-link text-center" href="<?= base_url('comentarios'); ?>">¡Haz un comentario!</a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                        <li class="nav-item dropdown d-flex justify-content-center"> 
+                            <a class="nav-link dropdown-toggle text-center" href="#" id="navbarDropdown" role="button"
                                 data-bs-toggle="dropdown"
                                 aria-expanded="false"><?= $this->session->userdata('apellido'); ?>,
                                 <?= $this->session->userdata('nombre'); ?></a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <ul class="dropdown-menu text-center" aria-labelledby="navbarDropdown"> 
                                 <li>
                                     <a class="dropdown-item" href="<?= base_url('usuario/ultimos-movimientos'); ?>">Ultimos
                                         movimientos</a>
