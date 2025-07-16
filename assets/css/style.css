@@ -515,4 +515,7 @@ body {
         padding: 0.8rem 1.2rem;
         font-size: 1rem;
     }
+    .accordion-button {
+        font-size: 0.8rem;
+    }
 }
