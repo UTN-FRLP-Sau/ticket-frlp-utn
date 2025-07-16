@@ -572,4 +572,95 @@ class Ticket_model extends CI_Model
             }
             return null;
     }
+
+public function esFechaViandaAunOrdenable(string $fechaViandaStr)
+    {
+        // Obtener la configuración dentro del modelo
+        $configuracion = $this->getConfiguracion();
+
+        // Asegurarse de que $configuracion sea un array o un objeto válido
+        if (is_array($configuracion) && isset($configuracion[0])) {
+            $config = $configuracion[0];
+        } elseif (is_object($configuracion)) {
+            $config = $configuracion; // Asume que ya es el objeto directo si no es un array
+        } else {
+            log_message('error', 'esFechaViandaAunOrdenable (MODEL): Configuración inválida proporcionada.');
+            return false; // No se puede validar sin configuración
+        }
+
+        try {
+            $fechaVianda = new DateTime($fechaViandaStr);
+            $fechaHoraActual = new DateTime('now');
+            $hoy = new DateTime($fechaHoraActual->format('Y-m-d')); // Solo la parte de la fecha
+
+            // 1. **Verificar si la fecha de la vianda ya pasó.**
+            // Si la fecha de la vianda es anterior al día de hoy, ya no es ordenable.
+            if ($fechaVianda < $hoy) {
+                log_message('debug', 'esFechaViandaAunOrdenable (MODEL): La fecha de la vianda (' . $fechaViandaStr . ') ya ha pasado.');
+                return false;
+            }
+
+            // 2. **Verificar períodos generales de operación del comedor (apertura/cierre, vacaciones).**
+            // Se asume que $config tiene las propiedades apertura, vacaciones_i, vacaciones_f, cierre
+            $apertura = new DateTime($config->apertura);
+            $vaca_ini = new DateTime($config->vacaciones_i);
+            $vaca_fin = new DateTime($config->vacaciones_f);
+            $cierre = new DateTime($config->cierre);
+
+            $esPeriodoValido = false;
+            if (($fechaVianda >= $apertura && $fechaVianda <= $vaca_ini) || ($fechaVianda >= $vaca_fin && $fechaVianda <= $cierre)) {
+                $esPeriodoValido = true;
+            }
+
+            // En entorno de desarrollo, si el comedor no está en un período válido,
+            // se permite continuar la validación para facilitar las pruebas.
+            if (!$esPeriodoValido && $_SERVER['CI_ENV'] !== 'development') {
+                log_message('debug', 'esFechaViandaAunOrdenable (MODEL): La fecha de la vianda (' . $fechaViandaStr . ') está fuera de los períodos generales de operación del comedor.');
+                return false;
+            }
+
+            // 3. **Implementar la regla específica de corte semanal de pedidos.**
+            $diaFinalCompra = (int)$config->dia_final; // Por ejemplo, 2 para martes
+            $horaFinalCompra = $config->hora_final;    // Por ejemplo, '04:00:00' (4 AM)
+
+            // Calcular el lunes de la semana a la que pertenece la vianda (ej. para 2025-07-21, es 2025-07-21)
+            $lunesSemanaVianda = clone $fechaVianda;
+            if ((int)$lunesSemanaVianda->format('N') !== 1) { // Si no es lunes
+                $lunesSemanaVianda->modify('last monday'); // Ir al lunes anterior
+            }
+            $lunesSemanaVianda->setTime(0,0,0); // Resetear la hora para la comparación
+
+            // Calcular la fecha y hora de corte para poder ordenar esta vianda.
+            // Esta fecha de corte ocurre en la semana *anterior* a la de la vianda.
+            // Por ejemplo, para una vianda del Lunes 21 de Julio, el corte es el Martes 4 AM de la semana del 14 de Julio.
+            $fechaCorteParaEstaVianda = clone $lunesSemanaVianda;
+            $fechaCorteParaEstaVianda->modify('-1 week'); // Ir al lunes de la semana anterior
+
+            // Avanzar al día de corte (diaFinalCompra) de esa semana anterior
+            while ((int)$fechaCorteParaEstaVianda->format('N') !== $diaFinalCompra) {
+                $fechaCorteParaEstaVianda->modify('+1 day');
+            }
+            
+            // Establecer la hora de corte
+            list($hora, $minuto, $segundo) = explode(':', $horaFinalCompra);
+            $fechaCorteParaEstaVianda->setTime((int)$hora, (int)$minuto, (int)$segundo);
+
+            // Comparar la hora actual con la fecha de corte calculada para esta vianda específica.
+            if ($fechaHoraActual > $fechaCorteParaEstaVianda) {
+                // Si la hora actual es *después* de la fecha y hora de corte para esta vianda,
+                // significa que el plazo para pedirla ha expirado.
+                log_message('debug', 'esFechaViandaAunOrdenable (MODEL): Vianda ' . $fechaViandaStr . ' es inválida. La fecha de corte (' . $fechaCorteParaEstaVianda->format('Y-m-d H:i:s') . ') para esta vianda ha pasado. Hora actual: ' . $fechaHoraActual->format('Y-m-d H:i:s'));
+                return false;
+            } else {
+                // Si la hora actual es *antes o igual* a la fecha y hora de corte,
+                // la vianda aún es ordenable (suponiendo que pasó las validaciones anteriores).
+                log_message('debug', 'esFechaViandaAunOrdenable (MODEL): Vianda ' . $fechaViandaStr . ' es válida. Hora actual: ' . $fechaHoraActual->format('Y-m-d H:i:s') . ', Fecha de corte: ' . $fechaCorteParaEstaVianda->format('Y-m-d H:i:s'));
+                return true;
+            }
+
+        } catch (Exception $e) {
+            log_message('error', 'Error en esFechaViandaAunOrdenable (MODEL): ' . $e->getMessage());
+            return false;
+        }
+    }
 }

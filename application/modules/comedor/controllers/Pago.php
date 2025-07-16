@@ -23,6 +23,8 @@ class Pago extends CI_Controller
         }
 
         $this->load->model('ticket_model');
+        $this->load->library('session'); // Asegúrate de que la librería de sesión esté cargada
+
         $compra = $this->ticket_model->getCompraPendiente($external_reference);
         // --- LOG DE COMPRA PENDIENTE ---
         log_message('debug', 'PAGO: Resultado de getCompraPendiente para ' . $external_reference . ': ' . ($compra ? json_encode($compra) : 'NO ENCONTRADA'));
@@ -33,14 +35,52 @@ class Pago extends CI_Controller
             redirect('comedor/ticket');
             return;
         }
-        //  Actualizar estado a 'pasarela' si aún no ha sido procesada ---
+
+        // --- INICIO DE LA REVALIDACIÓN DE FECHAS DE VIANDAS AL RETOMAR PAGO ---
+        $viandas_en_compra = $this->ticket_model->getViandasCompraPendiente($compra->id);
+        // La configuración ya no se pasa como parámetro porque es obtenida dentro del modelo Ticket_model.php
+
+        $hayViandaInvalida = false;
+        if (is_array($viandas_en_compra)) { // Asegurarse de que $viandas_en_compra sea un array
+            foreach ($viandas_en_compra as $vianda) {
+                // Se llama a la función desde el ticket_model
+                // Asegúrate de que 'fecha_vianda' sea la clave correcta en el array $vianda
+                // Si en tu JSON de 'datos' es 'dia_comprado', usa $vianda['dia_comprado']
+                if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) { // Usar 'dia_comprado' si es la clave en el JSON
+                    $hayViandaInvalida = true;
+                    log_message('warning', 'PAGO: Vianda ' . $vianda['dia_comprado'] . ' de la compra ' . $external_reference . ' no es válida en el momento del pago.');
+                    break; // Una vianda inválida es suficiente para cancelar toda la compra
+                }
+            }
+        } else {
+            log_message('error', 'PAGO: getViandasCompraPendiente no devolvió un array para compra ID: ' . $compra->id);
+            // Considerar manejar este caso como un error de validación también
+            $hayViandaInvalida = true;
+        }
+
+
+        if ($hayViandaInvalida) {
+            // Marcar la compra como expirada/cancelada debido a la revalidación de fechas
+            $this->ticket_model->updateCompraPendienteEstado($compra->id, 'expired_by_date_cutoff', 'Compra expirada por revalidación de fecha en el momento del pago.');
+            $this->session->unset_userdata('external_reference'); // Limpiar la referencia de sesión
+
+            $this->session->set_flashdata('error_message', 'Tu compra pendiente no pudo ser completada. Algunas viandas ya no pueden ser compradas debido a que sus plazos de pedido han expirado. Por favor, inicia una nueva compra.');
+            redirect('comedor/ticket');
+            return;
+        }
+        // --- FIN DE LA REVALIDACIÓN DE FECHAS DE VIANDAS ---
+
+
+        // Actualizar estado a 'pasarela' si aún no ha sido procesada ---
         // Esto marca que la orden ya entró en el flujo de Mercado Pago desde nuestro lado
         // Se considera 'null' o cadena vacía como el estado inicial antes de ir a MP
         if ($compra->mp_estado === null || $compra->mp_estado === '') {
             $this->ticket_model->updateCompraPendienteEstado($compra->id, 'pasarela', 'Usuario redirigido a pasarela de pago');
             log_message('debug', 'PAGO: mp_estado actualizado a "pasarela" para ' . $external_reference);
         }
+
         // URLs de retorno y notificación para Mercado Pago
+        // Asegúrate de que estas URLs de ngrok-free.app sean reemplazadas por tus URLs de producción.
         $notification_url = 'https://5df4d5a2cef3.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
             "success" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_exitosa",
@@ -58,7 +98,6 @@ class Pago extends CI_Controller
         log_message('debug', 'PAGO: Resultado de generarPreferenciaConSaldo: ' . ($preferencia_info === null ? 'NULL (Saldo suficiente)' : ($preferencia_info === false ? 'FALSE (Error)' : json_encode($preferencia_info))));
 
         // --- LÓGICA DE PROCESAMIENTO DE COMPRA ---
-
         // Caso 1: Saldo de la cuenta cubre toda la compra
         if ($preferencia_info === null) {
             log_message('info', 'PAGO: Saldo cubre toda la compra (' . $compra->total . '). Intentando procesar directamente.');
@@ -219,7 +258,7 @@ class Pago extends CI_Controller
 
         // --- PRECAUCIÓN DE RACE CONDITION: Verificar el estado actual antes de cancelar ---
         // Si el estado ya cambió a aprobado o rechazado por un webhook, no permitir cancelar.
-        if ($compra_pendiente->mp_estado === 'approved' || $compra_pendiente->mp_estado === 'rejected' || $compra_pendiente->mp_estado === 'cancelled') {
+        if ($compra_pendiente->mp_estado === 'approved' || $compra_pendiente->mp_estado === 'rejected' || $compra_pendiente->mp_estado === 'cancelled' || $compra_pendiente->mp_estado === 'expired_by_date_cutoff') {
             echo json_encode(['success' => false, 'message' => 'Esta compra ya no está pendiente de acción por el usuario. Estado actual: ' . $compra_pendiente->mp_estado . '.']);
             return;
         }
