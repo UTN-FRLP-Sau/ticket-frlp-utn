@@ -37,6 +37,9 @@
             <div class="collapse navbar-collapse" id="navbarHeader">
                 <ul class="navbar-nav ms-auto d-flex justify-content-center">
                     <li class="nav-item">
+                        <a class="nav-link text-center" href="<?= base_url('usuario'); ?>">Comprar</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link text-center" href="<?= base_url('menu'); ?>">Menu</a>
                     </li>
                     <li class="nav-item">
