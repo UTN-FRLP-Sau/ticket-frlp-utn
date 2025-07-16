@@ -41,11 +41,11 @@ class Pago extends CI_Controller
             log_message('debug', 'PAGO: mp_estado actualizado a "pasarela" para ' . $external_reference);
         }
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://25cb635e9c65.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://5df4d5a2cef3.ngrok-free.app/webhook/mercadopago';
         $back_urls = array(
-            "success" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://25cb635e9c65.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://5df4d5a2cef3.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
@@ -195,7 +195,7 @@ class Pago extends CI_Controller
     }
 
 
-        public function cancelar_compra_ajax()
+    public function cancelar_compra_ajax()
     {
         // Asegurarse de que la solicitud es AJAX
         if (!$this->input->is_ajax_request()) {

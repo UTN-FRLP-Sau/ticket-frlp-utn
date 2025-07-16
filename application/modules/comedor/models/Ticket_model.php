@@ -472,6 +472,61 @@ class Ticket_model extends CI_Model
         $this->db->update('compras_pendientes', ['mp_estado' => $estado]);
         return $this->db->affected_rows() > 0;
     }
+ 
+    public function getComprasPendientes($user_id) {
+        // Seleccionamos solo las columnas necesarias para los nuevos requisitos
+        $this->db->select('cp.id, cp.external_reference, cp.mp_estado, cp.datos');
+        $this->db->from('compras_pendientes AS cp');
+        $this->db->where('cp.id_usuario', $user_id);
+        // Filtramos por los estados que deseas distinguir
+        $this->db->where_in('cp.mp_estado', ['pending', 'pasarela']);
+        $query = $this->db->get();
+
+        $result_data = [];
+        foreach ($query->result() as $row) {
+            $viandas_json = $row->datos;
+            $viandas_array = json_decode($viandas_json, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($viandas_array)) {
+                foreach ($viandas_array as $vianda) {
+                    $date_field = isset($vianda['dia_comprado']) ? 'dia_comprado' : 'fecha';
+                    if (isset($vianda[$date_field]) && isset($vianda['turno'])) {
+                        $result_data[] = [
+                            'dia_comprado' => $vianda[$date_field],
+                            'turno' => $vianda['turno'],
+                            'menu' => $vianda['menu'] ?? null,
+                            'mp_estado' => $row->mp_estado
+                        ];
+                    }
+                }
+            } else {
+                log_message('error', 'Error al decodificar JSON de viandas para compra pendiente ID: ' . $row->id . ' - ' . json_last_error_msg());
+            }
+        }
+
+        $unique_viandas = [];
+        foreach ($result_data as $item) {
+            $key = $item['dia_comprado'] . '-' . $item['turno'];
+            $unique_viandas[$key] = $item;
+        }
+
+        return array_values($unique_viandas);
+    }
+
+    public function getAnyPasarelaPurchaseForUser(int $id_usuario)
+    {
+        $this->db->where('id_usuario', $id_usuario);
+        $this->db->where('mp_estado', 'pasarela');
+        $this->db->where('procesada', 0);
+        $this->db->order_by('created_at', 'DESC'); // La más reciente primero
+        $this->db->limit(1);
+        $query = $this->db->get('compras_pendientes');
+
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return null;
+    }
 
     public function getMercadoPagoPayment($payment_id)
     {

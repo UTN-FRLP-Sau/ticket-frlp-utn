@@ -1,6 +1,40 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 ?>
+<?php if ($this->session->flashdata('error_compra')): ?>
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4 mt-1"></i>
+        <div>
+            <h6 class="alert-heading fw-semibold mb-2">¡Error en la compra!</h6>
+            <?php foreach ($this->session->flashdata('error_compra') as $error): ?>
+                <p class="mb-1"><?= $error; ?></p>
+            <?php endforeach; ?>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($this->session->flashdata('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-check-circle-fill fs-4 mt-1"></i>
+        <div>
+            <h6 class="alert-heading fw-semibold mb-2">¡Operación exitosa!</h6>
+            <p class="mb-1"><?= $this->session->flashdata('success'); ?></p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($this->session->flashdata('info')): ?>
+    <div class="alert alert-info alert-dismissible fade show d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-info-circle-fill fs-4 mt-1"></i>
+        <div>
+            <h6 class="alert-heading fw-semibold mb-2">Información</h6>
+            <p class="mb-1"><?= $this->session->flashdata('info'); ?></p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+<?php endif; ?>
 
 <div class="container py-4">
     <div class="row justify-content-center">
@@ -75,7 +109,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                         $es_feriado = $dayData['es_feriado'];
                                                         $es_receso_invernal = $dayData['es_receso_invernal'] ?? false;
                                                         $es_pasado = $dayData['es_pasado'];
-                                                        $disable_purchase = $dayData['disable_purchase'];
                                                     ?>
                                                     <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
                                                         <div class="card h-100 day-option-card
@@ -92,24 +125,30 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                 <?php endif; ?>
                                                             </div>
                                                             <div class="card-body">
-                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
+                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($dayData['comprado_mediodia'] || $dayData['disable_purchase_mediodia']) ? 'meal-disabled' : '' ?>">
                                                                     <div class="d-flex align-items-center">
-                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Manana">
+                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $dayData['date_ymd'] ?>Manana">
                                                                             <i class="bi bi-sun me-2"></i>Mediodía
                                                                         </label>
                                                                     </div>
-                                                                    <?php if ($comprado_mediodia): ?>
+                                                                    <?php if ($dayData['comprado_mediodia']): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
-                                                                            <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_mediodia_menu) ?></span>
+                                                                            <?php if (isset($dayData['mp_estado_mediodia']) && $dayData['mp_estado_mediodia'] === 'pasarela'): ?>
+                                                                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_mediodia_menu']); ?></span>
+                                                                            <?php elseif (isset($dayData['mp_estado_mediodia']) && $dayData['mp_estado_mediodia'] === 'pending'): ?>
+                                                                                <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Esperando Acreditacion</span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($dayData['comprado_mediodia_menu']) ?></span>
+                                                                            <?php endif; ?>
                                                                         </div>
                                                                     <?php endif; ?>
                                                                     <div class="vianda-options mt-2">
                                                                         <select class="form-select form-select-sm meal-select"
-                                                                                id="select<?= $date_ymd ?>Manana"
-                                                                                name="selectMenu[<?= $date_ymd ?>][manana]"
-                                                                                data-date="<?= $date_ymd ?>"
+                                                                                id="select<?= $dayData['date_ymd'] ?>Manana"
+                                                                                name="selectMenu[<?= $dayData['date_ymd'] ?>][manana]"
+                                                                                data-date="<?= $dayData['date_ymd'] ?>"
                                                                                 data-time="manana"
-                                                                                <?= ($comprado_mediodia || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
+                                                                                <?= ($dayData['disable_purchase_mediodia']) ? 'disabled' : '' ?>>
                                                                             <option value="seleccionar" selected>Seleccionar</option>
                                                                             <option value="Basico">Menú Básico</option>
                                                                             <option value="Veggie">Menú Vegetariano</option>
@@ -120,24 +159,30 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
                                                                 <hr class="my-3">
 
-                                                                <div class="p-2 rounded-3 border bg-white meal-time-block <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'meal-disabled' : '' ?>">
+                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($dayData['comprado_noche'] || $dayData['disable_purchase_noche']) ? 'meal-disabled' : '' ?>">
                                                                     <div class="d-flex align-items-center">
-                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $date_ymd ?>Noche">
+                                                                        <label class="form-check-label fw-bold flex-grow-1" for="select<?= $dayData['date_ymd'] ?>Noche">
                                                                             <i class="bi bi-moon me-2"></i>Noche
                                                                         </label>
                                                                     </div>
-                                                                    <?php if ($comprado_noche): ?>
+                                                                    <?php if ($dayData['comprado_noche']): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
-                                                                            <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($comprado_noche_menu) ?></span>
+                                                                            <?php if (isset($dayData['mp_estado_noche']) && $dayData['mp_estado_noche'] === 'pasarela'): ?>
+                                                                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_noche_menu']); ?></span>
+                                                                            <?php elseif (isset($dayData['mp_estado_noche']) && $dayData['mp_estado_noche'] === 'pending'): ?>
+                                                                                <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Esperando Acreditacion</span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($dayData['comprado_noche_menu']) ?></span>
+                                                                            <?php endif; ?>
                                                                         </div>
                                                                     <?php endif; ?>
                                                                     <div class="vianda-options mt-2">
                                                                         <select class="form-select form-select-sm meal-select"
-                                                                                id="select<?= $date_ymd ?>Noche"
-                                                                                name="selectMenu[<?= $date_ymd ?>][noche]"
-                                                                                data-date="<?= $date_ymd ?>"
+                                                                                id="select<?= $dayData['date_ymd'] ?>Noche"
+                                                                                name="selectMenu[<?= $dayData['date_ymd'] ?>][noche]"
+                                                                                data-date="<?= $dayData['date_ymd'] ?>"
                                                                                 data-time="noche"
-                                                                                <?= ($comprado_noche || $disable_purchase || $es_receso_invernal) ? 'disabled' : '' ?>>
+                                                                                <?= ($dayData['disable_purchase_noche']) ? 'disabled' : '' ?>>
                                                                             <option value="seleccionar" selected>Seleccionar</option>
                                                                             <option value="Basico">Menú Básico</option>
                                                                             <option value="Veggie">Menú Vegetariano</option>
@@ -230,25 +275,63 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 </div>
 
 <div class="modal fade" id="pendingPurchaseModal" tabindex="-1" aria-labelledby="pendingPurchaseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title" id="pendingPurchaseModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Compra Pendiente Detectada</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-primary text-white d-flex align-items-center justify-content-between py-3 px-4 rounded-top-4">
+                <h5 class="modal-title fs-5 fw-bold" id="pendingPurchaseModalLabel">
+                    <i class="bi bi-bell-fill me-3 fs-4"></i> Compra Pendiente Detectada
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body">
-                <p>Hemos detectado una compra de viandas que dejaste pendiente de pago. Aquí están los detalles:</p>
-                <p><strong>Referencia:</strong> <span id="modalExternalReference"></span></p>
-                <p><strong>Monto Total:</strong> $<span id="modalAmount"></span></p>
-                <h6>Viandas Seleccionadas:</h6>
-                <ul id="modalViandasList" class="list-group list-group-flush">
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-start mb-4">
+                    <i class="bi bi-info-circle-fill text-info me-3 fs-3"></i>
+                    <p class="mb-0 text-muted lh-base">Hemos detectado una compra de viandas que dejaste pendiente de pago. ¡No te preocupes! Aquí puedes ver los detalles y decidir qué hacer.</p>
+                </div>
+
+                <div class="card border-0 bg-light-subtle mb-4">
+                    <div class="card-body py-3 px-4">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                                <i class="bi bi-cash-stack me-2 text-primary fs-5"></i>Monto Total:
+                            </div>
+                            <div class="col-sm-6 text-end text-sm-end fw-bold text-success fs-3">
+                                $<span id="modalAmount"></span>
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-2 align-items-center">
+                            <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                                <i class="bi bi-food-multiple me-2 text-primary fs-5"></i>Viandas Seleccionadas:
+                            </div>
+                            <div class="col-sm-6 text-end text-sm-end text-muted fw-semibold">
+                                <span id="modalViandaCount"></span> viandas
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="mb-3 text-dark fw-bold border-bottom pb-2">
+                    <i class="bi bi-box-seam-fill me-2 text-primary"></i>Detalle de Viandas:
+                </h6>
+                <div class="list-group list-group-flush border rounded-3 overflow-hidden mb-4">
+                    <ul id="modalViandasList" class="list-group list-group-flush">
                     </ul>
-                <p class="mt-3">¿Deseas retomar el pago de esta orden o prefieres cancelarla para iniciar una nueva compra?</p>
+                </div>
+                
+                <p class="text-center text-muted fw-semibold mb-4">
+                    ¿Deseas <strong class="text-primary">retomar el pago</strong> de esta orden para finalizar la compra o prefieres <strong class="text-danger">cancelarla</strong> para iniciar una nueva selección?
+                </p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-danger" id="cancelPendingPurchaseBtn">Cancelar Orden</button>
-                <button type="button" class="btn btn-primary" id="resumePendingPurchaseBtn">Retomar Pago</button>
+            <div class="modal-footer d-flex justify-content-between p-3 rounded-bottom-4 bg-light">
+                <button type="button" class="btn btn-outline-secondary flex-grow-1 me-2" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-outline-danger flex-grow-1 me-2" id="cancelPendingPurchaseBtn">
+                    <i class="bi bi-trash-fill me-2"></i>Cancelar Orden
+                </button>
+                <button type="button" class="btn btn-success flex-grow-1" id="resumePendingPurchaseBtn">
+                    <i class="bi bi-currency-dollar me-2"></i>Retomar Pago
+                </button>
             </div>
         </div>
     </div>
@@ -473,65 +556,109 @@ $(document).ready(function() {
         }
         actualizarTotal(); // Actualiza el total al resetear
     });
+    // Debug: valores de PHP en la consola JS
+    console.log('--- Depuración de Variables PHP para Modal Pendiente ---');
+    console.log('Valor de $show_pending_purchase_modal:', <?php echo isset($show_pending_purchase_modal) ? json_encode($show_pending_purchase_modal) : 'undefined'; ?>);
+    console.log('Valor de $pending_purchase_details:', <?php echo isset($pending_purchase_details) ? json_encode($pending_purchase_details) : 'undefined'; ?>);
+    console.log('--- Fin Depuración ---');
 
     // --- Lógica para mostrar el modal de compra pendiente ---
     <?php if (isset($show_pending_purchase_modal) && $show_pending_purchase_modal && !empty($pending_purchase_details)): ?>
     const pendingPurchaseDetails = <?php echo json_encode($pending_purchase_details); ?>;
     const pendingPurchaseViandas = <?php echo json_encode($pending_purchase_viandas); ?>;
     console.log('Detected pending purchase:', pendingPurchaseDetails);
+    console.log('Detected pending purchase viandas:', pendingPurchaseViandas);
+
+    // Mapeo de turnos para el frontend
+    const turnoMapping = {
+        'manana': 'Mediodía',
+        'noche': 'Noche'
+    };
 
     // Llenar los datos del modal
-    $('#modalExternalReference').text(pendingPurchaseDetails.external_reference);
     $('#modalAmount').text(parseFloat(pendingPurchaseDetails.total).toFixed(2));
+    $('#modalViandaCount').text(pendingPurchaseViandas.length);
 
     const viandasList = $('#modalViandasList');
     viandasList.empty();
+
     if (pendingPurchaseViandas && pendingPurchaseViandas.length > 0) {
         pendingPurchaseViandas.forEach(function(vianda) {
-            viandasList.append(`<li class="list-group-item">${vianda.dia_comprado_display || 'Día Desconocido'} - ${vianda.turno || 'Turno Desconocido'} (${vianda.menu || 'Vianda Desconocida'})</li>`);
+            // Formatear la fecha
+            let fechaDisplay = vianda.dia_comprado || 'Fecha Desconocida';
+            if (vianda.dia_comprado) {
+                const date = new Date(vianda.dia_comprado + 'T00:00:00');
+                fechaDisplay = date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                // Capitalizar la primera letra del día de la semana
+                fechaDisplay = fechaDisplay.charAt(0).toUpperCase() + fechaDisplay.slice(1);
+            }
+
+            // Mapear el turno
+            const turnoDisplay = turnoMapping[vianda.turno] || vianda.turno || 'Turno Desconocido';
+            
+            // Icono para el turno (depende si es Mediodía o Noche)
+            const turnoIcon = (vianda.turno === 'manana') ? '<i class="bi bi-sun-fill text-warning me-2"></i>' : (vianda.turno === 'noche' ? '<i class="bi bi-moon-fill text-info me-2"></i>' : '');
+
+            // Construir el HTML de cada vianda con los nuevos estilos e iconos
+            viandasList.append(`
+                <li class="list-group-item d-flex align-items-center py-3 px-3">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold text-dark">
+                            <i class="bi bi-calendar-fill text-primary me-2"></i>${fechaDisplay}
+                        </h6>
+                        <p class="mb-0 text-muted small">
+                            ${turnoIcon}${turnoDisplay} - <span class="fw-semibold">${vianda.menu || 'Vianda Desconocida'}</span>
+                        </p>
+                    </div>
+                    <span class="badge bg-success-subtle text-success fs-6 fw-bold p-2 ms-3">
+                        $${parseFloat(vianda.precio).toFixed(2)}
+                    </span>
+                </li>
+            `);
         });
     } else {
-        viandasList.append('<li class="list-group-item text-muted">No se encontraron detalles de viandas para esta orden.</li>');
+        viandasList.append('<li class="list-group-item text-muted text-center py-3">No se encontraron detalles de viandas para esta orden.</li>');
     }
 
-    // Crear la instancia del modal
-    const pendingPurchaseModalElement = document.getElementById('pendingPurchaseModal');
-    const pendingPurchaseModal = new bootstrap.Modal(pendingPurchaseModalElement, {
-        backdrop: 'static',
-        keyboard: false
-    });
-    
-    // Mostrar el modal
-    pendingPurchaseModal.show();
+        // Crear la instancia del modal
+        const pendingPurchaseModalElement = document.getElementById('pendingPurchaseModal');
+        const pendingPurchaseModal = new bootstrap.Modal(pendingPurchaseModalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
+        
+        // Mostrar el modal
+        pendingPurchaseModal.show();
 
-    // Manejar botón "Retomar Pago"
-    $('#resumePendingPurchaseBtn').on('click', function() {
-        window.location.href = '<?= base_url("pago/comprar"); ?>';
-    });
+        // Manejar botón "Retomar Pago"
+        $('#resumePendingPurchaseBtn').on('click', function() {
+            window.location.href = '<?= base_url("comedor/pago/comprar"); ?>';
+        });
 
-    // Manejar botón "Cancelar Orden"
-    $('#cancelPendingPurchaseBtn').on('click', function() {
-        if (confirm('¿Estás seguro de que deseas cancelar esta orden? No podrás retomarla después.')) {
-            $.ajax({
-                url: '<?= base_url("pago/cancelar_compra_ajax"); ?>',
-                type: 'POST',
-                data: { external_reference: pendingPurchaseDetails.external_reference },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        pendingPurchaseModal.hide();
-                        window.location.reload();
-                    } else {
-                        alert('Error al cancelar: ' + response.message);
+        // Manejar botón "Cancelar Orden"
+        $('#cancelPendingPurchaseBtn').on('click', function() {
+            if (confirm('¿Estás seguro de que deseas cancelar esta orden? No podrás retomarla después.')) {
+                $.ajax({
+                    url: '<?= base_url("comedor/pago/cancelar_compra_ajax"); ?>', // Revisa si esta URL también necesita el prefijo "comedor/"
+                    type: 'POST',
+                    data: { external_reference: pendingPurchaseDetails.external_reference },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            pendingPurchaseModal.hide();
+                            window.location.reload();
+                        } else {
+                            alert('Error al cancelar: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Error de comunicación con el servidor al intentar cancelar la compra.');
                     }
-                },
-                error: function() {
-                    alert('Error de comunicación con el servidor al intentar cancelar la compra.');
-                }
-            });
-        }
-    });
-<?php endif; ?>
+                });
+            }
+        });
+    <?php endif; ?>
+
 });
 </script>

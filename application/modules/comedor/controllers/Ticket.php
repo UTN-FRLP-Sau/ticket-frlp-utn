@@ -11,6 +11,7 @@ class Ticket extends CI_Controller
         parent::__construct();
 
         $this->load->model('ticket_model');
+        $this->load->helper('url');
 
         if (!$this->session->userdata('is_user')) {
             redirect(base_url('login'));
@@ -37,106 +38,146 @@ class Ticket extends CI_Controller
         } elseif ($_SERVER['CI_ENV'] == 'development') {
             return true;
         }
+
         return false;
     }
 
-
     public function index()
     {
-        // Carga de modelos y helpers, y lógica de autenticación (mantén tu código existente aquí)
-        // Por ejemplo, las líneas que cargan el modelo ticket_model y obtienen los datos del usuario:
         $id_usuario = $this->session->userdata('id_usuario');
         $usuario = $this->ticket_model->getUserById($id_usuario);
 
-        // --- DIAGNÓSTICO: Cargar explícitamente la base de datos si no está ya cargada ---
-        // Esto puede ayudar si hay algún problema con la carga automática en este contexto específico.
-        $this->load->database(); 
+        $data = [
+            'titulo'                          => 'Comprar Viandas',
+            'usuario'                         => $usuario,
+            'compras_pendientes_json'         => '[]',
+            'show_pending_purchase_modal'     => false,
+            'pending_purchase_details'        => null,
+            'pending_purchase_viandas'        => [],
+            'weeksData'                       => [],
+            'costoVianda'                     => null,
+            'permitir_ambos_turnos_mismo_dia' => false,
+            'vacaciones_invierno_inicio'      => null,
+            'vacaciones_invierno_fin'         => null,
+        ];
 
-        // --- Lógica para el modal de compra pendiente ---
-        $show_pending_purchase_modal = false;
-        $pending_purchase_details = null;
-        $pending_purchase_viandas = [];
+        $this->load->database();
 
         $external_reference_from_session = $this->session->userdata('external_reference');
         log_message('debug', 'TICKET_INDEX: external_reference_from_session: ' . ($external_reference_from_session ? $external_reference_from_session : 'VACIO'));
 
+        // --- COMPRAS PENDIENTES ---
+
+        // 1. Obtener todas las compras pendientes del usuario con sus estados de MP
+        // Asegúrate de que esta función en Ticket_model.php esté actualizada para traer 'mp_estado' y 'menu'.
+        $pendingPurchases = $this->ticket_model->getComprasPendientes($usuario->id);
+
+        // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
+        $pendingPurchasesByDateMeal = [];
+        foreach ($pendingPurchases as $purchase) {
+            $date = $purchase['dia_comprado'];
+            $turno = $purchase['turno'];
+
+            $pendingPurchasesByDateMeal[$date][$turno] = [
+                'mp_estado' => $purchase['mp_estado'],
+                'menu' => $purchase['menu']
+            ];
+        }
+
+        // --- FIN COMPRAS PENDIENTES ---
+
+
+        $compra_a_mostrar = null; // Variable para guardar la compra que finalmente mostraremos en el modal
+
+        // --- PRIMERO: Intentar obtener la compra de la referencia en sesión ---
         if ($external_reference_from_session) {
-            // **IMPORTANTE: Primero llamas al modelo y asignas el resultado**
-            $compra_pendiente = $this->ticket_model->getCompraPendiente($external_reference_from_session);
+            $compra_desde_sesion = $this->ticket_model->getCompraPendiente($external_reference_from_session);
+            log_message('debug', 'TICKET_INDEX: Raw result of getCompraPendiente (desde sesión): ' . print_r($compra_desde_sesion, true));
 
-            // **Luego, realizas los logs con el valor YA asignado de $compra_pendiente**
-            log_message('debug', 'TICKET_INDEX: Raw result of getCompraPendiente: ' . print_r($compra_pendiente, true));
+            if ($compra_desde_sesion && property_exists($compra_desde_sesion, 'mp_estado')) {
+                log_message('debug', 'TICKET_INDEX: mp_estado de compra de sesión: ' . $compra_desde_sesion->mp_estado);
 
-            // **CORRECCIÓN DE LÓGICA:** Aseguramos que $compra_pendiente sea un objeto válido antes de acceder a sus propiedades
-            if ($compra_pendiente && property_exists($compra_pendiente, 'mp_estado')) { 
-                log_message('debug', 'TICKET_INDEX: mp_estado from retrieved purchase: ' . $compra_pendiente->mp_estado); 
-
-                if ($compra_pendiente->mp_estado !== 'approved') {
-                    $show_pending_purchase_modal = true;
-                    $pending_purchase_details = $compra_pendiente;
-                    $pending_purchase_viandas = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
-                    log_message('debug', 'TICKET_INDEX: Modal de compra pendiente marcado para mostrar.');
+                if ($compra_desde_sesion->mp_estado === 'pasarela') {
+                    $compra_a_mostrar = $compra_desde_sesion; // Esta es la compra que queremos mostrar
+                    log_message('debug', 'TICKET_INDEX: Compra de sesión es "pasarela", la asignamos para mostrar.');
                 } else {
-                    // Si la compra se encontró y está aprobada, la limpiamos de la sesión para no volver a preguntar
-                    $this->session->unset_userdata('external_reference'); 
-                    log_message('debug', 'TICKET_INDEX: Modal de compra pendiente NO marcado. Razón: Compra aprobada. external_reference limpiada.');
+                    // Si la compra de la sesión no es 'pasarela' (ej. 'rejected', 'approved'),
+                    // limpiamos la referencia de la sesión porque ya no está "pendiente de mostrar".
+                    $this->session->unset_userdata('external_reference');
+                    log_message('debug', 'TICKET_INDEX: external_reference de sesión limpiada. Razón: Estado no es "pasarela" (' . $compra_desde_sesion->mp_estado . ').');
                 }
             } else {
-                // Si $compra_pendiente es nulo/falso (no se encontró) o no tiene la propiedad mp_estado, limpiar la referencia
+                // No se encontró compra para la external_reference en sesión o es inválida, limpiar.
                 $this->session->unset_userdata('external_reference');
-                log_message('debug', 'TICKET_INDEX: Modal de compra pendiente NO marcado. Razón: No se encontró compra o es inválida. external_reference limpiada.');
+                log_message('debug', 'TICKET_INDEX: external_reference de sesión limpiada. Razón: No se encontró compra válida para la referencia.');
             }
         }
 
+        // --- SEGUNDO: Si no encontramos una compra para mostrar vía sesión, buscamos en la BD ---
+        // Esto cubre el caso donde una compra posterior sobrescribió y luego limpió la referencia de la sesión.
+        if (!$compra_a_mostrar) {
+            $usuario_id = $this->session->userdata('id_usuario');
+            if ($usuario_id) {
+                $compra_pasarela_db = $this->ticket_model->getAnyPasarelaPurchaseForUser($usuario_id);
+                if ($compra_pasarela_db) {
+                    $compra_a_mostrar = $compra_pasarela_db;
+                    log_message('debug', 'TICKET_INDEX: Se encontró una compra "pasarela" activa en la BD para el usuario (ID: ' . $usuario_id . ').');
+                    $this->session->set_userdata('external_reference', $compra_a_mostrar->external_reference);
+                } else {
+                     log_message('debug', 'TICKET_INDEX: No se encontraron compras "pasarela" en la BD para el usuario (ID: ' . $usuario_id . ').');
+                }
+            } else {
+                log_message('error', 'TICKET_INDEX: user_id no encontrado en la sesión. No se puede buscar compra "pasarela" en la BD.');
+            }
+        }
+
+        // --- FINAL: Configurar los datos para la vista si se encontró una compra a mostrar ---
+        if ($compra_a_mostrar) {
+            $data['show_pending_purchase_modal'] = true;
+            $data['pending_purchase_details'] = $compra_a_mostrar;
+            $data['pending_purchase_viandas'] = $this->ticket_model->getViandasCompraPendiente($compra_a_mostrar->id);
+            log_message('debug', 'TICKET_INDEX: Modal de compra pendiente marcado para mostrar con detalles.');
+        } else {
+            log_message('debug', 'TICKET_INDEX: No hay modal de compra pendiente para mostrar.');
+        }
+
+
         if ($this->estadoComedor()) {
-            // Obtener la configuración aquí para todas las validaciones de fechas y horarios
             $configuracion = $this->ticket_model->getConfiguracion();
             $vacaciones_invierno_inicio = $configuracion[0]->vacaciones_i;
             $vacaciones_invierno_fin = $configuracion[0]->vacaciones_f;
-            $dia_inicial_compra = (int)$configuracion[0]->dia_inicial; // Lunes = 1
-            $dia_final_compra = (int)$configuracion[0]->dia_final;     // Viernes = 5
-            $hora_final_compra = $configuracion[0]->hora_final;       // Ej. '12:00:00'
+            $dia_inicial_compra = (int)$configuracion[0]->dia_inicial;
+            $dia_final_compra = (int)$configuracion[0]->dia_final;
+            $hora_final_compra = $configuracion[0]->hora_final;
 
-            $numWeeksToDisplay = 5; // Define 5 semanas a mostrar
+            $numWeeksToDisplay = 5;
             $weeksData = [];
             $all_dates_in_range = [];
 
-            // Fecha y hora actual del sistema
             $currentDateTime = new DateTime('now');
-            $currentDate = new DateTime($currentDateTime->format('Y-m-d')); // Solo la fecha de hoy, sin la hora
+            $currentDate = new DateTime($currentDateTime->format('Y-m-d'));
             $currentTime = $currentDateTime->format('H:i:s');
-            $currentDayOfWeek = (int)$currentDateTime->format('N'); // 1 (Lunes) a 7 (Domingo)
+            $currentDayOfWeek = (int)$currentDateTime->format('N');
 
-            // Obtiene el lunes de la semana actual (la semana que incluye $currentDate)
             $mondayOfCurrentWeek = clone $currentDate;
-            if ($mondayOfCurrentWeek->format('N') !== '1') { // Si hoy no es lunes, va al lunes más cercano anterior
+            if ($mondayOfCurrentWeek->format('N') !== '1') {
                 $mondayOfCurrentWeek->modify('last monday');
             }
 
-            // Calcular el final del período de compra para la *próxima* semana.
-            // Esto es, el día y la hora límite de la semana actual para comprar para la semana siguiente.
             $endOfCurrentPurchaseWindow = clone $mondayOfCurrentWeek;
-            // Avanza al día final de compra de la semana actual (ej. Viernes)
             $endOfCurrentPurchaseWindow->modify('+' . ($dia_final_compra - 1) . ' days');
-            // Establece la hora de cierre
             list($hora, $minuto, $segundo) = explode(':', $hora_final_compra);
             $endOfCurrentPurchaseWindow->setTime((int)$hora, (int)$minuto, (int)$segundo);
 
-            // Determinar si ya se pasó el límite de compra para la próxima semana
-            // Es decir, si es después del viernes a la hora de cierre, o si es sábado/domingo.
             $isPastPurchaseCutoffForNextWeek = false;
-            // Si el día actual es mayor que el día final de compra (ej. sábado/domingo)
             if ($currentDayOfWeek > $dia_final_compra) {
                 $isPastPurchaseCutoffForNextWeek = true;
-            } elseif ($currentDayOfWeek === $dia_final_compra) { // Si es el día final de compra (ej. viernes)
-                // Y la hora actual es mayor o igual a la hora final de compra
+            } elseif ($currentDayOfWeek === $dia_final_compra) {
                 if ($currentTime >= $hora_final_compra) {
                     $isPastPurchaseCutoffForNextWeek = true;
                 }
             }
 
-
-            // Primera iteración para recolectar todas las fechas y hacer una única consulta
             for ($w = 0; $w < $numWeeksToDisplay; $w++) {
                 $mondayOfThisWeek = clone $mondayOfCurrentWeek;
                 $mondayOfThisWeek->modify('+' . $w . ' week');
@@ -148,39 +189,32 @@ class Ticket extends CI_Controller
                 }
             }
 
-            // Realiza una única consulta para todas las compras y feriados dentro del rango total
             $minDateRange = !empty($all_dates_in_range) ? min($all_dates_in_range) : date('Y-m-d');
             $maxDateRange = !empty($all_dates_in_range) ? max($all_dates_in_range) : date('Y-m-d');
 
             $compras_usuario_total = $this->ticket_model->getComprasInRangeByIdUser($minDateRange, $maxDateRange, $id_usuario);
             $feriados_total = $this->ticket_model->getFeriadosInRange($minDateRange, $maxDateRange);
 
-            // Formatea los comprados para fácil acceso, incluyendo el tipo de menú
             $comprados_con_turno = [];
             foreach ($compras_usuario_total as $compra) {
                 $comprados_con_turno[$compra->dia_comprado][$compra->turno] = $compra->menu;
             }
 
-            // Itera para construir la estructura de datos para la vista
             for ($w = 0; $w < $numWeeksToDisplay; $w++) {
                 $week = [];
                 $mondayOfThisWeek = clone $mondayOfCurrentWeek;
                 $mondayOfThisWeek->modify('+' . $w . ' week');
 
-                // Variables para identificar la semana
                 $isCurrentWeek = ($w === 0);
                 $isNextWeek = ($w === 1);
                 $isSecondWeekOrBeyond = ($w >= 2);
-                
-                // Calcula el viernes de la semana actual de esta iteración para el título
-                $fridayOfThisWeek = clone $mondayOfThisWeek;
-                $fridayOfThisWeek->modify('+4 days'); // Lunes + 4 días = Viernes
 
-                // Formatea las fechas para el título de la semana
+                $fridayOfThisWeek = clone $mondayOfThisWeek;
+                $fridayOfThisWeek->modify('+4 days');
+
                 $weekStartDateDisplay = $mondayOfThisWeek->format('d \d\e F');
                 $weekEndDateDisplay = $fridayOfThisWeek->format('d \d\e F');
 
-                // Para que 'F' (nombre del mes) esté en español
                 $meses = array(
                     'January' => 'Enero', 'February' => 'Febrero', 'March' => 'Marzo',
                     'April' => 'Abril', 'May' => 'Mayo', 'June' => 'Junio',
@@ -188,96 +222,104 @@ class Ticket extends CI_Controller
                     'October' => 'Octubre', 'November' => 'Noviembre', 'December' => 'Diciembre'
                 );
                 $weekStartDateDisplay = strtr($weekStartDateDisplay, $meses);
-                $weekEndDateDisplay = strtr($weekEndDateDisplay, $meses); // Traduce el mes del viernes
+                $weekEndDateDisplay = strtr($weekEndDateDisplay, $meses);
 
                 for ($d = 0; $d < 5; $d++) { // Lunes a Viernes
                     $dayDate = clone $mondayOfThisWeek;
                     $dayDate->modify('+' . $d . ' day');
 
                     $date_ymd = $dayDate->format('Y-m-d');
-                    $dayOfWeekNumber = (int)$dayDate->format('N'); // 1 (Lunes) a 7 (Domingo)
+                    $dayOfWeekNumber = (int)$dayDate->format('N');
                     $spanishDayNames = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-                    $dayName = $spanishDayNames[$dayOfWeekNumber - 1]; // Ajuste de índice para el array
+                    $dayName = $spanishDayNames[$dayOfWeekNumber - 1];
 
-                    // Obtiene el tipo de menú comprado para cada turno
+                    // Inicializar estados de compra y menú para el día/turno
                     $comprado_mediodia_menu = isset($comprados_con_turno[$date_ymd]['manana']) ? $comprados_con_turno[$date_ymd]['manana'] : null;
                     $comprado_noche_menu = isset($comprados_con_turno[$date_ymd]['noche']) ? $comprados_con_turno[$date_ymd]['noche'] : null;
 
-                    // Determina si hay compra
-                    $dia_comprado_mediodia = ($comprado_mediodia_menu !== null);
-                    $dia_comprado_noche = ($comprado_noche_menu !== null);
+                    $comprado_mediodia = ($comprado_mediodia_menu !== null);
+                    $comprado_noche = ($comprado_noche_menu !== null);
 
+                    // Inicializar estados de MercadoPago simplificados
+                    $mp_estado_mediodia = null;
+                    $mp_estado_noche = null;
+
+                    // Lógica para determinar si hay una compra PENDIENTE de Mercado Pago
+                    if (isset($pendingPurchasesByDateMeal[$date_ymd]['manana'])) {
+                        $mp_data = $pendingPurchasesByDateMeal[$date_ymd]['manana'];
+                        $mp_estado_mediodia = $mp_data['mp_estado'];
+                        $comprado_mediodia = true; // Se marca como "comprado" para activar el badge en la vista
+                        $comprado_mediodia_menu = $mp_data['menu']; // Usa el menú de la compra pendiente
+                    }
+
+                    if (isset($pendingPurchasesByDateMeal[$date_ymd]['noche'])) {
+                        $mp_data = $pendingPurchasesByDateMeal[$date_ymd]['noche'];
+                        $mp_estado_noche = $mp_data['mp_estado'];
+                        $comprado_noche = true;
+                        $comprado_noche_menu = $mp_data['menu'];
+                    }
+
+                    // Comprobaciones de feriados, receso, y días pasados
                     $es_receso_invernal = ($dayDate >= new DateTime($vacaciones_invierno_inicio) && $dayDate <= new DateTime($vacaciones_invierno_fin));
                     $es_feriado = in_array($date_ymd, array_column($feriados_total, 'fecha'));
-                    $es_pasado = ($dayDate < $currentDate); // Compara la fecha de la vianda con la fecha actual (solo día)
+                    $es_pasado = ($dayDate < $currentDate);
 
-                    // Lógica para deshabilitar la compra para cada día
-                    $disable_purchase = false;
+                    // Calcular los flags de deshabilitación específicos para cada turno
+                    $disable_purchase_mediodia = $comprado_mediodia || $es_feriado || $es_receso_invernal || $es_pasado;
+                    $disable_purchase_noche = $comprado_noche || $es_feriado || $es_receso_invernal || $es_pasado;
 
-                    if ($es_pasado || $es_feriado || $es_receso_invernal) {
-                        // Siempre deshabilitado para fechas pasadas, feriados o receso invernal.
-                        $disable_purchase = true;
-                    } elseif ($isCurrentWeek) {
-                        // Siempre deshabilitado para la semana actual.
-                        $disable_purchase = true;
+                    // Aplicar la lógica de deshabilitación por semana (actual, próxima y corte)
+                    if ($isCurrentWeek) {
+                        $disable_purchase_mediodia = true;
+                        $disable_purchase_noche = true;
                     } elseif ($isNextWeek) {
-                        // Para la PRÓXIMA semana, se aplica la ventana de compra habitual.
-                        // Si ya pasó la hora de corte de compra de la semana actual (viernes 12:00PM, o fin de semana),
-                        // entonces la próxima semana está deshabilitada para la compra.
                         if ($isPastPurchaseCutoffForNextWeek) {
-                            $disable_purchase = true;
+                            $disable_purchase_mediodia = true;
+                            $disable_purchase_noche = true;
                         }
                     }
-                    // Si es la segunda semana o posterior ($isSecondWeekOrBeyond es true),
-                    // y no es pasado, feriado, o receso, disable_purchase permanece false,
-                    // permitiendo la compra.
 
-                    // Override para entorno de desarrollo
-                    //if ($_SERVER['CI_ENV'] == 'development') {
-                    //    $disable_purchase = false;
-                    //}
 
                     $week[] = [
                         'day_name'                => $dayName,
                         'date_display'            => $dayDate->format('d'),
                         'date_ymd'                => $date_ymd,
-                        'comprado_mediodia'       => $dia_comprado_mediodia,
-                        'comprado_noche'          => $dia_comprado_noche,
+                        'comprado_mediodia'       => $comprado_mediodia,
+                        'comprado_noche'          => $comprado_noche,
                         'comprado_mediodia_menu'  => $comprado_mediodia_menu,
                         'comprado_noche_menu'     => $comprado_noche_menu,
                         'es_feriado'              => $es_feriado,
                         'es_pasado'               => $es_pasado,
                         'es_receso_invernal'      => $es_receso_invernal,
-                        'disable_purchase'        => $disable_purchase
+                        'disable_purchase_mediodia' => $disable_purchase_mediodia,
+                        'disable_purchase_noche'    => $disable_purchase_noche,
+                        'mp_estado_mediodia'      => $mp_estado_mediodia,
+                        'mp_estado_noche'         => $mp_estado_noche,
                     ];
                 }
                 $weeksData[] = [
-                    'week_index' => $w,
+                    'week_index'              => $w,
                     'week_start_date_display' => $weekStartDateDisplay,
                     'week_end_date_display'   => $weekEndDateDisplay,
-                    'days' => $week
+                    'days'                    => $week
                 ];
             }
 
-            $data = [
-                'titulo' => 'Comprar Viandas',
-                'usuario' => $usuario,
-                'weeksData' => $weeksData,
-                'costoVianda' => $this->ticket_model->getCostoByID($usuario->id_precio),
-                'permitir_ambos_turnos_mismo_dia' => $this->config->item('permitir_ambos_turnos_mismo_dia'),
-                'vacaciones_invierno_inicio' => $vacaciones_invierno_inicio,
-                'vacaciones_invierno_fin' => $vacaciones_invierno_fin
-            ];
+            $data['weeksData'] = $weeksData;
+            $data['costoVianda'] = $this->ticket_model->getCostoByID($usuario->id_precio);
+            $data['permitir_ambos_turnos_mismo_dia'] = $this->config->item('permitir_ambos_turnos_mismo_dia');
+            $data['vacaciones_invierno_inicio'] = $vacaciones_invierno_inicio;
+            $data['vacaciones_invierno_fin'] = $vacaciones_invierno_fin;
+
 
             $this->load->view('usuario/header', $data);
             $this->load->view('index', $data);
             $this->load->view('general/footer');
 
         } else {
-            // El comedor no está habilitado en este período (vacaciones, cierre anual, etc.)
             $data = [
                 'titulo' => 'Comprar Viandas',
-                'alerta' => '<p>El comedor no funciona en este Periodo</p>'
+                'alerta' => '<p>El comedor no funciona en este Período</p>'
             ];
 
             $this->load->view('usuario/header', $data);
@@ -297,8 +339,19 @@ class Ticket extends CI_Controller
 
         $postMenus = $this->input->post('selectMenu');
         $erroresCompra = []; // Array para acumular mensajes de error
-        $seleccion = []; 
+        $seleccion = [];
         $totalCompraCalculado = 0;
+
+        // --- INICIO: VERIFICACIÓN DE COMPRA PENDIENTE EXISTENTE ---
+        $existing_pending_purchase = $this->ticket_model->getAnyPasarelaPurchaseForUser($id_usuario);
+        if ($existing_pending_purchase) {
+            log_message('info', 'TICKET_COMPRA: Usuario ' . $id_usuario . ' intentó iniciar una nueva compra pero ya tiene una pendiente con external_reference: ' . $existing_pending_purchase->external_reference);
+            $this->session->set_flashdata('error_compra', ['Ya tienes una compra pendiente de pago. Por favor, retómala o cancélala antes de iniciar una nueva.']);
+            redirect(base_url('comedor/ticket'));
+            return; // Detener la ejecución
+        }
+        // --- FIN: VERIFICACIÓN DE COMPRA PENDIENTE EXISTENTE ---
+
 
         if (!empty($postMenus)) {
             foreach ($postMenus as $date_ymd => $turnosData) {
@@ -319,7 +372,7 @@ class Ticket extends CI_Controller
                 }
 
                 foreach ($selectedTurnsForDay as $turno => $menuSeleccionado) {
-                    $tipoServicio = "Comer aqui"; 
+                    $tipoServicio = "Comer aqui";
                     if ($menuSeleccionado) {
                         $dayOfWeek = new DateTime($date_ymd);
                         $spanishDayNames = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
@@ -396,7 +449,7 @@ class Ticket extends CI_Controller
 
         // Convertir la hora final de compra a un objeto DateTime para una comparación precisa
         $hora_final_compra_dt = DateTime::createFromFormat('H:i:s', $hora_final_compra_str);
-      
+
         $hora_final_compra_dt->setDate(
             (int)$currentDateTime->format('Y'),
             (int)$currentDateTime->format('m'),
@@ -430,7 +483,7 @@ class Ticket extends CI_Controller
             log_message('debug', 'DevolverCompra: Condición 3 (Día de la semana) - aún no es el día final de compra.');
         }
 
-    
+
 
         // Este rango reflejará la lógica de 5 semanas a partir de la fecha actual.
 
@@ -464,8 +517,7 @@ class Ticket extends CI_Controller
 
         log_message('debug', 'DevolverCompra: Rango de fechas para devoluciones: ' . $start_date . ' a ' . $end_date);
 
-        /*  
-        // --- INICIO DE DEPURACIÓN (Reubicado para tener todas las variables definidas) ---
+        /* // --- INICIO DE DEPURACIÓN (Reubicado para tener todas las variables definidas) ---
         error_log("--- DEBUG DEVOLVER COMPRA ---");
         error_log("currentDateTime: " . $currentDateTime->format('Y-m-d H:i:s'));
         error_log("currentDayOfWeek: " . $currentDayOfWeek . " (1=Lunes, 5=Viernes, etc.)");
@@ -477,7 +529,7 @@ class Ticket extends CI_Controller
         error_log("mondayOfCurrentWeek: " . $mondayOfCurrentWeek->format('Y-m-d'));
         error_log("Calculated start_date for devolution: " . $start_date);
         error_log("Calculated end_date for devolution: " . $end_date);
-        // --- FIN DE DEPURACIÓN --- 
+        // --- FIN DE DEPURACIÓN ---
         // */
 
 
@@ -541,7 +593,7 @@ class Ticket extends CI_Controller
                     $compra = $this->ticket_model->getCompraById($id_compra); // Obtiene los detalles de la compra por su ID
 
                     if ($compra && $compra->id_usuario == $id_usuario) {
-                    
+
                         $compra_date = new DateTime($compra->dia_comprado);
                         $es_receso_invernal_post = ($compra_date >= new DateTime($vacaciones_invierno_inicio) && $compra_date <= new DateTime($vacaciones_invierno_fin));
                         $es_feriado_post = in_array($compra->dia_comprado, $feriados_fechas_cache);
