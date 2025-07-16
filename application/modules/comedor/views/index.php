@@ -107,7 +107,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                         </button>
                                     </h2>
                                     <div id="<?= $collapseId ?>" class="accordion-collapse collapse <?= $isFirst ? 'show' : '' ?>"
-                                        aria-labelledby="<?= $headingId ?>" data-bs-parent="#accordionSemanas">
+                                        aria-labelledby="<?= $headingId ?>">
                                         <div class="accordion-body p-3">
                                             <div class="days-carousel-container d-flex overflow-auto pb-3">
                                                 <?php foreach ($weekDays as $dayData): ?>
@@ -350,8 +350,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
 
 <script>
 $(document).ready(function() {
