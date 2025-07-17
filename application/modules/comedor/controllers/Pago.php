@@ -82,11 +82,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://d347a9b3c20e.ngrok-free.app/webhook/mercadopago';
+        $notification_url = 'https://2639a97acb03.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
         $back_urls = array(
-            "success" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://d347a9b3c20e.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
