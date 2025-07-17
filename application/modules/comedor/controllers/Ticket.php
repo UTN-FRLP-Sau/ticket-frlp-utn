@@ -728,9 +728,26 @@ class Ticket extends CI_Controller
                     log_message('debug', 'DevolverCompra: Logs de compra actualizados con transacción real ID: ' . $id_transaccion_real);
 
                     // Mensaje de éxito y redirección a la página de confirmación
+                    
+                    // --- INICIO: Lógica para enviar el correo de recibo de devolución ---
                     $this->session->set_flashdata('success', 'Se han devuelto ' . $n_devolucion . ' vianda(s) exitosamente. Tu saldo ha sido actualizado.');
-                    $this->session->set_flashdata('transaccion', $id_transaccion_real); // Pasa el ID de la transacción real
-                    redirect(base_url('usuario/devolver/success'));
+                    $dataRecivo['compras'] = $compras_devueltas_para_recibo; // Usar las compras que realmente se devolvieron
+                    $dataRecivo['total'] = $monto_total_devolucion;
+                    $dataRecivo['fechaHoy'] = date('d/m/Y', time());
+                    $dataRecivo['horaAhora'] = date('H:i:s', time());
+                    $dataRecivo['recivoNumero'] = $id_transaccion_real;
+
+                    $subject = "Recibo de devolucion del comedor";
+                    $message = $this->load->view('general/correos/recibo_devolucion', $dataRecivo, true);
+
+                    if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                        $this->session->set_flashdata('success', 'Se han devuelto ' . $n_devolucion . ' vianda(s) exitosamente. Tu saldo ha sido actualizado y se ha enviado un recibo a tu correo.');
+                    } else {
+                        $this->session->set_flashdata('warning', 'Se han devuelto ' . $n_devolucion . ' vianda(s) exitosamente y tu saldo ha sido actualizado, pero no se pudo enviar el recibo por correo electrónico. Por favor, revisa tu configuración de correo.');
+                    }
+                    // --- FIN: Lógica para enviar el correo de recibo de devolución ---
+
+                    redirect(base_url('usuario/devolver_compra')); // Redirige directamente a la página de devoluciones
                 } else {
                     log_message('info', 'DevolverCompra: No se pudo devolver ninguna compra o no se seleccionaron viandas válidas.');
                     $this->session->set_flashdata('info', 'No se pudieron devolver las viandas seleccionadas o no seleccionaste ninguna vianda válida para devolver.');
@@ -752,45 +769,5 @@ class Ticket extends CI_Controller
     }
 
 
-        public function devolverCompraSuccess()
-    {
-        $data['titulo'] = 'Confirmacion';
-        $id_transaccion= $this->session->flashdata('transaccion');
-        $id_usuario = $this->session->userdata('id_usuario');
 
-        $usuario = $this->ticket_model->getUserById($id_usuario);
-
-        $data['transaccion'] = $id_transaccion;
-        $data['tipo'] = 'devolucion';
-
-        if ($id_transaccion) {
-            $compras = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion);
-            $data['compras']=$compras;
-            $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
-            $this->session->set_flashdata('transaccion', $id_transaccion);
-
-            if ($this->input->method() == 'post') {
-                $id_transaccion= $this->session->flashdata('transaccion');
-                //Confeccion del correo del recivo
-                $dataRecivo['compras'] = $compras;
-                $dataRecivo['total'] = $costoVianda * count($compras);
-                $dataRecivo['fechaHoy'] = date('d/m/Y', time());
-                $dataRecivo['horaAhora'] = date('H:i:s', time());
-                $dataRecivo['recivoNumero'] = $id_transaccion;
-
-                $subject = "Recibo de devolucion del comedor";
-                $message = $this->load->view('general/correos/recibo_devolucion', $dataRecivo, true);
-
-                if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)){
-                    redirect(base_url('usuario/devolver_compra'));
-                }
-            } else {
-                $this->load->view('usuario/header', $data);
-                $this->load->view('comedor/compra_confirmacion', $data);
-                $this->load->view('general/footer');
-            }
-        } else {
-            redirect(base_url('usuario'));
-        }
-    }
 }
