@@ -122,6 +122,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                         $es_feriado = $dayData['es_feriado'];
                                                         $es_receso_invernal = $dayData['es_receso_invernal'] ?? false;
                                                         $es_pasado = $dayData['es_pasado'];
+
+                                                        $day_purchased_any_turn = $comprado_mediodia || $comprado_noche;
+                                                        $disable_purchase_mediodia_backend = $dayData['disable_purchase_mediodia'];
+                                                        $disable_purchase_noche_backend = $dayData['disable_purchase_noche'];
+
+                                                        $disable_mediodia_total = $comprado_mediodia || $disable_purchase_mediodia_backend || ($day_purchased_any_turn && !$comprado_mediodia && !$permitir_ambos_turnos_mismo_dia);
+                                                        $disable_noche_total = $comprado_noche || $disable_purchase_noche_backend || ($day_purchased_any_turn && !$comprado_noche && !$permitir_ambos_turnos_mismo_dia);
                                                     ?>
                                                     <div class="day-column flex-shrink-0 me-3" style="width: 250px;">
                                                         <div class="card h-100 day-option-card
@@ -138,13 +145,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                 <?php endif; ?>
                                                             </div>
                                                             <div class="card-body">
-                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($dayData['comprado_mediodia'] || $dayData['disable_purchase_mediodia']) ? 'meal-disabled' : '' ?>">
+                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= $disable_mediodia_total ? 'meal-disabled' : '' ?>">
                                                                     <div class="d-flex align-items-center">
                                                                         <label class="form-check-label fw-bold flex-grow-1" for="select<?= $dayData['date_ymd'] ?>Manana">
                                                                             <i class="bi bi-sun me-2"></i>Mediodía
                                                                         </label>
                                                                     </div>
-                                                                    <?php if ($dayData['comprado_mediodia']): ?>
+                                                                    <?php if ($comprado_mediodia): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
                                                                             <?php if (isset($dayData['mp_estado_mediodia']) && $dayData['mp_estado_mediodia'] === 'pasarela'): ?>
                                                                                 <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_mediodia_menu']); ?></span>
@@ -161,7 +168,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                                 name="selectMenu[<?= $dayData['date_ymd'] ?>][manana]"
                                                                                 data-date="<?= $dayData['date_ymd'] ?>"
                                                                                 data-time="manana"
-                                                                                <?= ($dayData['disable_purchase_mediodia']) ? 'disabled' : '' ?>>
+                                                                                <?= $disable_mediodia_total ? 'disabled' : '' ?>>
                                                                             <option value="seleccionar" selected>Seleccionar</option>
                                                                             <option value="Basico">Menú Básico</option>
                                                                             <option value="Veggie">Menú Vegetariano</option>
@@ -172,13 +179,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
                                                                 <hr class="my-3">
 
-                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= ($dayData['comprado_noche'] || $dayData['disable_purchase_noche']) ? 'meal-disabled' : '' ?>">
+                                                                <div class="mb-3 p-2 rounded-3 border bg-white meal-time-block <?= $disable_noche_total ? 'meal-disabled' : '' ?>">
                                                                     <div class="d-flex align-items-center">
                                                                         <label class="form-check-label fw-bold flex-grow-1" for="select<?= $dayData['date_ymd'] ?>Noche">
                                                                             <i class="bi bi-moon me-2"></i>Noche
                                                                         </label>
                                                                     </div>
-                                                                    <?php if ($dayData['comprado_noche']): ?>
+                                                                    <?php if ($comprado_noche): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
                                                                             <?php if (isset($dayData['mp_estado_noche']) && $dayData['mp_estado_noche'] === 'pasarela'): ?>
                                                                                 <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_noche_menu']); ?></span>
@@ -195,7 +202,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                                 name="selectMenu[<?= $dayData['date_ymd'] ?>][noche]"
                                                                                 data-date="<?= $dayData['date_ymd'] ?>"
                                                                                 data-time="noche"
-                                                                                <?= ($dayData['disable_purchase_noche']) ? 'disabled' : '' ?>>
+                                                                                <?= $disable_noche_total ? 'disabled' : '' ?>>
                                                                             <option value="seleccionar" selected>Seleccionar</option>
                                                                             <option value="Basico">Menú Básico</option>
                                                                             <option value="Veggie">Menú Vegetariano</option>
