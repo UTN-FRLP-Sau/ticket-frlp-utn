@@ -59,7 +59,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                 </div>
                 <div class="card-body p-4">
                     <div id="tarjetaSaldo" class="alert alert-info d-flex align-items-center mb-4 border-0" role="alert">
-                        <i class="bi bi-wallet-fill me-3 fs-4"></i>
+                        <i class="bi bi-cash me-3 fs-4"></i>
                         <div>
                             <strong>Saldo disponible:</strong> $<span id="saldoUsuarioDisplay"><?= number_format($usuario->saldo, 2) ?></span>
                         </div>
