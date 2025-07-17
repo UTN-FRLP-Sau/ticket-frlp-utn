@@ -105,14 +105,15 @@ class Ticket_model extends CI_Model
         $preference->auto_return = "approved";
         $preference->notification_url = $notification_url;
 
-
-    /*
         $preference->payment_methods = array(
             "excluded_payment_types" => array(
                 array("id" => "ticket"),
                 array("id" => "atm")
-            ),
-            "excluded_payment_methods" => array(
+            )
+        ); 
+    
+
+        /*    "excluded_payment_methods" => array(
                 array("id" => "amex"),    // Excluir American Express
                 array("id" => "naranja")  // Excluir Tarjeta Naranja
             )
