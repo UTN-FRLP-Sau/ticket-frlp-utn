@@ -565,3 +565,28 @@ body {
     
     }
 }
+
+@media (max-width: 504px) {
+    #card-titulo h2 {
+        font-size: 1.5rem !important;
+    }
+    .card-header {
+        padding: 1rem !important;
+    }
+    #tarjetaSaldo {
+        font-size: 1.2rem !important;
+    }
+    
+}
+
+@media (max-width: 400px) {
+    #card-titulo h2 {
+        font-size: 1.4rem !important;
+    }
+    .card-header {
+        padding: 1rem !important;
+    }
+    #tarjetaSaldo {
+        font-size: 1.2rem !important;
+    }
+}
