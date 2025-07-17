@@ -15,15 +15,102 @@ class Webhook extends CI_Controller
     {
         $this->log_manual('Entré al webhook');
 
-        // Carga MercadoPago SDK y configuración
+        // Cargo MercadoPago SDK y configuración
         require_once FCPATH . 'vendor/autoload.php';
         $this->config->load('ticket');
 
         $access_token = $this->config->item('MP_ACCESS_TOKEN');
+        $secret_key = $this->config->item('MP_WEBHOOK_SECRET'); // La clave secreta para validar la firma
         MercadoPago\SDK::setAccessToken($access_token);
 
         $input = file_get_contents('php://input');
         $this->log_manual('Webhook recibido (RAW): ' . $input);
+
+        $data = json_decode($input, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->log_manual('ERROR JSON DECODE: ' . json_last_error_msg() . '. RAW: ' . $input);
+            http_response_code(400);
+            return;
+        }
+
+        if (!is_array($data) || empty($data)) {
+            $this->log_manual('ERROR JSON DATA: Datos vacíos o inválidos. RAW: ' . $input);
+            http_response_code(400);
+            return;
+        }
+
+        // --- INICIO: VALIDACION DE FIRMA ---
+
+        // Extraer headers importantes para validación
+        $xSignature = $_SERVER['HTTP_X_SIGNATURE'] ?? '';
+        $xRequestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
+        $notification_topic = $data['topic'] ?? ''; // Obtener el topic para decidir cómo construir el manifiesto
+
+        if (empty($xSignature)) {
+            $this->log_manual('ERROR: Header x-signature no encontrado.');
+            http_response_code(401); // 401 Unauthorized
+            return;
+        }
+
+        // Extraer ts y v1 del header x-signature
+        $ts = null;
+        $v1 = null;
+        $parts = explode(',', $xSignature);
+        foreach ($parts as $part) {
+            $kv = explode('=', $part, 2);
+            if (count($kv) == 2) {
+                $key = trim($kv[0]);
+                $value = trim($kv[1]);
+                if ($key === 'ts') $ts = $value;
+                if ($key === 'v1') $v1 = $value;
+            }
+        }
+
+        if (!$ts || !$v1) {
+            $this->log_manual('ERROR: ts o v1 no encontrados en x-signature.');
+            http_response_code(401); // 401 Unauthorized
+            return;
+        }
+
+        //  Construir el manifest de forma adaptativa y con JSON normalizado ---
+        $manifest = '';
+
+        // Si la notificación tiene 'data' y 'data.id', es probablemente un evento detallado (e.g., payment.created)
+        if (isset($data['data']['id']) && !empty($data['data']['id'])) {
+            $dataID_for_manifest = $data['data']['id'];
+            $manifest = "id:$dataID_for_manifest;";
+            if (!empty($xRequestId)) {
+                $manifest .= "request-id:$xRequestId;";
+            }
+            $manifest .= "ts:$ts;";
+        } else {
+            // Para notificaciones simples (e.g., {"resource":"ID","topic":"payment"} o merchant_order)
+            // el manifiesto es 'ts:{timestamp};' + el cuerpo RAW NORMALIZADO de la solicitud.
+            $normalized_json_body = json_encode($data); 
+
+            if ($normalized_json_body === false) {
+                 $this->log_manual('ERROR: Fallo al normalizar el JSON para la firma. JSON: ' . $input);
+                 http_response_code(400);
+                 return;
+            }
+            $manifest = "ts:$ts;" . $normalized_json_body;
+        }
+
+        // Calcular HMAC SHA256 usando la clave secreta
+        $calculatedSignature = hash_hmac('sha256', $manifest, $secret_key);
+
+        // Comparar firmas
+        if (!hash_equals($calculatedSignature, $v1)) {
+            $this->log_manual("ERROR: Validación HMAC fallida. Calculado: $calculatedSignature, recibido: $v1. Manifiesto usado: '$manifest'");
+            http_response_code(401); // 401 Unauthorized
+            return; // Detener ejecución aquí
+        }
+
+        $this->log_manual('Validación HMAC exitosa.');
+        // --- FIN: VALIDACION DE FIRMA ---
+
+
 
         $data = json_decode($input, true);
 
