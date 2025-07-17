@@ -89,7 +89,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
                                     $weekTitle = $weekIndex === 0
                                     ? '<strong>Esta Semana</strong>'
-                                    : 'Semana del&nbsp;<strong>' . $weekStartDateDisplay . '</strong>&nbsp;al&nbsp;<strong>' . $weekEndDateDisplay . '</strong>';
+                                    : '<span class="d-none d-md-inline">Semana del&nbsp;</span><strong>' . $weekStartDateDisplay . '</strong>&nbsp;al&nbsp;<strong>' . $weekEndDateDisplay . '</strong>';
 
 
 
