@@ -42,6 +42,7 @@ class Login extends CI_Controller
                     'id_usuario'  => $usuario->id,
                     'apellido' => $usuario->apellido,
                     'nombre' => $usuario->nombre,
+                    'documento' => $usuario->documento,
                     'is_user' => TRUE,
                     'is_admin' => FALSE,
                     'admin_lvl' => FALSE,

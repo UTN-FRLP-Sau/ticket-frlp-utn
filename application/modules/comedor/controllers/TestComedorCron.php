@@ -43,7 +43,6 @@ class TestComedorCron extends CI_Controller
 
         if (!empty($pending_purchases)) {
             foreach ($pending_purchases as $purchase) {
-                // Se modificó esta línea para no referenciar mp_id, ya que no existe en la tabla
                 log_message('debug', 'CRON DEBUG: Procesando compra ID: ' . $purchase->id . ' (External Ref: ' . $purchase->external_reference . ')');
                 echo "DEBUG: Procesando compra ID: " . $purchase->id . " (External Ref: " . $purchase->external_reference . ")\n";
 
@@ -66,8 +65,6 @@ class TestComedorCron extends CI_Controller
                 } else {
                     log_message('warning', 'CRON: Compra pendiente ID ' . $purchase->id . ' no tiene columna created_at o está vacía. No se pudo verificar por tiempo.');
                     echo "DEBUG WARNING: Compra ID " . $purchase->id . " sin fecha de creación. No se pudo verificar por tiempo.\n";
-                    // Considera si quieres que estas compras también se marquen como expiradas o se ignoren.
-                    // Por ahora, no se marcarán como expiradas por tiempo si no hay created_at.
                 }
 
                 // --- Lógica de Expiración Basada en la Fecha de Vianda ---

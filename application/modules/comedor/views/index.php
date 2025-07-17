@@ -357,6 +357,96 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     </div>
 </div>
 
+
+<div id="confirmCancelModal" class="custom-modal" style="display: none;">
+  <div class="custom-modal-content">
+    <span class="custom-close-button">&times;</span>
+    <h3 id="confirmCancelTitle">Confirmar Cancelación</h3>
+    <p id="confirmCancelBody">¿Estás seguro de que quieres cancelar esta compra pendiente? Esta acción no se puede deshacer.</p>
+    <div class="custom-modal-actions">
+      <button id="confirmCancelBtn" class="btn btn-danger">Sí, cancelar</button>
+      <button id="cancelModalCloseBtn" class="btn btn-secondary">No, mantener</button>
+    </div>
+  </div>
+</div>
+
+<div id="messageModal" class="custom-modal" style="display: none;">
+  <div class="custom-modal-content">
+    <span class="custom-close-button">&times;</span>
+    <h3 id="messageModalTitle"></h3>
+    <p id="messageModalBody"></p>
+    <div class="custom-modal-actions">
+      <button id="messageModalCloseBtn" class="btn btn-primary">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .custom-modal {
+    display: none; 
+    position: fixed; 
+    z-index: 2000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.4); 
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .custom-modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%; 
+    max-width: 500px; 
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    animation-name: animatetop;
+    animation-duration: 0.4s;
+    border-radius: 8px; 
+    position: relative; 
+  }
+
+  
+  @keyframes animatetop {
+    from {top: -100px; opacity: 0}
+    to {top: 0; opacity: 1}
+  }
+
+  .custom-close-button {
+    color: #aaa;
+    position: absolute; 
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .custom-close-button:hover,
+  .custom-close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .custom-modal-actions {
+    text-align: right;
+    margin-top: 20px;
+  }
+  .custom-modal-actions button {
+    margin-left: 10px;
+  }
+  #messageModalTitle {
+    text-align: center;
+}
+
+</style>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 
@@ -365,6 +455,50 @@ $(document).ready(function() {
     // Aquí puedes añadir una verificación simple para asegurar que jQuery está listo
     console.log('jQuery está cargado:', typeof $ !== 'undefined' ? 'Sí' : 'No');
     console.log('Objeto Bootstrap está cargado:', typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined' ? 'Sí' : 'No');
+
+    const confirmCancelCustomModal = document.getElementById('confirmCancelModal');
+    const confirmCancelCustomBtn = document.getElementById('confirmCancelBtn'); // Botón 'Sí, cancelar' dentro del modal de confirmación
+    const cancelModalCloseBtn = document.getElementById('cancelModalCloseBtn'); // Botón 'No, mantener'
+    const confirmCancelCloseSpan = confirmCancelCustomModal.querySelector('.custom-close-button');
+
+    const messageCustomModal = document.getElementById('messageModal');
+    const messageModalTitle = document.getElementById('messageModalTitle');
+    const messageModalBody = document.getElementById('messageModalBody');
+    const messageModalCloseBtn = document.getElementById('messageModalCloseBtn'); // Botón 'Aceptar'
+    const messageModalCloseSpan = messageCustomModal.querySelector('.custom-close-button');
+
+    function showConfirmCancelCustomModal() {
+        confirmCancelCustomModal.style.display = 'flex';
+    }
+
+    function hideConfirmCancelCustomModal() {
+        confirmCancelCustomModal.style.display = 'none';
+    }
+
+    function showMessageCustomModal(title, message) {
+        messageModalTitle.textContent = title;
+        messageModalBody.textContent = message;
+        messageCustomModal.style.display = 'flex';
+    }
+
+    function hideMessageCustomModal() {
+        messageCustomModal.style.display = 'none';
+    }
+
+    confirmCancelCloseSpan.onclick = hideConfirmCancelCustomModal;
+    cancelModalCloseBtn.onclick = hideConfirmCancelCustomModal;
+    messageModalCloseSpan.onclick = hideMessageCustomModal;
+    messageModalCloseBtn.onclick = hideMessageCustomModal;
+
+    // Cerrar modales haciendo clic fuera de su contenido
+    window.onclick = function(event) {
+        if (event.target == confirmCancelCustomModal) {
+            hideConfirmCancelCustomModal();
+        }
+        if (event.target == messageCustomModal) {
+            hideMessageCustomModal();
+        }
+    }
 
     // Obtenemos el costo unitario de la vianda y el saldo inicial del usuario
     const costoViandaUnitario = parseFloat($('#costoVianda').val());
@@ -657,26 +791,46 @@ $(document).ready(function() {
 
         // Manejar botón "Cancelar Orden"
         $('#cancelPendingPurchaseBtn').on('click', function() {
-            if (confirm('¿Estás seguro de que deseas cancelar esta orden? No podrás retomarla después.')) {
+         // Reemplazamos el confirm() del navegador con nuestro modal personalizado
+            showConfirmCancelCustomModal();
+
+            // Event listener para el botón "Sí, cancelar" del modal de confirmación personalizado
+            confirmCancelCustomBtn.onclick = function() {
+                hideConfirmCancelCustomModal(); // Oculta el modal de confirmación personalizado
+
                 $.ajax({
-                    url: '<?= base_url("comedor/pago/cancelar_compra_ajax"); ?>', // Revisa si esta URL también necesita el prefijo "comedor/"
+                    url: '<?= base_url("comedor/pago/cancelar_compra_ajax"); ?>',
                     type: 'POST',
                     data: { external_reference: pendingPurchaseDetails.external_reference },
                     dataType: 'json',
                     success: function(response) {
                         if (response.success) {
-                            alert(response.message);
-                            pendingPurchaseModal.hide();
-                            window.location.reload();
+                            // Reemplazamos el alert() de éxito con nuestro modal de mensajes personalizado
+                            showMessageCustomModal('¡Éxito!', response.message);
+                            // Cierra el modal de Bootstrap de compra pendiente original si está abierto
+                            if (pendingPurchaseModal) {
+                                pendingPurchaseModal.hide();
+                            }
+                            // Recargar la página después de que el usuario cierre el modal de mensaje personalizado
+                            messageModalCloseBtn.onclick = function() {
+                                hideMessageCustomModal();
+                                window.location.reload();
+                            };
+                            messageModalCloseSpan.onclick = function() {
+                                hideMessageCustomModal();
+                                window.location.reload();
+                            };
+
                         } else {
-                            alert('Error al cancelar: ' + response.message);
+                            // Reemplazamos el alert() de error con nuestro modal de mensajes personalizado
+                            showMessageCustomModal('Error al cancelar', response.message);
                         }
                     },
                     error: function() {
-                        alert('Error de comunicación con el servidor al intentar cancelar la compra.');
+                        showMessageCustomModal('Error de comunicación', 'Ocurrió un error al intentar cancelar la compra.');
                     }
                 });
-            }
+            };
         });
     <?php endif; ?>
 

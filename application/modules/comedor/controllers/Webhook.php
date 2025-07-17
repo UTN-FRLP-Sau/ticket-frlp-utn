@@ -11,6 +11,53 @@ class Webhook extends CI_Controller
         file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
     }
 
+    private function mapMercadoPagoStatusDetail($mp_code)
+    {
+        switch ($mp_code) {
+            // Rechazos de Tarjeta de Crédito/Débito
+            case 'cc_rejected_bad_filled_card_number':
+                return 'Número de tarjeta inválido o incorrecto.';
+            case 'cc_rejected_bad_filled_date':
+                return 'Fecha de vencimiento de la tarjeta inválida o incorrecta.';
+            case 'cc_rejected_bad_filled_security_code':
+                return 'Código de seguridad (CVV) de la tarjeta inválido o incorrecto.';
+            case 'cc_rejected_insufficient_amount':
+                return 'Fondos insuficientes en la tarjeta.';
+            case 'cc_rejected_other_reason':
+                return 'La tarjeta fue rechazada por otro motivo no especificado. Intenta con otra tarjeta o medio de pago.';
+            case 'cc_rejected_card_error':
+                return 'Error en el procesamiento de la tarjeta. Intenta con otra tarjeta o medio de pago.';
+            case 'cc_rejected_max_attempts':
+                return 'Se excedió el número máximo de intentos de pago permitidos con esta tarjeta.';
+            case 'cc_rejected_duplicated_payment':
+                return 'Este pago es un duplicado de una transacción reciente. Si ya realizaste el pago, ignora este mensaje.';
+            case 'cc_rejected_blacklist':
+                return 'Tu pago fue rechazado por motivos de seguridad o porque tu tarjeta está en una lista de bloqueo. Contacta a tu banco o a Mercado Pago para más información.';
+            case 'cc_rejected_call_for_authorize':
+                return 'El pago requiere autorización de tu banco. Contacta al emisor de tu tarjeta para autorizar el pago.';
+            case 'cc_rejected_high_risk':
+                return 'Tu pago fue rechazado por motivos de seguridad y prevención de fraude. Intenta con otro medio de pago.';
+            case 'cc_rejected_invalid_installments':
+                return 'La cantidad de cuotas seleccionada no es válida para esta tarjeta.';
+
+            // Expiración de Pagos en Efectivo/Cajero
+            case 'expired_by_date_cutoff':
+                return 'El plazo para realizar el pago en efectivo (Rapipago/Pago Fácil) ha expirado. Debes generar una nueva orden de compra.';
+
+            // Otros Rechazos Generales
+            case 'rejected_other_reason':
+                return 'El pago fue rechazado por un motivo desconocido. Por favor, inténtalo de nuevo o con otro medio de pago.';
+            case 'rejected_by_manual_review':
+                return 'Tu pago está en revisión. Te avisaremos cuando tengamos una resolución.'; // Puede que no sea un rechazo definitivo.
+            case 'rejected_by_insufficient_data':
+                return 'Tu pago fue rechazado por falta de datos. Intenta nuevamente y asegúrate de completar toda la información solicitada.';
+
+            // Valor por defecto si el código no está mapeado
+            default:
+                return 'Tu pago fue rechazado. Motivo: ' . $mp_code . '. Por favor, inténtalo de nuevo o contacta a soporte.';
+        }
+    }
+
     public function mercadopago()
     {
         $this->log_manual('Entré al webhook');
@@ -176,6 +223,7 @@ class Webhook extends CI_Controller
 
                             case 'rejected':
                             case 'cancelled':
+                            case 'expired_by_date_cutoff':
                                 $this->log_manual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). No se realizarán acciones de compra.');
                                 $this->processRejectedPayment($CI, $compra_pendiente, $payment_info);
                                 break;
@@ -355,6 +403,12 @@ class Webhook extends CI_Controller
             log_message('debug', 'WEBHOOK DEBUG: Valor de $id_usuario ANTES de obtener usuario: ' . $id_usuario);
             log_message('debug', 'WEBHOOK DEBUG: Valor de $id_transaccion ANTES de obtener compras para recibo: ' . $id_transaccion);
 
+            if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+                log_message('error', 'processApprovedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
+            }
+            log_message('debug', 'processApprovedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
+
+
             // --- Lógica de envío de email para compra exitosa ---
             $usuario = $CI->ticket_model->getUserById($id_usuario); 
             $compras_para_recibo = $CI->ticket_model->getlogComprasByIDTransaccion($id_transaccion); 
@@ -414,6 +468,11 @@ class Webhook extends CI_Controller
         log_message('debug', 'PAGO RECHAZADO: Compra pendiente ' . $external_reference . ' marcada como procesada.');
         $this->log_manual('PROCESANDO RECHAZO: external_reference: ' . $external_reference . ', status_detail: ' . $mp_status_detail);
 
+        if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+            log_message('error', 'processRejectedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
+        }
+        log_message('debug', 'processRejectedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
+
         $this->log_manual('Procediendo a enviar email.');
 
         $usuario = $CI->ticket_model->getUserById($compra_pendiente->id_usuario);
@@ -422,6 +481,10 @@ class Webhook extends CI_Controller
             // Obtengo los ítems de vianda asociados a esta compra pendiente
             $viandas_rechazadas = $CI->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
             log_message('debug', 'PAGO RECHAZADO: Viandas asociadas a la compra rechazada: ' . (empty($viandas_rechazadas) ? 'VACIO' : json_encode($viandas_rechazadas)));
+
+            $user_friendly_status_detail = $this->mapMercadoPagoStatusDetail($mp_status_detail);
+            log_message('debug', 'WEBHOOK: Motivo de rechazo mapeado: ' . $mp_status_detail . ' -> ' . $user_friendly_status_detail);
+
 
             $subject = "¡Pago Rechazado! - Tu compra #" . $external_reference;
             

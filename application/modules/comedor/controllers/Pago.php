@@ -82,19 +82,26 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://2639a97acb03.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
+        $notification_url = 'https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/webhook/mercadopago?source_news=webhooks';
         $back_urls = array(
-            "success" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://2639a97acb03.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_exitosa",
+            "failure" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_fallida",
+            "pending" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_pendiente",
         );
 
+        $documento = $this->session->userdata('documento');
+        $nombre = $this->session->userdata('nombre');
+        $apellido = $this->session->userdata('apellido');
+        log_message('debug', "DEBUG: nombre=$nombre, apellido=$apellido, documento=$documento");
         // Intenta generar la preferencia, que devolverá null si el saldo es suficiente
         $preferencia_info = $this->ticket_model->generarPreferenciaConSaldo(
             $external_reference,
             $access_token,
             $notification_url,
-            $back_urls
+            $back_urls,
+            $nombre,
+            $apellido,
+            $documento
         );
         log_message('debug', 'PAGO: Resultado de generarPreferenciaConSaldo: ' . ($preferencia_info === null ? 'NULL (Saldo suficiente)' : ($preferencia_info === false ? 'FALSE (Error)' : json_encode($preferencia_info))));
 
@@ -269,12 +276,18 @@ class Pago extends CI_Controller
         // Asumo que updateCompraPendienteEstado existe y actualiza el estado por ID
         $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'cancelled_by_user', 'Usuario canceló orden desde modal en el menú principal');
         log_message('debug', 'PAGO: Compra pendiente ' . $compra_pendiente->id . ' marcada como cancelada por usuario.');
-
+        
+        if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+            log_message('error', 'PAGO: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . ' después de la cancelación del usuario.');
+        
+        } else {
+            log_message('debug', 'PAGO: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado tras cancelación por usuario.');
+        }
 
         // --- Limpiar la external_reference de la sesión del usuario ---
         $this->session->unset_userdata('external_reference');
         $this->session->unset_userdata('error_compra');
 
-        echo json_encode(['success' => true, 'message' => 'Orden cancelada exitosamente. Ahora puedes seleccionar nuevas viandas.']);
+        echo json_encode(['success' => true, 'message' => 'Compra pendiente cancelada exitosamente. Ahora puedes seleccionar nuevas viandas.']);
     }
 }

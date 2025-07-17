@@ -65,7 +65,7 @@ class Ticket_model extends CI_Model
             return false;
         }
     }
-    public function generarPreferenciaConSaldo($external_reference, $access_token, $notification_url, $back_urls)
+    public function generarPreferenciaConSaldo($external_reference, $access_token, $notification_url, $back_urls, $nombre, $apellido, $documento)
     {
         /* Usado en:
         pago.php
@@ -91,16 +91,35 @@ class Ticket_model extends CI_Model
 
         // Crea item para la preferencia con el monto a pagar ajustado
         $item = new MercadoPago\Item();
-        $item->title = "Compra de menú universitario";
+        $item->title = "Compra de menú - $nombre $apellido - $documento";
+
         $item->quantity = 1;
         $item->unit_price = $monto_a_pagar;
+        $item->description = $nombre . $apellido . $documento;
 
         $preference = new MercadoPago\Preference();
         $preference->items = [$item];
+
         $preference->external_reference = $external_reference;
         $preference->back_urls = $back_urls;
         $preference->auto_return = "approved";
         $preference->notification_url = $notification_url;
+
+
+    /*
+        $preference->payment_methods = array(
+            "excluded_payment_types" => array(
+                array("id" => "ticket"),
+                array("id" => "atm")
+            ),
+            "excluded_payment_methods" => array(
+                array("id" => "amex"),    // Excluir American Express
+                array("id" => "naranja")  // Excluir Tarjeta Naranja
+            )
+        ); 
+    */
+
+
 
         // Envuelve el guardado en un try-catch para capturar excepciones
         try {
@@ -456,6 +475,12 @@ class Ticket_model extends CI_Model
             return null;
         }
     }
+
+    public function deleteCompraPendiente($compra_pendiente_id) {
+        $this->db->where('id', $compra_pendiente_id);
+        return $this->db->delete('compras_pendientes');
+    }
+
 
     public function setCompraPendienteProcesada($external_reference) {
         /* Usado en:
