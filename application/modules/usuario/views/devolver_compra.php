@@ -24,9 +24,9 @@
     <div class="row justify-content-center">
         <div class="col-12 col-lg-10">
             <div class="card shadow-lg border-0 mb-4">
-                <div class="card-header bg-primary text-white text-center py-3">
-                    <img src="<?= base_url('assets/img/utn.png'); ?>" class="img-fluid mx-auto d-block mb-2" style="max-height: 50px;" alt="UTN Logo">
-                    <h2 class="fw-bold mb-0">Ticket Web - Devolución de Viandas - UTN FRLP</h2>
+                <div id="card-titulo" class="card-header bg-primary text-white text-center py-3">
+                    <div><img class="header-logo img-fluid mx-auto d-block" src="<?= base_url('assets/img/utn.png'); ?>" alt="Logo UTN FRLP"></div>
+                    <div><h2 class="my-0 fw-bold">Ticket Web - Devolución de Viandas - UTN FRLP</h2></div>
                 </div>
                 <div class="card-body p-4">
                     <div class="alert alert-info d-flex align-items-center border-0" role="alert">
@@ -61,8 +61,7 @@
                                 <?php
                                     $idCollapse = 'collapse_' . str_replace('-', '_', $semana);
                                     $idHeading = 'heading_' . str_replace('-', '_', $semana);
-                                    $titulo = 'Semana del&nbsp;<strong>' . strtr($data['start'], $meses) . '</strong>&nbsp;al&nbsp;<strong>' . strtr($data['end'], $meses) . '</strong>';
-
+                                    $titulo = '<span class="d-none d-md-inline">Semana del&nbsp;</span><strong>' . strtr($data['start'], $meses) . '</strong>&nbsp;al&nbsp;<strong>' . strtr($data['end'], $meses) . '</strong>';
                                 ?>
                                 <div class="accordion-item mb-3 border">
                                     <h2 class="accordion-header" id="<?= $idHeading ?>">
