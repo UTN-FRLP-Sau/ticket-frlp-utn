@@ -11,52 +11,96 @@ class Webhook extends CI_Controller
         file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
     }
 
-    private function mapMercadoPagoStatusDetail($mp_code)
-    {
-        switch ($mp_code) {
-            // Rechazos de Tarjeta de Crédito/Débito
-            case 'cc_rejected_bad_filled_card_number':
-                return 'Número de tarjeta inválido o incorrecto.';
-            case 'cc_rejected_bad_filled_date':
-                return 'Fecha de vencimiento de la tarjeta inválida o incorrecta.';
-            case 'cc_rejected_bad_filled_security_code':
-                return 'Código de seguridad (CVV) de la tarjeta inválido o incorrecto.';
-            case 'cc_rejected_insufficient_amount':
-                return 'Fondos insuficientes en la tarjeta.';
-            case 'cc_rejected_other_reason':
-                return 'La tarjeta fue rechazada por otro motivo no especificado. Intenta con otra tarjeta o medio de pago.';
-            case 'cc_rejected_card_error':
-                return 'Error en el procesamiento de la tarjeta. Intenta con otra tarjeta o medio de pago.';
-            case 'cc_rejected_max_attempts':
-                return 'Se excedió el número máximo de intentos de pago permitidos con esta tarjeta.';
-            case 'cc_rejected_duplicated_payment':
-                return 'Este pago es un duplicado de una transacción reciente. Si ya realizaste el pago, ignora este mensaje.';
-            case 'cc_rejected_blacklist':
-                return 'Tu pago fue rechazado por motivos de seguridad o porque tu tarjeta está en una lista de bloqueo. Contacta a tu banco o a Mercado Pago para más información.';
-            case 'cc_rejected_call_for_authorize':
-                return 'El pago requiere autorización de tu banco. Contacta al emisor de tu tarjeta para autorizar el pago.';
-            case 'cc_rejected_high_risk':
-                return 'Tu pago fue rechazado por motivos de seguridad y prevención de fraude. Intenta con otro medio de pago.';
-            case 'cc_rejected_invalid_installments':
-                return 'La cantidad de cuotas seleccionada no es válida para esta tarjeta.';
+private function mapMercadoPagoStatusDetail($mp_code)
+{
+    switch ($mp_code) {
+        // --- Pagos Acreditados / Aprobados ---
+        case 'accredited':
+            return '¡Listo! Se acreditó tu pago.';
+        case 'partially_refunded': // Del 'approvedpartially_refunded'
+            return 'El pago se realizó con al menos un reembolso parcial.';
 
-            // Expiración de Pagos en Efectivo/Cajero
-            case 'expired_by_date_cutoff':
-                return 'El plazo para realizar el pago en efectivo (Rapipago/Pago Fácil) ha expirado. Debes generar una nueva orden de compra.';
+        // --- Pagos Autorizados (pendientes de captura) ---
+        case 'pending_capture': // Del 'authorizedpending_capture'
+            return 'El pago fue autorizado y está a la espera de ser capturado.';
 
-            // Otros Rechazos Generales
-            case 'rejected_other_reason':
-                return 'El pago fue rechazado por un motivo desconocido. Por favor, inténtalo de nuevo o con otro medio de pago.';
-            case 'rejected_by_manual_review':
-                return 'Tu pago está en revisión. Te avisaremos cuando tengamos una resolución.'; // Puede que no sea un rechazo definitivo.
-            case 'rejected_by_insufficient_data':
-                return 'Tu pago fue rechazado por falta de datos. Intenta nuevamente y asegúrate de completar toda la información solicitada.';
+        // --- Pagos En Proceso ---
+        case 'offline_process': // Del 'in_processoffline_process'
+            return 'Por una falta de procesamiento online, el pago está siendo procesado de manera offline.';
+        case 'pending_contingency': // Del 'in_processpending_contingency'
+            return 'Estamos procesando tu pago. No te preocupes, en menos de 2 días hábiles te avisaremos por e-mail si se acreditó.';
+        case 'pending_review_manual': // Del 'in_processpending_review_manual'
+            return 'Estamos procesando tu pago. No te preocupes, en menos de 2 días hábiles te avisaremos por e-mail si se acreditó o si necesitamos más información.';
 
-            // Valor por defecto si el código no está mapeado
-            default:
-                return 'Tu pago fue rechazado. Motivo: ' . $mp_code . '. Por favor, inténtalo de nuevo o contacta a soporte.';
-        }
+        // --- Pagos Pendientes ---
+        case 'pending_waiting_transfer': // Del 'pendingpending_waiting_transfer'
+            return 'Para los casos de transferencia bancaria, el pago está esperando que el usuario termine el proceso en su banco.';
+        case 'pending_waiting_payment': // Del 'pendingpending_waiting_payment'
+            return 'Para los casos de pagos offline, el pago queda pendiente hasta que el usuario lo realice.';
+        case 'pending_challenge': // Del 'pendingpending_challenge'
+            return 'Para los casos de pagos con tarjeta de crédito, hay una confirmación pendiente a causa de un challenge.';
+
+        // --- Pagos Rechazados ---
+        // Errores de Banco / Generales
+        case 'bank_error': // Del 'rejectedbank_error'
+            return 'El pago fue rechazado por un error con el banco.';
+        case 'rejected_by_bank': // Del 'rejectedrejected_by_bank' (ya lo tenías)
+            return 'Operación rechazada por el banco.';
+        case 'rejected_by_regulations': // Del 'rejectedrejected_by_regulations'
+            return 'Pago rechazado por regulaciones.';
+        case 'insufficient_amount': // Del 'rejectedinsufficient_amount' (general, no solo tarjeta)
+            return 'Pago rechazado por montos insuficientes.';
+        case 'rejected_insufficient_data': // Del 'rejectedrejected_insufficient_data' (ya lo tenías)
+            return 'El pago fue rechazado debido a falta de toda la información obligatoria requerida.';
+        case 'rejected_other_reason': // Del 'rejectedcc_rejected_other_reason' o 'rejected_other_reason' (ya lo tenías)
+            return 'El pago fue rechazado por un motivo desconocido. Por favor, inténtalo de nuevo o con otro medio de pago.';
+        
+        // Rechazos Específicos de Tarjeta
+        case 'cc_rejected_3ds_mandatory': // Del 'rejectedcc_rejected_3ds_mandatory'
+            return 'Pago rechazado por no tener el challenge 3DS cuando es obligatorio.';
+        case 'cc_rejected_bad_filled_card_number': // Del 'rejectedcc_rejected_bad_filled_card_number' (ya lo tenías)
+            return 'Revisa el número de tarjeta.';
+        case 'cc_rejected_bad_filled_date': // Del 'rejectedcc_rejected_bad_filled_date' (ya lo tenías)
+            return 'Revisa la fecha de vencimiento.';
+        case 'cc_rejected_bad_filled_other': // Del 'rejectedcc_rejected_bad_filled_other'
+            return 'Revisa los datos.';
+        case 'cc_rejected_bad_filled_security_code': // Del 'rejectedcc_rejected_bad_filled_security_code' (ya lo tenías)
+            return 'Revisa el código de seguridad de la tarjeta.';
+        case 'cc_rejected_blacklist': // Del 'rejectedcc_rejected_blacklist' (ya lo tenías)
+            return 'No pudimos procesar tu pago.';
+        case 'cc_rejected_call_for_authorize': // Del 'rejectedcc_rejected_call_for_authorize' (ya lo tenías)
+            return 'Debes autorizar ante el medio de pago el pago de este monto.'; // Adapté el mensaje
+        case 'cc_rejected_card_disabled': // Del 'rejectedcc_rejected_card_disabled'
+            return 'Llama al emisor de tu tarjeta para activarla o usa otro medio de pago. El teléfono está al dorso de tu tarjeta.';
+        case 'cc_rejected_card_error': // Del 'rejectedcc_rejected_card_error' (ya lo tenías)
+            return 'No pudimos procesar tu pago.';
+        case 'cc_rejected_duplicated_payment': // Del 'rejectedcc_rejected_duplicated_payment' (ya lo tenías)
+            return 'Ya hiciste un pago por ese valor. Si necesitas volver a pagar usa otra tarjeta u otro medio de pago.';
+        case 'cc_rejected_high_risk': // Del 'rejectedcc_rejected_high_risk' (ya lo tenías)
+            return 'Tu pago fue rechazado. Elige otro de los medios de pago, te recomendamos con medios en efectivo.';
+        case 'cc_rejected_insufficient_amount': // Del 'rejectedcc_rejected_insufficient_amount' (ya lo tenías)
+            return 'Tu tarjeta no tiene fondos suficientes.'; // Adapté el mensaje
+        case 'cc_rejected_invalid_installments': // Del 'rejectedcc_rejected_invalid_installments' (ya lo tenías)
+            return 'El medio de pago no procesa pagos en cuotas/meses.'; // Adapté el mensaje
+        case 'cc_rejected_max_attempts': // Del 'rejectedcc_rejected_max_attempts' (ya lo tenías)
+            return 'Llegaste al límite de intentos permitidos. Elige otra tarjeta u otro medio de pago.';
+        case 'cc_amount_rate_limit_exceeded': // Del 'rejectedcc_amount_rate_limit_exceeded'
+            return 'El pago fue rechazado porque superó el límite (Capacidad Máxima Permitida) del medio de pago.';
+
+        // Expiración de Pagos en Efectivo/Cajero (ya lo tenías)
+        case 'expired_by_date_cutoff':
+            return 'El plazo para realizar el pago en efectivo ha expirado. Debes generar una nueva orden de compra.';
+
+        // Revisión Manual (ya lo tenías, pero el original era rejected)
+        case 'rejected_by_manual_review':
+            return 'Tu pago está en revisión. Te avisaremos cuando tengamos una resolución.';
+
+
+        // Valor por defecto si el código no está mapeado
+        default:
+            return ' Desconocido' . $mp_code;
     }
+}
 
     public function mercadopago()
     {
