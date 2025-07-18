@@ -82,11 +82,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/webhook/mercadopago?source_news=webhooks';
+        $notification_url = 'https://e8ccfd99bc46.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
         $back_urls = array(
-            "success" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_exitosa",
-            "failure" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_fallida",
-            "pending" => "https://6501fe9712e7.ngrok-free.app/ticket-frlp-utn/comedor/pago/compra_pendiente",
+            "success" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         $documento = $this->session->userdata('documento');
@@ -112,6 +112,9 @@ class Pago extends CI_Controller
 
             // Llama a procesarCompraConSaldo
             $procesado_con_saldo = $this->ticket_model->procesarCompraConSaldo($compra, (float)$compra->total);
+
+            // una vez generada la compra borro la compra pendiente
+            $this->ticket_model->deleteCompraPendiente($compra->id);
 
             if ($procesado_con_saldo) {
                 log_message('info', 'PAGO: Compra procesada exitosamente con saldo. Redirigiendo a compra_exitosa.');
