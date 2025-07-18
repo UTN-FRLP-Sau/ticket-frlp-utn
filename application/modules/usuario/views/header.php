@@ -140,9 +140,4 @@
         </div>
     </div>
 </nav>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYFf7tbtKMTa7r4x1Y5nIhG8Y8F9aRpD8dWxNyv3"
-        crossorigin="anonymous"></script>
-</body>
 </html>
