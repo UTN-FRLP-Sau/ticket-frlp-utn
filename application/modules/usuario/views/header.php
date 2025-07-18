@@ -33,6 +33,7 @@
           text-transform: capitalize;
           transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out;
           color: #ffffff !important;
+          text-decoration: none !important;
       }
       .nav-link.dropdown-toggle {
             display: flex !important;
