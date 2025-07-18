@@ -38,14 +38,10 @@ class Pago extends CI_Controller
 
         // --- INICIO DE LA REVALIDACIÓN DE FECHAS DE VIANDAS AL RETOMAR PAGO ---
         $viandas_en_compra = $this->ticket_model->getViandasCompraPendiente($compra->id);
-        // La configuración ya no se pasa como parámetro porque es obtenida dentro del modelo Ticket_model.php
 
         $hayViandaInvalida = false;
         if (is_array($viandas_en_compra)) { // Asegurarse de que $viandas_en_compra sea un array
             foreach ($viandas_en_compra as $vianda) {
-                // Se llama a la función desde el ticket_model
-                // Asegúrate de que 'fecha_vianda' sea la clave correcta en el array $vianda
-                // Si en tu JSON de 'datos' es 'dia_comprado', usa $vianda['dia_comprado']
                 if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) { // Usar 'dia_comprado' si es la clave en el JSON
                     $hayViandaInvalida = true;
                     log_message('warning', 'PAGO: Vianda ' . $vianda['dia_comprado'] . ' de la compra ' . $external_reference . ' no es válida en el momento del pago.');
@@ -54,15 +50,14 @@ class Pago extends CI_Controller
             }
         } else {
             log_message('error', 'PAGO: getViandasCompraPendiente no devolvió un array para compra ID: ' . $compra->id);
-            // Considerar manejar este caso como un error de validación también
             $hayViandaInvalida = true;
         }
 
 
         if ($hayViandaInvalida) {
-            // Marcar la compra como expirada/cancelada debido a la revalidación de fechas
+            // Marca la compra como expirada/cancelada debido a la revalidación de fechas
             $this->ticket_model->updateCompraPendienteEstado($compra->id, 'expired_by_date_cutoff', 'Compra expirada por revalidación de fecha en el momento del pago.');
-            $this->session->unset_userdata('external_reference'); // Limpiar la referencia de sesión
+            $this->session->unset_userdata('external_reference');
 
 
             $this->session->set_flashdata('error_message', 'Tu compra pendiente no pudo ser completada. Algunas viandas ya no pueden ser compradas debido a que sus plazos de pedido han expirado. Por favor, inicia una nueva compra.');
@@ -73,7 +68,7 @@ class Pago extends CI_Controller
         // --- FIN DE LA REVALIDACIÓN DE FECHAS DE VIANDAS ---
 
 
-        // Actualizar estado a 'pasarela' si aún no ha sido procesada ---
+        // Actualiza estado a 'pasarela' si aún no ha sido procesada ---
         // Esto marca que la orden ya entró en el flujo de Mercado Pago desde nuestro lado
         // Se considera 'null' o cadena vacía como el estado inicial antes de ir a MP
         if ($compra->mp_estado === null || $compra->mp_estado === '') {
@@ -193,9 +188,8 @@ class Pago extends CI_Controller
             log_message('debug', 'PAGO: Flashdata "send_balance_purchase_email" detectado. Preparando envío de correo para compra con saldo.');
 
             if ($usuario && $compras) {
-                // Genera el HTML del correo
+                // HTML del correo
                 $dataEmail['compras'] = $compras;
-                // Usa el total de la transacción, que debería ser el total final de la compra
                 $dataEmail['total'] = $transaccion_data->monto; 
                 $dataEmail['total'] = abs($transaccion_data->monto); 
                 
@@ -275,8 +269,7 @@ class Pago extends CI_Controller
             return;
         }
 
-        // --- Actualizar estado a 'cancelled_by_user' (RECOMENDADO sobre borrar) ---
-        // Asumo que updateCompraPendienteEstado existe y actualiza el estado por ID
+        // --- Actualiza estado a 'cancelled_by_user' ---
         $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'cancelled_by_user', 'Usuario canceló orden desde modal en el menú principal');
         log_message('debug', 'PAGO: Compra pendiente ' . $compra_pendiente->id . ' marcada como cancelada por usuario.');
         

@@ -769,7 +769,7 @@ $(document).ready(function() {
             // Icono para el turno (depende si es Mediodía o Noche)
             const turnoIcon = (vianda.turno === 'manana') ? '<i class="bi bi-sun-fill text-warning me-2"></i>' : (vianda.turno === 'noche' ? '<i class="bi bi-moon-fill text-info me-2"></i>' : '');
 
-            // Construir el HTML de cada vianda con los nuevos estilos e iconos
+            // HTML de cada vianda
             viandasList.append(`
                 <li class="list-group-item d-flex align-items-center py-3 px-3">
                     <div class="flex-grow-1">
@@ -821,7 +821,7 @@ $(document).ready(function() {
                     dataType: 'json',
                     success: function(response) {
                         if (response.success) {
-                            // Reemplazamos el alert() de éxito con nuestro modal de mensajes personalizado
+                            // Muestro modal
                             showMessageCustomModal('¡Éxito!', response.message);
                             // Cierra el modal de Bootstrap de compra pendiente original si está abierto
                             if (pendingPurchaseModal) {
@@ -838,7 +838,6 @@ $(document).ready(function() {
                             };
 
                         } else {
-                            // Reemplazamos el alert() de error con nuestro modal de mensajes personalizado
                             showMessageCustomModal('Error al cancelar', response.message);
                         }
                     },
@@ -851,7 +850,6 @@ $(document).ready(function() {
     <?php endif; ?>
 
     $('#btnAbrirModalRetomarPago').on('click', function() {
-        // Usá la API de Bootstrap para abrir el modal
         var modal = document.getElementById('pendingPurchaseModal');
         if (modal) {
             var instance = bootstrap.Modal.getOrCreateInstance(modal);

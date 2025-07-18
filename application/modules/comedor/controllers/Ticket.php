@@ -74,10 +74,11 @@ class Ticket extends CI_Controller
         // Limpiar los datos de sesión de error_compra inicialmente, se establecerán más tarde si es necesario
         $this->session->unset_userdata('error_compra');
 
-            // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
+        // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
         $pendingPurchasesByDateMeal = [];
         $validPendingPurchaseExists = false; // Bandera para rastrear si existe alguna compra pendiente *válida*
         foreach ($pendingPurchases as $purchase) {
+            
             $date = $purchase['dia_comprado'];
             $turno = $purchase['turno'];
             $mp_estado = $purchase['mp_estado']; // Captura el estado real de la compra pendiente
@@ -94,8 +95,9 @@ class Ticket extends CI_Controller
                     $validPendingPurchaseExists = true;
                 } else {
                     // Si la fecha de la vianda no es válida, actualiza el estado de la compra en la DB a 'expired_by_date_cutoff'
-                    $this->ticket_model->updateCompraPendienteEstado($purchase['id'], 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar el menú principal');
-                    log_message('warning', 'TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
+                    $this->ticket_model->updateCompraPendienteEstado($purchase['id'], 'expired_by_date_cutoff');
+                    log_message('debug', 'TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
+                    $this->ticket_model->deleteCompraPendiente($purchase['id']);
                 }
             }
     
@@ -569,7 +571,7 @@ class Ticket extends CI_Controller
         }
         $start_date = $start_date_dt->format('Y-m-d');
 
-        // 2. Calcula la fecha del viernes de la cuarta semana a partir del lunes de la semana actual
+        // 2. Calcula la fecha del viernes de la quinta semana a partir del lunes de la semana actual
         // (Esto define el límite superior de tu ventana de 5 semanas para mostrar viandas)
         $endOfFourthWeek = clone $mondayOfCurrentWeek;
         $endOfFourthWeek->modify('+4 weeks'); // Avanza al lunes de la 5ª semana (semana 0, 1, 2, 3)
@@ -585,7 +587,7 @@ class Ticket extends CI_Controller
 
         log_message('debug', 'DevolverCompra: Rango de fechas para devoluciones: ' . $start_date . ' a ' . $end_date);
 
-        /* // --- INICIO DE DEPURACIÓN (Reubicado para tener todas las variables definidas) ---
+        /* // --- INICIO DE DEPURACIÓN ---
         error_log("--- DEBUG DEVOLVER COMPRA ---");
         error_log("currentDateTime: " . $currentDateTime->format('Y-m-d H:i:s'));
         error_log("currentDayOfWeek: " . $currentDayOfWeek . " (1=Lunes, 5=Viernes, etc.)");
@@ -620,7 +622,7 @@ class Ticket extends CI_Controller
         log_message('debug', 'Número de compras obtenidas (antes de filtrar): ' . count($data['compras']));
 
 
-        // Filtrar compras para excluir feriados, receso invernal o días pasados
+        // Filtra compras para excluir feriados, receso invernal o días pasados
         $compras_filtradas = [];
         $feriados_fechas_cache = array_column($this->ticket_model->getFeriadosInRange($start_date, $end_date), 'fecha');
         log_message('debug', 'Feriados en rango: ' . json_encode($feriados_fechas_cache));
@@ -667,7 +669,7 @@ class Ticket extends CI_Controller
                         $es_feriado_post = in_array($compra->dia_comprado, $feriados_fechas_cache);
                         $es_pasado_post = ($compra_date < $currentDate);
 
-                        // Asegurarse de que la vianda esté dentro del rango de devolución permitido
+                        // Aseguro que la vianda esté dentro del rango de devolución permitido
                         // y no sea un feriado/receso/pasado.
                         if ($compra->dia_comprado >= $start_date && $compra->dia_comprado <= $end_date &&
                             !$es_receso_invernal_post && !$es_feriado_post && !$es_pasado_post) {
@@ -734,7 +736,7 @@ class Ticket extends CI_Controller
                     
                     // --- INICIO: Lógica para enviar el correo de recibo de devolución ---
                     $this->session->set_flashdata('success', 'Se han devuelto ' . $n_devolucion . ' vianda(s) exitosamente. Tu saldo ha sido actualizado.');
-                    $dataRecivo['compras'] = $compras_devueltas_para_recibo; // Usar las compras que realmente se devolvieron
+                    $dataRecivo['compras'] = $compras_devueltas_para_recibo;
                     $dataRecivo['total'] = $monto_total_devolucion;
                     $dataRecivo['fechaHoy'] = date('d/m/Y', time());
                     $dataRecivo['horaAhora'] = date('H:i:s', time());
@@ -750,7 +752,7 @@ class Ticket extends CI_Controller
                     }
                     // --- FIN: Lógica para enviar el correo de recibo de devolución ---
 
-                    redirect(base_url('usuario/devolver_compra')); // Redirige directamente a la página de devoluciones
+                    redirect(base_url('usuario/devolver_compra')); // Redirige a la página de devoluciones
                 } else {
                     log_message('info', 'DevolverCompra: No se pudo devolver ninguna compra o no se seleccionaron viandas válidas.');
                     $this->session->set_flashdata('info', 'No se pudieron devolver las viandas seleccionadas o no seleccionaste ninguna vianda válida para devolver.');

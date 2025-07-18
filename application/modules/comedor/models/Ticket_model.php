@@ -463,7 +463,6 @@ class Ticket_model extends CI_Model
         $this->db->where('external_reference', $external_reference);
         $query = $this->db->get('compras_pendientes');
 
-        // **AÑADE ESTAS LÍNEAS DE LOG**
         log_message('debug', 'TICKET_MODEL: getCompraPendiente - SQL Query: ' . $this->db->last_query());
         log_message('debug', 'TICKET_MODEL: getCompraPendiente - Número de filas encontradas: ' . $query->num_rows());
 
@@ -518,6 +517,7 @@ class Ticket_model extends CI_Model
                     $date_field = isset($vianda['dia_comprado']) ? 'dia_comprado' : 'fecha';
                     if (isset($vianda[$date_field]) && isset($vianda['turno'])) {
                         $result_data[] = [
+                            'id' => $row->id,
                             'dia_comprado' => $vianda[$date_field],
                             'turno' => $vianda['turno'],
                             'menu' => $vianda['menu'] ?? null,
@@ -611,10 +611,9 @@ class Ticket_model extends CI_Model
 
 public function esFechaViandaAunOrdenable(string $fechaViandaStr)
     {
-        // Obtener la configuración dentro del modelo
         $configuracion = $this->getConfiguracion();
 
-        // Asegurarse de que $configuracion sea un array o un objeto válido
+        // Asegura de que $configuracion sea un array o un objeto válido
         if (is_array($configuracion) && isset($configuracion[0])) {
             $config = $configuracion[0];
         } elseif (is_object($configuracion)) {
@@ -637,7 +636,6 @@ public function esFechaViandaAunOrdenable(string $fechaViandaStr)
             }
 
             // 2. **Verificar períodos generales de operación del comedor (apertura/cierre, vacaciones).**
-            // Se asume que $config tiene las propiedades apertura, vacaciones_i, vacaciones_f, cierre
             $apertura = new DateTime($config->apertura);
             $vaca_ini = new DateTime($config->vacaciones_i);
             $vaca_fin = new DateTime($config->vacaciones_f);
