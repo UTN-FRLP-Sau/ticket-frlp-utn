@@ -74,19 +74,21 @@ class Ticket extends CI_Controller
         // Limpiar los datos de sesión de error_compra inicialmente, se establecerán más tarde si es necesario
         $this->session->unset_userdata('error_compra');
 
-        // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
+            // 2. Organizar las compras pendientes para una búsqueda rápida por fecha y turno
         $pendingPurchasesByDateMeal = [];
         $validPendingPurchaseExists = false; // Bandera para rastrear si existe alguna compra pendiente *válida*
         foreach ($pendingPurchases as $purchase) {
             $date = $purchase['dia_comprado'];
             $turno = $purchase['turno'];
+            $mp_estado = $purchase['mp_estado']; // Captura el estado real de la compra pendiente
 
-            // Verificar si la compra está en estado 'pasarela' y si la fecha de la vianda sigue siendo válida
-            if ($purchase['mp_estado'] === 'pasarela') {
+        
+            // Esto incluye 'pasarela' (inicio de checkout), 'pending' (en revisión por MP), 'in_process' (procesando).
+            if (in_array($mp_estado, ['pasarela', 'pending'])) {
                 // Verificar si la fecha de la vianda es aún ordenable
-                if ($this->ticket_model->esFechaViandaAunOrdenable($date)) { // Llama a la función de validación
+                if ($this->ticket_model->esFechaViandaAunOrdenable($date)) {
                     $pendingPurchasesByDateMeal[$date][$turno] = [
-                        'mp_estado' => $purchase['mp_estado'],
+                        'mp_estado' => $mp_estado,
                         'menu' => $purchase['menu']
                     ];
                     $validPendingPurchaseExists = true;
@@ -96,6 +98,7 @@ class Ticket extends CI_Controller
                     log_message('warning', 'TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
                 }
             }
+    
         }
 
         if (!$validPendingPurchaseExists) {

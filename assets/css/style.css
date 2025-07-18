@@ -64,7 +64,10 @@ body {
 }
 .badge.bg-warning{
     margin-top: 0.2rem;
+    pointer-events: auto !important;
+    cursor: help;
 }
+
 /* Alert Messages */
 .alert {
     border-radius: 8px;
@@ -94,8 +97,21 @@ body {
 }
 
 /* Specific Badge/Label Styles for Day Cards */
+.badge-multiline {
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
 .badge-purchased {
     background-color: #198754 !important;
+}
+
+.badge-esperando-acreditacion{
+    background-color: #e4bd10;
+    color: #000000 !important;
+    pointer-events: auto !important;
+    cursor: help;
 }
 
 .badge-holiday {

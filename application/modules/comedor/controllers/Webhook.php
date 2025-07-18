@@ -275,6 +275,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                             case 'pending':
                             case 'in_process':
                                 $this->log_manual('PAGO PENDIENTE/EN PROCESO: Notificación para compra pendiente ' . $compra_pendiente->id . '. Estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). Se espera confirmación futura.');
+                                $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id,'pending');
                                 $this->session->unset_userdata('external_reference');
                                 break;
 

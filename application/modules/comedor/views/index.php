@@ -154,11 +154,20 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                     <?php if ($comprado_mediodia): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
                                                                             <?php if (isset($dayData['mp_estado_mediodia']) && $dayData['mp_estado_mediodia'] === 'pasarela'): ?>
-                                                                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_mediodia_menu']); ?></span>
+                                                                                <span class="badge bg-warning text-dark badge-multiline" title="Pago sin completar que requiere una acción">
+                                                                                    <i class="bi bi-hourglass-split me-1"></i>
+                                                                                    Pago Pendiente: <?= htmlspecialchars($dayData['comprado_mediodia_menu']); ?>
+                                                                                </span>
                                                                             <?php elseif (isset($dayData['mp_estado_mediodia']) && $dayData['mp_estado_mediodia'] === 'pending'): ?>
-                                                                                <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Esperando Acreditacion</span>
+                                                                                <span class="badge badge-esperando-acreditacion badge-multiline" title="Te notificaremos por correo electrónico cuando el pago se apruebe o se rechace.">
+                                                                                    <i class="bi bi-arrow-repeat me-1"></i>
+                                                                                    Esperando Acreditación: <?= htmlspecialchars($dayData['comprado_mediodia_menu']); ?>
+                                                                                </span>
                                                                             <?php else: ?>
-                                                                                <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($dayData['comprado_mediodia_menu']) ?></span>
+                                                                                <span class="badge badge-purchased">
+                                                                                    <i class="bi bi-check-circle me-1"></i>
+                                                                                    Comprado: <?= htmlspecialchars($dayData['comprado_mediodia_menu']) ?>
+                                                                                </span>
                                                                             <?php endif; ?>
                                                                         </div>
                                                                     <?php endif; ?>
@@ -188,14 +197,24 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                                                     <?php if ($comprado_noche): ?>
                                                                         <div class="d-flex justify-content-end mt-1">
                                                                             <?php if (isset($dayData['mp_estado_noche']) && $dayData['mp_estado_noche'] === 'pasarela'): ?>
-                                                                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pago Pendiente: <?= htmlspecialchars($dayData['comprado_noche_menu']); ?></span>
+                                                                                <span class="badge bg-warning text-dark badge-multiline" title="Pago sin completar que requiere una acción">
+                                                                                    <i class="bi bi-hourglass-split me-1"></i>
+                                                                                    Pago Pendiente: <?= htmlspecialchars($dayData['comprado_noche_menu']); ?>
+                                                                                </span>
                                                                             <?php elseif (isset($dayData['mp_estado_noche']) && $dayData['mp_estado_noche'] === 'pending'): ?>
-                                                                                <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Esperando Acreditacion</span>
+                                                                                <span class="badge badge-esperando-acreditacion badge-multiline" title="Te notificaremos por correo electrónico cuando el pago se apruebe o se rechace.">
+                                                                                    <i class="bi bi-arrow-repeat me-1"></i>
+                                                                                    Esperando Acreditación: <?= htmlspecialchars($dayData['comprado_noche_menu']); ?>
+                                                                                </span>
                                                                             <?php else: ?>
-                                                                                <span class="badge badge-purchased"><i class="bi bi-check-circle me-1"></i>Comprado: <?= htmlspecialchars($dayData['comprado_noche_menu']) ?></span>
+                                                                                <span class="badge badge-purchased">
+                                                                                    <i class="bi bi-check-circle me-1"></i>
+                                                                                    Comprado: <?= htmlspecialchars($dayData['comprado_noche_menu']) ?>
+                                                                                </span>
                                                                             <?php endif; ?>
                                                                         </div>
                                                                     <?php endif; ?>
+
                                                                     <div class="vianda-options mt-2">
                                                                         <select class="form-select form-select-sm meal-select"
                                                                                 id="select<?= $dayData['date_ymd'] ?>Noche"
@@ -452,9 +471,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 <script>
 $(document).ready(function() {
-    // Aquí puedes añadir una verificación simple para asegurar que jQuery está listo
-    console.log('jQuery está cargado:', typeof $ !== 'undefined' ? 'Sí' : 'No');
-    console.log('Objeto Bootstrap está cargado:', typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined' ? 'Sí' : 'No');
 
     const confirmCancelCustomModal = document.getElementById('confirmCancelModal');
     const confirmCancelCustomBtn = document.getElementById('confirmCancelBtn'); // Botón 'Sí, cancelar' dentro del modal de confirmación
@@ -710,12 +726,12 @@ $(document).ready(function() {
         }
         actualizarTotal(); // Actualiza el total al resetear
     });
-    // Debug: valores de PHP en la consola JS
+    /* Debug: valores de PHP en la consola JS
     console.log('--- Depuración de Variables PHP para Modal Pendiente ---');
-    console.log('Valor de $show_pending_purchase_modal:', <?php echo isset($show_pending_purchase_modal) ? json_encode($show_pending_purchase_modal) : 'undefined'; ?>);
-    console.log('Valor de $pending_purchase_details:', <?php echo isset($pending_purchase_details) ? json_encode($pending_purchase_details) : 'undefined'; ?>);
+    console.log('Valor de $show_pending_purchase_modal:',<?//php echo isset($show_pending_purchase_modal) ? json_encode($show_pending_purchase_modal) : 'undefined'; ?>);
+    console.log('Valor de $pending_purchase_details:', <?//php echo isset($pending_purchase_details) ? json_encode($pending_purchase_details) : 'undefined'; ?>);
     console.log('--- Fin Depuración ---');
-
+    */
     // --- Lógica para mostrar el modal de compra pendiente ---
     <?php if (isset($show_pending_purchase_modal) && $show_pending_purchase_modal && !empty($pending_purchase_details)): ?>
     const pendingPurchaseDetails = <?php echo json_encode($pending_purchase_details); ?>;
