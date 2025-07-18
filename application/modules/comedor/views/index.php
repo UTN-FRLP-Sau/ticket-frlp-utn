@@ -666,7 +666,7 @@ $(document).ready(function() {
         $('#modalSaldoAplicado').text('$' + saldoUsuario.toFixed(2));
 
         // Se actualiza directamente el span con el valor final
-        $('#modalPagar').html('Total a pagar: <span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');
+        $('#modalPagar').html('<span id="modalFinalPagarValor">$' + totalAPagarModal.toFixed(2) + '</span>');
 
         // Aplica color al total a pagar en el modal
         if (totalAPagarModal > 0) {
