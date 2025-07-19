@@ -37,7 +37,7 @@ class Login extends CI_Controller
                 redirect(base_url('login'));
             }
             // Si existe el usuario, verificamos que se encuentre activo
-            elseif ($usuario->estado != 0 && $usuario->estado != 2) {
+            elseif ($usuario->estado != 1 && $usuario->estado != 2) {
                 $this->session->set_flashdata('error', 'El usuario relacionado a ese documento no se encuentra activo');
                 redirect(base_url('login'));
             }
