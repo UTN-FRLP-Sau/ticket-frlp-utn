@@ -6,7 +6,7 @@
     <title>Pago Rechazado</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { width: 80%; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        .container { width: 100%; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
         .header { background-color: #f44336; color: white; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { padding: 20px; }
         .footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -31,7 +31,7 @@
             </p>
 
             <?php if (!empty($viandas)): ?>
-                <h3>Detalle de la Compra Pendiente:</h3>
+                <h3>Detalle de la Compra Rechazada:</h3>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -63,7 +63,9 @@
             <p>Si tenés alguna pregunta, no dudes en contactarnos.</p>
         </div>
         <div class="footer">
-            </div>
+            <p>Saludos,</p>
+            <p>El equipo de la SAU - UTN FRLP</p>
+        </div>
     </div>
 </body>
 </html>
