@@ -129,6 +129,10 @@ body {
     color: #ffffff !important;
 }
 
+.saldo-titulo {
+    background-color: #e5e5e5 !important;
+}
+
 /* Estilos para el contenedor del carrusel de días */
 .days-carousel-container {
     display: flex;
