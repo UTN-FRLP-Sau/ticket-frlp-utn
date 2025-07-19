@@ -174,6 +174,7 @@
         overflow-x: auto;
         gap: 1rem;
         padding-bottom: 1rem;
+        padding-top: 0.4rem;
     }
     .form-check-input:checked {
         background-color: #212529;
@@ -194,11 +195,14 @@
         padding: 0.75rem 1rem;
     }
     .accordion-body {
-        padding: 1rem 0 1rem 0.5rem;
+        padding-top: 0.5rem;
+        padding-bottom: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .summary-card {
-        border: 1px solid rgb(167, 40, 40) !important;
+        border: 1px solid #7171716b !important;
     }
 </style>
 

@@ -108,7 +108,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                     </h2>
                                     <div id="<?= $collapseId ?>" class="accordion-collapse collapse <?= $isFirst ? 'show' : '' ?>"
                                         aria-labelledby="<?= $headingId ?>">
-                                        <div class="accordion-body p-3">
+                                        <div class="accordion-body">
                                             <div class="days-carousel-container d-flex overflow-auto pb-3">
                                                 <?php foreach ($weekDays as $dayData): ?>
                                                     <?php

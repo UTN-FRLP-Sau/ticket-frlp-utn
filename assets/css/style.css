@@ -136,8 +136,11 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 1rem;
+    padding-top: 0.4rem;
 }
-
+.accordion-body {
+    padding: 1rem 1rem;
+}
 /* Estilos para cada columna de día dentro del carrusel */
 .day-column {
     flex: 1 1 250px;
@@ -365,7 +368,7 @@ body {
 
 /* Purchase Summary Card */
 .summary-card {
-    border: 1px solid #28a745;
+    border: 1px solid #7171716b;
     border-radius: 12px;
     box-shadow: 0 5px 15px rgba(40, 167, 69, 0.15);
 }
