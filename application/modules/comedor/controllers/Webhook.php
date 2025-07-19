@@ -44,50 +44,50 @@ private function mapMercadoPagoStatusDetail($mp_code)
         // Errores de Banco / Generales
         case 'bank_error': // Del 'rejectedbank_error'
             return 'El pago fue rechazado por un error con el banco.';
-        case 'rejected_by_bank': // Del 'rejectedrejected_by_bank' (ya lo tenías)
+        case 'rejected_by_bank': // Del 'rejectedrejected_by_bank'
             return 'Operación rechazada por el banco.';
         case 'rejected_by_regulations': // Del 'rejectedrejected_by_regulations'
             return 'Pago rechazado por regulaciones.';
         case 'insufficient_amount': // Del 'rejectedinsufficient_amount' (general, no solo tarjeta)
             return 'Pago rechazado por montos insuficientes.';
-        case 'rejected_insufficient_data': // Del 'rejectedrejected_insufficient_data' (ya lo tenías)
+        case 'rejected_insufficient_data': // Del 'rejectedrejected_insufficient_data'
             return 'El pago fue rechazado debido a falta de toda la información obligatoria requerida.';
-        case 'rejected_other_reason': // Del 'rejectedcc_rejected_other_reason' o 'rejected_other_reason' (ya lo tenías)
+        case 'rejected_other_reason': // Del 'rejectedcc_rejected_other_reason' o 'rejected_other_reason'
             return 'El pago fue rechazado por un motivo desconocido. Por favor, inténtalo de nuevo o con otro medio de pago.';
         
         // Rechazos Específicos de Tarjeta
         case 'cc_rejected_3ds_mandatory': // Del 'rejectedcc_rejected_3ds_mandatory'
             return 'Pago rechazado por no tener el challenge 3DS cuando es obligatorio.';
-        case 'cc_rejected_bad_filled_card_number': // Del 'rejectedcc_rejected_bad_filled_card_number' (ya lo tenías)
+        case 'cc_rejected_bad_filled_card_number': // Del 'rejectedcc_rejected_bad_filled_card_number'
             return 'Revisa el número de tarjeta.';
-        case 'cc_rejected_bad_filled_date': // Del 'rejectedcc_rejected_bad_filled_date' (ya lo tenías)
+        case 'cc_rejected_bad_filled_date': // Del 'rejectedcc_rejected_bad_filled_date'
             return 'Revisa la fecha de vencimiento.';
         case 'cc_rejected_bad_filled_other': // Del 'rejectedcc_rejected_bad_filled_other'
             return 'Revisa los datos.';
-        case 'cc_rejected_bad_filled_security_code': // Del 'rejectedcc_rejected_bad_filled_security_code' (ya lo tenías)
+        case 'cc_rejected_bad_filled_security_code': // Del 'rejectedcc_rejected_bad_filled_security_code'
             return 'Revisa el código de seguridad de la tarjeta.';
-        case 'cc_rejected_blacklist': // Del 'rejectedcc_rejected_blacklist' (ya lo tenías)
+        case 'cc_rejected_blacklist': // Del 'rejectedcc_rejected_blacklist'
             return 'No pudimos procesar tu pago.';
-        case 'cc_rejected_call_for_authorize': // Del 'rejectedcc_rejected_call_for_authorize' (ya lo tenías)
+        case 'cc_rejected_call_for_authorize': // Del 'rejectedcc_rejected_call_for_authorize'
             return 'Debes autorizar ante el medio de pago el pago de este monto.'; // Adapté el mensaje
         case 'cc_rejected_card_disabled': // Del 'rejectedcc_rejected_card_disabled'
             return 'Llama al emisor de tu tarjeta para activarla o usa otro medio de pago. El teléfono está al dorso de tu tarjeta.';
-        case 'cc_rejected_card_error': // Del 'rejectedcc_rejected_card_error' (ya lo tenías)
+        case 'cc_rejected_card_error': // Del 'rejectedcc_rejected_card_error'
             return 'No pudimos procesar tu pago.';
-        case 'cc_rejected_duplicated_payment': // Del 'rejectedcc_rejected_duplicated_payment' (ya lo tenías)
+        case 'cc_rejected_duplicated_payment': // Del 'rejectedcc_rejected_duplicated_payment'
             return 'Ya hiciste un pago por ese valor. Si necesitas volver a pagar usa otra tarjeta u otro medio de pago.';
-        case 'cc_rejected_high_risk': // Del 'rejectedcc_rejected_high_risk' (ya lo tenías)
+        case 'cc_rejected_high_risk': // Del 'rejectedcc_rejected_high_risk'
             return 'Tu pago fue rechazado. Elige otro de los medios de pago, te recomendamos con medios en efectivo.';
-        case 'cc_rejected_insufficient_amount': // Del 'rejectedcc_rejected_insufficient_amount' (ya lo tenías)
+        case 'cc_rejected_insufficient_amount': // Del 'rejectedcc_rejected_insufficient_amount'
             return 'Tu tarjeta no tiene fondos suficientes.'; // Adapté el mensaje
-        case 'cc_rejected_invalid_installments': // Del 'rejectedcc_rejected_invalid_installments' (ya lo tenías)
+        case 'cc_rejected_invalid_installments': // Del 'rejectedcc_rejected_invalid_installments'
             return 'El medio de pago no procesa pagos en cuotas/meses.'; // Adapté el mensaje
-        case 'cc_rejected_max_attempts': // Del 'rejectedcc_rejected_max_attempts' (ya lo tenías)
+        case 'cc_rejected_max_attempts': // Del 'rejectedcc_rejected_max_attempts'
             return 'Llegaste al límite de intentos permitidos. Elige otra tarjeta u otro medio de pago.';
         case 'cc_amount_rate_limit_exceeded': // Del 'rejectedcc_amount_rate_limit_exceeded'
             return 'El pago fue rechazado porque superó el límite (Capacidad Máxima Permitida) del medio de pago.';
 
-        // Expiración de Pagos en Efectivo/Cajero (ya lo tenías)
+        // Expiración de Pagos en Efectivo/Cajero
         case 'expired_by_date_cutoff':
             return 'El plazo para realizar el pago en efectivo ha expirado. Debes generar una nueva orden de compra.';
 
@@ -242,7 +242,6 @@ private function mapMercadoPagoStatusDetail($mp_code)
                     // Activa esta línea para forzar el estado a 'rejected'
                     // sirve para probar el envío de correos de rechazo.
                     // $mp_status_from_mp = 'rejected';
-                    // $mp_status_detail = 'forzado_para_prueba';
                     // $this->log_manual('DEBUG: Estado de MP forzado a RECHAZADO para pruebas.');
                     // --- FIN CÓDIGO PARA FORZAR REJECTED (DEBUG) ---
 
@@ -269,6 +268,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                             case 'cancelled':
                             case 'expired_by_date_cutoff':
                                 $this->log_manual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). No se realizarán acciones de compra.');
+                                // $payment_info->status_detail = 'rejected_by_bank'; ACTIVAR PARA DEBUG DE CORREO DE RECHAZO CON MOTIVO DE RECHAZO PERSONALIZAD
                                 $this->processRejectedPayment($CI, $compra_pendiente, $payment_info);
                                 break;
 
@@ -513,11 +513,6 @@ private function mapMercadoPagoStatusDetail($mp_code)
         log_message('debug', 'PAGO RECHAZADO: Compra pendiente ' . $external_reference . ' marcada como procesada.');
         $this->log_manual('PROCESANDO RECHAZO: external_reference: ' . $external_reference . ', status_detail: ' . $mp_status_detail);
 
-        if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
-            log_message('error', 'processRejectedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
-        }
-        log_message('debug', 'processRejectedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
-
         $this->log_manual('Procediendo a enviar email.');
 
         $usuario = $CI->ticket_model->getUserById($compra_pendiente->id_usuario);
@@ -535,7 +530,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
             
             $dataEmail = [
                 'external_reference' => $external_reference,
-                'status_detail' => $mp_status_detail,
+                'status_detail' => $user_friendly_status_detail,
                 'user_name' => $usuario->nombre . ' ' . $usuario->apellido,
                 'viandas' => $viandas_rechazadas,
                 'fechaHoy' => date('d/m/Y', time()),
@@ -552,5 +547,11 @@ private function mapMercadoPagoStatusDetail($mp_code)
         } else {
             $this->log_manual('ADVERTENCIA PROCESANDO RECHAZO: Usuario o email no encontrado para external_reference ' . $external_reference . '. No se pudo enviar correo de rechazo.');
         }
+
+        // Elimina la compra pendiente de la base de datos
+        if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+            log_message('error', 'processRejectedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
+        }
+        log_message('debug', 'processRejectedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
     }
 }
