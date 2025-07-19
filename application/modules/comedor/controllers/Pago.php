@@ -77,11 +77,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://e8ccfd99bc46.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
+        $notification_url = 'https://a6708df161e7.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
         $back_urls = array(
-            "success" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://e8ccfd99bc46.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_exitosa",
+            "failure" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_fallida",
+            "pending" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_pendiente",
         );
 
         $documento = $this->session->userdata('documento');
@@ -189,8 +189,9 @@ class Pago extends CI_Controller
 
             if ($usuario && $compras) {
                 // HTML del correo
+                $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
                 $dataEmail['compras'] = $compras;
-                $dataEmail['total'] = $transaccion_data->monto; 
+                $dataEmail['total'] = abs($transaccion_data->monto);
                 $dataEmail['total'] = abs($transaccion_data->monto); 
                 
                 $dataEmail['fechaHoy'] = date('d/m/Y', time());
