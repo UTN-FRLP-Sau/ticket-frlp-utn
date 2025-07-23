@@ -3,6 +3,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Webhook extends CI_Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('ticket_model');
+    }
     private function log_manual($mensaje)
     {
         // ruta del archivo de log específica del webhook
@@ -231,7 +236,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                 $this->log_manual('Webhook tipo PAYO (payment). ID de pago: ' . $payment_id);
 
                 // Obtener la información completa del pago desde la API de Mercado Pago
-                $payment_info = $CI->ticket_model->getMercadoPagoPayment($payment_id);
+                $payment_info = $this->ticket_model->getMercadoPagoPayment($payment_id);
 
                 if ($payment_info) {
                     $external_reference = $payment_info->external_reference;
@@ -247,10 +252,10 @@ private function mapMercadoPagoStatusDetail($mp_code)
 
                     $this->log_manual('Estado de pago de MP para ' . $payment_id . ': ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). External Reference: ' . $external_reference);
 
-                    $compra_pendiente = $CI->ticket_model->getCompraPendiente($external_reference);
+                    $compra_pendiente = $this->ticket_model->getCompraPendiente($external_reference);
 
                     if ($compra_pendiente) {
-                        $CI->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, $mp_status_from_mp, $mp_status_detail);
+                        $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, $mp_status_from_mp, $mp_status_detail);
                         $this->log_manual('Actualizado mp_estado de compra_pendiente ' . $compra_pendiente->id . ' a: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').');
 
                         switch ($mp_status_from_mp) {
@@ -332,7 +337,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
         $payment_id = $payment_info->id; // ID de pago de Mercado Pago
         
         // Obtengo el saldo del usuario
-        $saldo_inicial_usuario = $CI->ticket_model->getSaldoByIDUser($id_usuario);
+        $saldo_inicial_usuario = $this->ticket_model->getSaldoByIDUser($id_usuario);
         log_message('debug', 'processApprovedPayment: Saldo actual del usuario ' . $id_usuario . ' (antes de deducción): ' . $saldo_inicial_usuario);
 
         $monto_pagado_mp = 0;
@@ -354,7 +359,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
 
         if ($saldo_a_deducir_en_webhook > 0) {
             // Uso updateSaldoByIDUser, pasando el saldo final resultante
-            if (!$CI->ticket_model->updateSaldoByIDUser($id_usuario, $saldo_final_despues_deduccion)) {
+            if (!$this->ticket_model->updateSaldoByIDUser($id_usuario, $saldo_final_despues_deduccion)) {
                 log_message('error', 'processApprovedPayment: Fallo al deducir saldo parcial (updateSaldoByIDUser) para usuario ' . $id_usuario . ' a saldo: ' . $saldo_final_despues_deduccion);
                 throw new Exception('Fallo al actualizar el saldo del usuario en el webhook.');
             }
@@ -364,7 +369,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
         }
 
         // Obtengo el saldo final del usuario de la DB
-        $saldo_para_registro_transaccion = $CI->ticket_model->getSaldoByIDUser($id_usuario);
+        $saldo_para_registro_transaccion = $this->ticket_model->getSaldoByIDUser($id_usuario);
         log_message('debug', 'processApprovedPayment: Saldo final del usuario de la DB para registro: ' . $saldo_para_registro_transaccion);
 
         $data_transaccion = [
@@ -376,7 +381,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
             'saldo' => $saldo_para_registro_transaccion,
             'external_reference' => $external_reference,
         ];
-        $id_transaccion = $CI->ticket_model->addTransaccion($data_transaccion);
+        $id_transaccion = $this->ticket_model->addTransaccion($data_transaccion);
         
         if ($id_transaccion === false) {
             log_message('error', 'processApprovedPayment: Falló la inserción de la transacción principal. Datos: ' . json_encode($data_transaccion));
@@ -387,7 +392,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
         try {
             log_message('debug', 'processApprovedPayment: Intentando obtener viandas para compra pendiente ' . $compra_pendiente->id);
             // Obtengo los ítems de vianda asociados a esta compra pendiente
-            $viandas_en_compra = $CI->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
+            $viandas_en_compra = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
             log_message('debug', 'processApprovedPayment: viandas_en_compra: ' . (empty($viandas_en_compra) ? 'VACIO' : json_encode($viandas_en_compra)));
 
             if (!$viandas_en_compra) {
@@ -411,7 +416,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                     'transaccion_id' => $id_transaccion,
                 ];
 
-                $id_compra_item = $CI->ticket_model->addCompra($data_compra);
+                $id_compra_item = $this->ticket_model->addCompra($data_compra);
 
                 if ($id_compra_item === false) {
                     log_message('error', 'processApprovedPayment: Falló la inserción de un item de compra. Datos: ' . json_encode($data_compra));
@@ -433,12 +438,12 @@ private function mapMercadoPagoStatusDetail($mp_code)
                     'transaccion_tipo'   => 'Compra por Mercado Pago',
                     'transaccion_id'     => $id_transaccion
                 ];
-                $CI->ticket_model->addLogCompra($log_data);
+                $this->ticket_model->addLogCompra($log_data);
                 log_message('debug', 'processApprovedPayment: Log de compra insertado para item: ' . $vianda_item['menu']);
             }
 
             // Marca la compra pendiente como procesada
-            if (!$CI->ticket_model->setCompraPendienteProcesada($external_reference)) {
+            if (!$this->ticket_model->setCompraPendienteProcesada($external_reference)) {
                 log_message('error', 'processApprovedPayment: Fallo al marcar compra pendiente ' . $external_reference . ' como procesada.');
                 throw new Exception('Fallo al marcar la compra pendiente como procesada.');
             }
@@ -448,15 +453,15 @@ private function mapMercadoPagoStatusDetail($mp_code)
             log_message('debug', 'WEBHOOK DEBUG: Valor de $id_usuario ANTES de obtener usuario: ' . $id_usuario);
             log_message('debug', 'WEBHOOK DEBUG: Valor de $id_transaccion ANTES de obtener compras para recibo: ' . $id_transaccion);
 
-            if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+            if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
                 log_message('error', 'processApprovedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
             }
             log_message('debug', 'processApprovedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
 
 
             // --- Lógica de envío de email para compra exitosa ---
-            $usuario = $CI->ticket_model->getUserById($id_usuario); 
-            $compras_para_recibo = $CI->ticket_model->getlogComprasByIDTransaccion($id_transaccion); 
+            $usuario = $this->ticket_model->getUserById($id_usuario); 
+            $compras_para_recibo = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion); 
             log_message('debug', 'WEBHOOK DEBUG: Resultado de $usuario: ' . ($usuario ? 'Objeto Usuario' : 'NULL/FALSE'));
             log_message('debug', 'WEBHOOK DEBUG: Resultado de $compras_para_recibo: ' . (is_array($compras_para_recibo) ? json_encode($compras_para_recibo) : 'NULL/FALSE/NO ARRAY'));
             
@@ -465,7 +470,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                
                 log_message('debug', 'WEBHOOK: Intentando enviar email de compra exitosa.');
 
-                $costoVianda = $CI->ticket_model->getCostoById($usuario->id_precio);
+                $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
                 $dataRecibo['compras'] = $compras_para_recibo;
                 $dataRecibo['total'] = $costoVianda * count($compras_para_recibo);
                 $dataRecibo['fechaHoy'] = date('d/m/Y', time());
@@ -506,7 +511,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
         $mp_status_detail = $payment_info->status_detail;
 
         // Marca la compra pendiente como procesada
-        if (!$CI->ticket_model->setCompraPendienteProcesada($external_reference)) {
+        if (!$this->ticket_model->setCompraPendienteProcesada($external_reference)) {
             log_message('error', 'PAGO RECHAZADO: Fallo al marcar compra pendiente ' . $external_reference . ' como procesada.');
             throw new Exception('Fallo al marcar la compra pendiente como procesada.');
         }
@@ -515,11 +520,11 @@ private function mapMercadoPagoStatusDetail($mp_code)
 
         $this->log_manual('Procediendo a enviar email.');
 
-        $usuario = $CI->ticket_model->getUserById($compra_pendiente->id_usuario);
+        $usuario = $this->ticket_model->getUserById($compra_pendiente->id_usuario);
 
         if ($usuario && $usuario->mail) {
             // Obtengo los ítems de vianda asociados a esta compra pendiente
-            $viandas_rechazadas = $CI->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
+            $viandas_rechazadas = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
             log_message('debug', 'PAGO RECHAZADO: Viandas asociadas a la compra rechazada: ' . (empty($viandas_rechazadas) ? 'VACIO' : json_encode($viandas_rechazadas)));
 
             $user_friendly_status_detail = $this->mapMercadoPagoStatusDetail($mp_status_detail);
@@ -549,7 +554,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
         }
 
         // Elimina la compra pendiente de la base de datos
-        if (!$CI->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+        if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
             log_message('error', 'processRejectedPayment: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
         }
         log_message('debug', 'processRejectedPayment: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.');
