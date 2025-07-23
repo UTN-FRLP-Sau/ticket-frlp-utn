@@ -3,6 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Pago extends CI_Controller
 {
+
     public function comprar()
     {
         // --- LOG DE INICIO DEL MÉTODO ---
@@ -167,7 +168,7 @@ class Pago extends CI_Controller
 
         if (!$transaccion_data) {
             log_message('error', 'PAGO: No se encontró la transacción para external_reference: ' . $external_reference);
-            redirect(base_url('comedor/compra_fallida'));
+            redirect(base_url('comedor/pago/compra_pendiente'));
             return;
         }
 
