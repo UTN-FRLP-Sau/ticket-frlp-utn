@@ -3,6 +3,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Pago extends CI_Controller
 {
+    private function log_manual($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/pago_manual_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
+
 
     public function comprar()
     {
@@ -153,6 +161,7 @@ class Pago extends CI_Controller
 
         $external_reference = $this->input->get('external_reference');
         log_message('debug', 'PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
+        $this->log_manual('PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
 
         if (!$external_reference) {
             log_message('error', 'PAGO: external_reference no encontrada en la URL de compra_exitosa. Redirigiendo.');
@@ -165,6 +174,8 @@ class Pago extends CI_Controller
 
         $transaccion_data = $this->ticket_model->getTransaccionByExternalReference($external_reference);
         log_message('debug', 'PAGO: transaccion_data desde getTransaccionByExternalReference: ' . ($transaccion_data ? json_encode($transaccion_data) : 'NO ENCONTRADA'));
+
+        $this->log_manual('PAGO: transaccion_data desde getTransaccionByExternalReference: ' . ($transaccion_data ? json_encode($transaccion_data) : 'NO ENCONTRADA'));
 
         if (!$transaccion_data) {
             log_message('error', 'PAGO: No se encontró la transacción para external_reference: ' . $external_reference);
