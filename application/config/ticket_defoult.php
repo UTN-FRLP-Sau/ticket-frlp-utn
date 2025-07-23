@@ -28,15 +28,6 @@ $config['MP_WEBHOOK_SECRET'] = '';
 
 
 
-// Configuracion de parametros
-
-//$config['apertura'] = '2022-04-04';
-//$config['cierre'] = '2022-12-09';
-//$config['vacaciones_i'] = '2022-07-17';
-//$config['vacaciones_f'] = '2022-07-31';
-//$config['dia_inicial'] = 1; //lunes
-//$config['dia_final'] = 5; //viernes
-//$config['hora_final'] = '12:00:00'; //hora del viernes de cierre de compra
 
 //Set lenguage
 setlocale(LC_ALL, "es_ES");
