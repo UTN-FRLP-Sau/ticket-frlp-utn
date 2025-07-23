@@ -77,11 +77,11 @@ class Pago extends CI_Controller
         }
 
         // URLs de retorno y notificación para Mercado Pago
-        $notification_url = 'https://a6708df161e7.ngrok-free.app/webhook/mercadopago?source_news=webhooks';
+        $notification_url = 'https://ticket.frlp.utn.edu.ar/webhook/mercadopago?source_news=webhooks';
         $back_urls = array(
-            "success" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_exitosa",
-            "failure" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_fallida",
-            "pending" => "https://a6708df161e7.ngrok-free.app/comedor/pago/compra_pendiente",
+            "success" => "https://ticket.frlp.utn.edu.ar/comedor/pago/compra_exitosa",
+            "failure" => "https://ticket.frlp.utn.edu.ar/comedor/pago/compra_fallida",
+            "pending" => "https://ticket.frlp.utn.edu.ar/comedor/pago/compra_pendiente",
         );
 
         $documento = $this->session->userdata('documento');
