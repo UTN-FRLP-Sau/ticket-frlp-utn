@@ -10,6 +10,28 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--light-gray-bg);
+        }
+
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+    
         :root {
             --dark-blue: #2c3e50;
             --primary-color: #3498db;
@@ -19,15 +41,12 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             --light-gray-bg: #f8f9fa;
         }
 
-
         .menu-title {
             color: var(--dark-blue);
             margin-bottom: 3rem;
             font-size: calc(2rem + 2vw);
-        
         }
-
-    
+        
         .menu-card {
             transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
             border: 1px solid rgba(0,0,0,.125);
@@ -71,7 +90,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
         .text-info { color: var(--info-color) !important; }
         .text-dark-gray { color: var(--dark-gray) !important; }
 
-    
         @media (min-width: 1400px) {
             .row-cols-xxl-custom > * {
                 flex: 0 0 auto;
@@ -82,10 +100,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                 max-width: 80%;
             }
             .menu-card-body {
-            
                 display: flex;
                 flex-direction: column;
-                align-items: center;  
+                align-items: center;   
                 text-align: center;   
             }
             .d-flex {
@@ -107,7 +124,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     </div>
 
     <div class="row justify-content-center g-4
-                row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-custom">
+                 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-custom">
         <?php if (!empty($menu)): ?>
             <?php foreach ($menu as $item) : ?>
                 <div class="col d-flex animate__animated animate__fadeInUp">
