@@ -389,6 +389,38 @@ private function mapMercadoPagoStatusDetail($mp_code)
         }
         log_message('debug', 'processApprovedPayment: Transacción principal insertada, ID: ' . $id_transaccion);
 
+        // Correo de vendedor MP
+        $email_vendedor_mp = 'mercado@pago';
+
+        // Obtener el ID del vendedor MP usando el correo
+        $id_vendedor_mp = $this->ticket_model->getVendedorIdByEmail($email_vendedor_mp);
+
+        // Verifica si se encontró el ID antes de usarlo
+        if ($id_vendedor_mp !== null) {
+            // Inserto registro un registro en log_carga con el monto total acreditado en la cuenta de MP
+            $data_log_carga = [
+                'fecha'         => date('Y-m-d'),
+                'hora'          => date('H:i:s'),
+                'id_usuario'    => $id_usuario,
+                'monto'         => $monto_pagado_mp,
+                'id_vendedor'   => $id_vendedor_mp,
+                'formato'       => 'MP',
+                'transaccion_id'=> $id_transaccion,
+            ];
+
+            if (!$this->ticket_model->addLogCarga($data_log_carga)) {
+                log_message('error', 'processApprovedPayment: Falló la inserción en log_carga para la compra MP: ' . json_encode($data_log_carga));
+                throw new Exception('No se pudo insertar el registro en log_carga para la compra MP.');
+            }
+            log_message('debug', 'processApprovedPayment: Registro en log_carga insertado para el pago de Mercado Pago.');
+
+        } else {
+            // caso donde no se encuentra el ID del vendedor MP por su correo
+            log_message('error', 'processApprovedPayment: No se encontró el ID para el vendedor MP con correo: ' . $email_vendedor_mp);
+            throw new Exception('No se pudo obtener el ID del vendedor MP para log_carga.');
+        }
+
+
         try {
             log_message('debug', 'processApprovedPayment: Intentando obtener viandas para compra pendiente ' . $compra_pendiente->id);
             // Obtengo los ítems de vianda asociados a esta compra pendiente

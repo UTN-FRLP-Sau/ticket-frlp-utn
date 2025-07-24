@@ -20,6 +20,24 @@ class Ticket_model extends CI_Model
         }
     }
 
+    public function getVendedorIdByEmail($email)
+    {
+        $this->db->select('id_vendedor');
+        $this->db->where('mail', $email);
+        $query = $this->db->get('vendedores');
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row();
+            return $row->id_vendedor;
+        }
+        return null; // Retorna null si no encuentra el vendedor con ese email
+    }
+
+    public function addLogCarga($data)
+    {
+        // Devuelve true en caso de éxito, false en caso de error
+        return $this->db->insert('log_carga', $data);
+    }
     public function addLogCompra($data)
     {
         /* Usado en:
