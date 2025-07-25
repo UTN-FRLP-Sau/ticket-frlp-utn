@@ -179,10 +179,14 @@ class Pago extends CI_Controller
 
         $this->log_manual('PAGO: transaccion_data desde getTransaccionByExternalReference: ' . ($transaccion_data ? json_encode($transaccion_data) : 'NO ENCONTRADA'));
 
+        // Si el pago fue realizado pero aun no se encuentra la transacción (no se recibió el webhook de MP)
         if (!$transaccion_data) {
             log_message('error', 'PAGO: No se encontró la transacción para external_reference: ' . $external_reference);
             // cambio estado a pendiente para que el usuario no pueda volver a pagar
             $this->ticket_model->updateCompraPendienteEstado($compra->id, 'pending');
+
+            // Borro la referencia externa de la sesión para que no se intente procesar de nuevo
+            $this->session->unset_userdata('external_reference');
             redirect(base_url('comedor/pago/compra_pendiente'));
             return;
         }
