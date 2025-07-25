@@ -159,6 +159,8 @@ class Pago extends CI_Controller
     {
         log_message('debug', 'PAGO: Método compra_exitosa() alcanzado.');
 
+        $this->session->unset_userdata('error_compra'); 
+
         $external_reference = $this->input->get('external_reference');
         log_message('debug', 'PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
         $this->log_manual('PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
@@ -239,6 +241,7 @@ class Pago extends CI_Controller
     public function compra_fallida()
     {
         log_message('debug', 'PAGO: Método compra_fallida() alcanzado.');
+        $this->session->unset_userdata('error_compra'); 
         $this->session->unset_userdata('external_reference');
         $this->load->view('usuario/header', ['titulo' => 'Pago fallido']);
         $this->load->view('compra_fallida');
@@ -248,6 +251,7 @@ class Pago extends CI_Controller
     public function compra_pendiente()
     {
         log_message('debug', 'PAGO: Método compra_pendiente() alcanzado.');
+        $this->session->unset_userdata('error_compra'); 
         $this->session->unset_userdata('external_reference');
         $this->load->view('usuario/header', ['titulo' => 'Pago pendiente']);
         $this->load->view('compra_pendiente');
