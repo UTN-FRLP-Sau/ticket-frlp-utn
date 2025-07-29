@@ -262,18 +262,19 @@ class Pago extends CI_Controller
     {
         log_message('debug', 'PAGO: Método compra_pendiente() alcanzado.');
 
+        $this->load->model('ticket_model');
+
         $external_reference = $this->input->get('external_reference');
+
         
         log_message('debug', 'PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
         $this->log_manual('PAGO: external_reference en compra_exitosa (GET): ' . ($external_reference ? $external_reference : 'VACIA/NULA'));
 
         $filas_afectadas = $this->ticket_model->updateCompraPendienteEstadoByExternalReference($external_reference, 'pending');
 
-        if ($filas_afectadas > 0) {
-            $this->log_manual('PAGO: Estado de compra actualizado a "pending" para external_reference: ' . ($external_reference ? $external_reference : 'VACIA/NULA') . '. Filas afectadas: ' . $filas_afectadas);
-        } else {
-            $this->log_manual('PAGO: Advertencia: No se pudo actualizar el estado de compra a "pending" o ya estaba en ese estado para external_reference: ' . ($external_reference ? $external_reference : 'VACIA/NULA') . '. Filas afectadas: ' . $filas_afectadas);
-        }
+        $this->log_manual('PAGO: Estado de compra actualizado a "pending" para external_reference: ' . ($external_reference ? $external_reference : 'VACIA/NULA') . '. Filas afectadas: ' . $filas_afectadas);
+
+      
 
         $this->session->unset_userdata('error_compra'); 
         $this->session->unset_userdata('external_reference');
