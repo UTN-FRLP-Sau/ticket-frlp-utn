@@ -767,7 +767,7 @@ $(document).ready(function() {
             const turnoDisplay = turnoMapping[vianda.turno] || vianda.turno || 'Turno Desconocido';
             
             // Icono para el turno (depende si es Mediodía o Noche)
-            const turnoIcon = (vianda.turno === 'manana') ? '<i class="bi bi-sun-fill text-warning me-2"></i>' : (vianda.turno === 'noche' ? '<i class="bi bi-moon-fill text-info me-2"></i>' : '');
+            const turnoIcon = (vianda.turno === 'manana') ? '<i class="bi bi-sun-fill text-warning me-2"></i>' : (vianda.turno === 'noche' ? '<i class="bi bi-moon-fill text-gray me-2"></i>' : '');
 
             // HTML de cada vianda
             viandasList.append(`

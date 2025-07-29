@@ -133,6 +133,10 @@ body {
     background-color: #e5e5e5 !important;
 }
 
+.dropdown-menu{
+    background-color: rgb(33 37 41) !important;
+}
+
 /* Estilos para el contenedor del carrusel de días */
 .days-carousel-container {
     display: flex;

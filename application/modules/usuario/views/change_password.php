@@ -32,3 +32,18 @@
             </div>
         </div>
     </div>
+
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+body {
+    display: flex;
+    flex-direction: column;
+}
+.container {
+    flex: 1;
+}
+</style>

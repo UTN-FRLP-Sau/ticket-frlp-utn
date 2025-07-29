@@ -56,6 +56,21 @@
     #submitButton{
         width: 100%;
     }
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    .container.py-5 {
+        flex: 1;
+    }
+    .container.py-5 {
+        flex: 1;
+    }
 </style>
 
 <script>

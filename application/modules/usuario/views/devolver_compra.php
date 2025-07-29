@@ -169,6 +169,19 @@
 
 <!-- Estilos -->
 <style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    .container.py-4 {
+        flex: 1;
+    }
     .vianda-scroll-container {
         display: flex;
         overflow-x: auto;
