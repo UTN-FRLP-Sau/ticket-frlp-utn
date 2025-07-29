@@ -383,6 +383,12 @@ class Ticket extends CI_Controller
             $data['vacaciones_invierno_fin'] = $vacaciones_invierno_fin;
 
 
+            $this->output->set_header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+            $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+            $this->output->set_header('Pragma: no-cache');
+
+
             $this->load->view('usuario/header', $data);
             $this->load->view('index', $data);
             $this->load->view('general/footer');
