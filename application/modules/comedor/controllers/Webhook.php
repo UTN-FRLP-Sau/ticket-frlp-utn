@@ -283,7 +283,7 @@ private function mapMercadoPagoStatusDetail($mp_code)
                                 if ($this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'pending')) {
                                     $this->log_manual('PAGO PENDIENTE/EN PROCESO: Estado de compra pendiente ' . $compra_pendiente->id . ' actualizado a "pending" correctamente.');
                                 } else {
-                                    log_message('error', 'PAGO PENDIENTE/EN PROCESO: Fallo al actualizar el estado de compra pendiente ' . $compra_pendiente->id . ' a "pending".');
+                                    $this->log_manual('PAGO PENDIENTE/EN PROCESO: Fallo al actualizar el estado de compra pendiente ' . $compra_pendiente->id . ' a "pending".');
                                 }
                                 $this->session->unset_userdata('external_reference');
                                 $this->session->unset_userdata('error_compra'); 

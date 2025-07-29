@@ -183,7 +183,13 @@ class Pago extends CI_Controller
         if (!$transaccion_data) {
             log_message('error', 'PAGO: No se encontró la transacción para external_reference: ' . $external_reference);
             // cambio estado a pendiente para que el usuario no pueda volver a pagar
-            $this->ticket_model->updateCompraPendienteEstadoByExternalReference($external_reference, 'pending');
+            $filas_afectadas = $this->ticket_model->updateCompraPendienteEstadoByExternalReference($external_reference, 'pending');
+
+            if ($filas_afectadas > 0) {
+                $this->log_manual('PAGO: Estado de compra actualizado a "pending" para external_reference: ' . ($external_reference ? $external_reference : 'VACIA/NULA') . '. Filas afectadas: ' . $filas_afectadas);
+            } else {
+                $this->log_manual('PAGO: Advertencia: No se pudo actualizar el estado de compra a "pending" o ya estaba en ese estado para external_reference: ' . ($external_reference ? $external_reference : 'VACIA/NULA') . '. Filas afectadas: ' . $filas_afectadas);
+            }
 
             // Borro la referencia externa de la sesión para que no se intente procesar de nuevo
             $this->session->unset_userdata('external_reference');
