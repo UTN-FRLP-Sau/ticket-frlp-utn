@@ -515,6 +515,12 @@ class Ticket_model extends CI_Model
         $this->db->update('compras_pendientes', ['mp_estado' => $estado]);
         return $this->db->affected_rows() > 0;
     }
+
+    public function updateCompraPendienteEstadoByExternalReference($external_reference, $estado) {
+        $this->db->where('external_reference', $external_reference);
+        $this->db->update('compras_pendientes', ['mp_estado' => $estado]);
+        return $this->db->affected_rows();
+    }
  
     public function getComprasPendientes($user_id) {
         // Seleccionamos solo las columnas necesarias para los nuevos requisitos
