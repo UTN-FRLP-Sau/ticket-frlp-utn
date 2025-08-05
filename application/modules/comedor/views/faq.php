@@ -131,7 +131,7 @@
                     <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight"
                         data-bs-parent="#faqAccordion">
                         <div class="accordion-body bg-light text-secondary">
-                            Significa que el dinero salío de la cuenta origen, pero aún no se ha acreditado en la cuenta del comedor. Este proceso puede tardar un tiempo dpendiendo del medio de pago elegido, y una vez que se complete, recibirás un correo con el recibo de la compra o en caso de que no se complete por cualquier motivo recibiras un correo de compra rechazada.
+                            Significa que el dinero salió de la cuenta origen, pero aún no se ha acreditado en la cuenta del comedor. Este proceso puede tardar un tiempo dependiendo del medio de pago elegido, y una vez que se complete, recibirás un correo con el recibo de la compra o en caso de que no se complete por cualquier motivo recibiras un correo de compra rechazada.
                         </div>
                     </div>
                 </div>
