@@ -72,6 +72,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     </div>
                     <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
                         <i class="bi bi-lightbulb-fill me-2"></i>
+                        <strong>Importante:</strong> Una vez realizada la compra, en caso de pedir una devolución no se te transferirá el dinero a tu cuenta bancaria o billetera virtual, sino que se acreditará el saldo a tu cuenta de usuario del comedor para futuras compras.                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
+                        <i class="bi bi-lightbulb-fill me-2"></i>
                         <strong>Importante:</strong> La elección de una vianda turno mediodía o noche es excluyente. Solo podrás seleccionar la vianda de un solo turno en un mismo día.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
