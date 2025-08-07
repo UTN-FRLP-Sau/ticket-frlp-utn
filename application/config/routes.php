@@ -124,3 +124,5 @@ $route['admin/repartidor/historial/(:num)'] = 'admin/repartidor/historial_entreg
 
 
 $route['webhook/mercadopago'] = 'comedor/webhook/mercadopago';
+
+$route['cron/mp_estado'] = 'cronjobs/Tareas/consultar_estado_mp';
