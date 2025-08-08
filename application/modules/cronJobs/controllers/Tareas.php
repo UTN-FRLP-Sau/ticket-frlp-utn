@@ -43,7 +43,8 @@ class Tareas extends CI_Controller {
     public function consultar_estado_mp() {
         $this->config->load('ticket');
         $access_token = $this->config->item('MP_ACCESS_TOKEN');
-
+        $this->_logManual('CRON_MP: ************************************************************');
+        
         if ($access_token === null || empty($access_token)) {
             $this->_logManual('CRON_MP: Access Token de Mercado Pago no encontrado.', 'Cron_error');
             echo "Error: Access Token no configurado.\n";
