@@ -510,9 +510,13 @@ class Ticket_model extends CI_Model
         return $this->db->affected_rows();
     }
 
-    public function updateCompraPendienteEstado($id_compra_pendiente, $estado) {
+    public function updateCompraPendienteEstado($id_compra_pendiente, $estado_mp) {
+        $data = [
+            'mp_estado' => $estado_mp,
+            'procesada' => ($estado_mp == 'approved') ? 1 : 0
+        ];
         $this->db->where('id', $id_compra_pendiente);
-        $this->db->update('compras_pendientes', ['mp_estado' => $estado]);
+        $this->db->update('compras_pendientes', $data);
         return $this->db->affected_rows() > 0;
     }
 

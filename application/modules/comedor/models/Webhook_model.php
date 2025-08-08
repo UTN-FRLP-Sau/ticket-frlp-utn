@@ -1,22 +1,21 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Webhook_model extends CI_Model { 
-    
+class Webhook_model extends CI_Model {
+
     public function __construct() {
         parent::__construct();
         // Carga los modelos necesarios
-        $this->load->model('comedor/ticket_model'); 
+        $this->load->model('comedor/ticket_model');
         $this->load->model('general/general_model', 'generalticket'); // Se carga general_model con el alias 'generalticket'
     }
 
     /**
      * Método público para registrar logs específicos de las operaciones de este modelo.
-     * Se cambió de private a public para permitir el acceso desde el controlador Webhook.
      * @param string $mensaje El mensaje a registrar.
      * @param string $prefijo_archivo Prefijo opcional para el nombre del archivo de log.
      */
-    public function _logManual($mensaje, $prefijo_archivo = 'mp_processor') { 
+    public function _logManual($mensaje, $prefijo_archivo = 'webhook') {
         // ruta del archivo de log específica del modelo de procesamiento de MP
         $ruta_log = APPPATH . 'logs/' . $prefijo_archivo . '_manual_' . date('Y-m-d') . '.log';
         $fecha = date('Y-m-d H:i:s');
@@ -24,18 +23,16 @@ class Webhook_model extends CI_Model {
         // Extraer solo la ruta del directorio del archivo de log
         $log_dir = dirname($ruta_log); // Obtiene el directorio padre de la ruta del archivo
 
-        // Asegúrate de que el directorio de logs exista antes de escribir
         if (!is_dir($log_dir)) {
             mkdir($log_dir, 0755, true); // Crea el directorio de forma recursiva si no existe
         }
-        
+
         file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
     }
 
 
     /**
      * Mapea un código de estado de detalle de Mercado Pago a un mensaje más amigable para el usuario.
-     * Esta función se incluye directamente en el modelo según tu preferencia.
      * @param string $mp_code El código de estado de detalle de Mercado Pago.
      * @return string Un mensaje descriptivo para el usuario.
      */
@@ -91,6 +88,7 @@ class Webhook_model extends CI_Model {
     /**
      * Procesa un pago aprobado, incluyendo la deducción de saldo,
      * registro de transacciones, inserción de viandas y envío de email.
+     * También marca la compra como procesada y la elimina de la tabla de pendientes.
      *
      * @param object $compra_pendiente Objeto de la compra pendiente de la DB.
      * @param object $payment_info Objeto de información del pago de Mercado Pago.
@@ -98,24 +96,24 @@ class Webhook_model extends CI_Model {
      * @throws Exception Si ocurre un error crítico durante el procesamiento.
      */
     public function procesarPagoAprobado($compra_pendiente, $payment_info) {
-        $this->_logManual('INICIANDO PROCESAMIENTO PAGO APROBADO (WEBHOOK_MODEL) para Compra ID: ' . $compra_pendiente->id, 'mp_processor');
+        $this->_logManual('INICIANDO PROCESAMIENTO PAGO APROBADO (WEBHOOK_MODEL) para Compra ID: ' . $compra_pendiente->id, 'webhook');
 
         $this->db->trans_begin(); // Inicia la transacción de la base de datos
 
         try {
             // Verifica si la compra ya fue procesada para evitar duplicados
             if ($compra_pendiente->procesada == 1) {
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.', 'webhook');
                 $this->db->trans_rollback();
-                return true; 
+                return true;
             }
 
             $id_usuario = $compra_pendiente->id_usuario;
             $total_compra = (float)$compra_pendiente->total;
             $external_reference = $compra_pendiente->external_reference;
             $payment_id_mp = $payment_info->id;
-            
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo actual del usuario ' . $id_usuario . ' (antes de deducción): ' . $this->ticket_model->getSaldoByIDUser($id_usuario), 'mp_processor');
+
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo actual del usuario ' . $id_usuario . ' (antes de deducción): ' . $this->ticket_model->getSaldoByIDUser($id_usuario), 'webhook');
 
             $monto_pagado_mp = 0;
             if (isset($payment_info->transaction_amount)) {
@@ -123,29 +121,29 @@ class Webhook_model extends CI_Model {
             } elseif (isset($payment_info->total_paid_amount)) {
                 $monto_pagado_mp = (float)$payment_info->total_paid_amount;
             }
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Monto pagado por MP: ' . $monto_pagado_mp, 'mp_processor');
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Monto pagado por MP: ' . $monto_pagado_mp, 'webhook');
 
             $saldo_inicial_usuario = $this->ticket_model->getSaldoByIDUser($id_usuario);
             $saldo_a_deducir = $total_compra - $monto_pagado_mp;
-            $saldo_a_deducir = max(0, min($saldo_a_deducir, $saldo_inicial_usuario)); 
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo a deducir calculado: ' . $saldo_a_deducir, 'mp_processor');
+            $saldo_a_deducir = max(0, min($saldo_a_deducir, $saldo_inicial_usuario));
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo a deducir calculado: ' . $saldo_a_deducir, 'webhook');
 
             if ($saldo_a_deducir > 0) {
                 $nuevo_saldo_usuario = $saldo_inicial_usuario - $saldo_a_deducir;
                 if (!$this->ticket_model->updateSaldoByIDUser($id_usuario, $nuevo_saldo_usuario)) {
                     throw new Exception('Fallo al deducir saldo parcial (updateSaldoByIDUser) para usuario ' . $id_usuario);
                 }
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo de usuario ' . $id_usuario . ' actualizado a: ' . $nuevo_saldo_usuario . ' (se dedujo ' . $saldo_a_deducir . ').', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo de usuario ' . $id_usuario . ' actualizado a: ' . $nuevo_saldo_usuario . ' (se dedujo ' . $saldo_a_deducir . ').', 'webhook');
             } else {
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): No se descontó saldo. Saldo a deducir calculado: ' . $saldo_a_deducir . '. Saldo inicial: ' . $saldo_inicial_usuario, 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): No se descontó saldo. Saldo a deducir calculado: ' . $saldo_a_deducir . '. Saldo inicial: ' . $saldo_inicial_usuario, 'webhook');
             }
 
             $saldo_para_registro_transaccion = $this->ticket_model->getSaldoByIDUser($id_usuario);
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo final del usuario de la DB para registro: ' . $saldo_para_registro_transaccion, 'mp_processor');
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo final del usuario de la DB para registro: ' . $saldo_para_registro_transaccion, 'webhook');
 
             $data_transaccion = [
                 'id_usuario' => $id_usuario,
-                'monto' => -1 * $total_compra, 
+                'monto' => -1 * $total_compra,
                 'fecha' => date('Y-m-d'),
                 'hora' => date('H:i:s'),
                 'transaccion' => 'Compra por Mercado Pago',
@@ -157,7 +155,7 @@ class Webhook_model extends CI_Model {
             if ($id_transaccion === false) {
                 throw new Exception('No se pudo insertar la transacción principal.');
             }
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Transacción principal insertada, ID: ' . $id_transaccion, 'mp_processor');
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Transacción principal insertada, ID: ' . $id_transaccion, 'webhook');
 
             $email_vendedor_mp = 'mercado@pago';
             $id_vendedor_mp = $this->ticket_model->getVendedorIdByEmail($email_vendedor_mp);
@@ -167,7 +165,7 @@ class Webhook_model extends CI_Model {
                     'fecha'      => date('Y-m-d'),
                     'hora'       => date('H:i:s'),
                     'id_usuario' => $id_usuario,
-                    'monto'      => $monto_pagado_mp, 
+                    'monto'      => $monto_pagado_mp,
                     'id_vendedor' => $id_vendedor_mp,
                     'formato'    => 'MP',
                     'transaccion_id'=> $id_transaccion,
@@ -176,7 +174,7 @@ class Webhook_model extends CI_Model {
                 if (!$this->ticket_model->addLogCarga($data_log_carga)) {
                     throw new Exception('No se pudo insertar el registro en log_carga para la compra MP.');
                 }
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Registro en log_carga insertado para el pago de Mercado Pago.', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Registro en log_carga insertado para el pago de Mercado Pago.', 'webhook');
             } else {
                 throw new Exception('No se pudo obtener el ID del vendedor MP para log_carga. Correo: ' . $email_vendedor_mp);
             }
@@ -203,7 +201,7 @@ class Webhook_model extends CI_Model {
                 if (!$this->ticket_model->addCompra($data_compra)) {
                     throw new Exception('No se pudo insertar un item de compra en la base de datos.');
                 }
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Item de compra insertado para ' . $vianda_item['menu'] . '.', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Item de compra insertado para ' . $vianda_item['menu'] . '.', 'webhook');
 
                 $log_data = [
                     'id_usuario'         => $id_usuario,
@@ -219,60 +217,58 @@ class Webhook_model extends CI_Model {
                     'transaccion_id'     => $id_transaccion
                 ];
                 $this->ticket_model->addLogCompra($log_data);
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Log de compra insertado para item: ' . $vianda_item['menu'], 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Log de compra insertado para item: ' . $vianda_item['menu'], 'webhook');
             }
 
-            if (!$this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'approved', $payment_info->status_detail)) {
-                throw new Exception('Fallo al actualizar el estado y marcar como procesada la compra pendiente ' . $external_reference);
-            }
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Compra pendiente ' . $external_reference . ' actualizada a "approved" y marcada como procesada.', 'mp_processor');
-
+            // Elimina la compra pendiente solo si todo lo demás fue exitoso
             if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
                 log_message('error', 'PAGO APROBADO (WEBHOOK_MODEL): Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
+            } else {
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'webhook');
             }
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'mp_processor');
 
-            $usuario = $this->ticket_model->getUserById($id_usuario); 
-            $compras_para_recibo = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion); 
-            
+            $usuario = $this->ticket_model->getUserById($id_usuario);
+            $compras_para_recibo = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion);
+
             if ($usuario && $compras_para_recibo) {
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Intentando enviar email de compra exitosa.', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Intentando enviar email de compra exitosa.', 'webhook');
 
-                $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio); 
+                $costoVianda = $this->ticket_model->getCostoById($usuario->id_precio);
                 $dataRecibo['compras'] = $compras_para_recibo;
                 $dataRecibo['total'] = $costoVianda * count($compras_para_recibo);
                 $dataRecibo['fechaHoy'] = date('d/m/Y', time());
                 $dataRecibo['horaAhora'] = date('H:i:s', time());
-                $dataRecibo['recivoNumero'] = $external_reference; 
-                $dataRecibo['user_name'] = $usuario->nombre . ' ' . $usuario->apellido; // <-- ¡Esta es la línea agregada!
+                $dataRecibo['recivoNumero'] = $external_reference;
+                $dataRecibo['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
 
                 $subject = "¡Recibo de compra de comedor! - Compra #" . $external_reference;
-                
-                $CI =& get_instance(); 
-                $message = $CI->load->view('general/correos/recibo_compra', $dataRecibo, true); 
+
+                $CI =& get_instance();
+                $message = $CI->load->view('general/correos/recibo_compra', $dataRecibo, true);
 
                 // Llamada a la función de envío de email desde general_model
                 if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
-                    $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Email de compra exitosa enviado a ' . $usuario->mail . ' para ' . $external_reference . '.', 'mp_processor');
+                    $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Email de compra exitosa enviado a ' . $usuario->mail . ' para ' . $external_reference . '.', 'webhook');
                 } else {
-                    $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Fallo al enviar email de compra exitosa al usuario ' . $usuario->mail . ' para external_reference ' . $external_reference, 'mp_processor');
+                    $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Fallo al enviar email de compra exitosa al usuario ' . $usuario->mail . ' para external_reference ' . $external_reference, 'webhook');
                 }
             } else {
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Condición ($usuario && $compras_para_recibo) es FALSE. No se pudo enviar el correo de confirmación de compra exitosa para ' . $external_reference . '.', 'mp_processor');
+                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Condición ($usuario && $compras_para_recibo) es FALSE. No se pudo enviar el correo de confirmación de compra exitosa para ' . $external_reference . '.', 'webhook');
             }
 
             $this->db->trans_commit();
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Transacción de DB para compra ID: ' . $compra_pendiente->id . ' COMPLETADA y COMMIT.', 'mp_processor');
-            return true; 
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Transacción de DB para compra ID: ' . $compra_pendiente->id . ' COMPLETADA y COMMIT.', 'webhook');
+            return true;
         } catch (Exception $e) {
             $this->db->trans_rollback();
-            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): EXCEPCIÓN: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '. Rollback de DB para compra ID: ' . $compra_pendiente->id, 'mp_processor');
-            throw $e; 
+            $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): EXCEPCIÓN: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '. Rollback de DB para compra ID: ' . $compra_pendiente->id, 'webhook');
+            throw $e;
         }
     }
 
     /**
-     * Procesa un pago rechazado, incluyendo el envío de un correo electrónico al usuario y el marcado de la compra como procesada.
+     * Procesa un pago rechazado, incluyendo el envío de un correo electrónico al usuario
+     * y la eliminación de la compra de la tabla de pendientes.
      *
      * @param object $compra_pendiente Objeto de la compra pendiente de la DB.
      * @param object $payment_info Objeto con la información del pago de Mercado Pago.
@@ -282,31 +278,32 @@ class Webhook_model extends CI_Model {
     public function procesarPagoRechazado($compra_pendiente, $payment_info) {
         $external_reference = $compra_pendiente->external_reference;
         $mp_status_detail = isset($payment_info->status_detail) ? $payment_info->status_detail : 'N/A';
-        $this->_logManual('INICIANDO PROCESAMIENTO PAGO RECHAZADO (WEBHOOK_MODEL) para Compra ID: ' . $compra_pendiente->id . ', Detalle: ' . $mp_status_detail, 'mp_processor');
+        $this->_logManual('INICIANDO PROCESAMIENTO PAGO RECHAZADO (WEBHOOK_MODEL) para Compra ID: ' . $compra_pendiente->id . ', Detalle: ' . $mp_status_detail, 'webhook');
 
         $this->db->trans_begin();
 
         try {
             if ($compra_pendiente->procesada == 1) {
-                $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.', 'mp_processor');
+                $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.', 'webhook');
                 $this->db->trans_rollback();
                 return true;
             }
 
-            if (!$this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'rejected', $mp_status_detail)) {
-                throw new Exception('Fallo al actualizar el estado y marcar como procesada la compra pendiente ' . $external_reference);
+            // Elimina la compra pendiente
+            if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+                log_message('error', 'PAGO RECHAZADO (WEBHOOK_MODEL): Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
             }
-            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Compra pendiente ' . $external_reference . ' actualizada a "rejected" y marcada como procesada.', 'mp_processor');
-
-            $usuario = $this->ticket_model->getUserById($compra_pendiente->id_usuario);
+            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'webhook');
             
+            $usuario = $this->ticket_model->getUserById($compra_pendiente->id_usuario);
+
             if ($usuario && $usuario->mail) {
                 $viandas_rechazadas = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
                 // Llamada al método privado dentro de este mismo modelo
-                $user_friendly_status_detail = $this->_mapMpStatusDetail($mp_status_detail); 
-                
+                $user_friendly_status_detail = $this->_mapMpStatusDetail($mp_status_detail);
+
                 $subject = "¡Pago Rechazado! - Tu compra #" . $external_reference;
-                
+
                 $dataEmail = [
                     'external_reference' => $external_reference,
                     'status_detail' => $user_friendly_status_detail,
@@ -315,32 +312,28 @@ class Webhook_model extends CI_Model {
                     'fechaHoy' => date('d/m/Y', time()),
                     'horaAhora' => date('H:i:s', time()),
                 ];
-                
-                $CI =& get_instance(); 
-                $message = $CI->load->view('general/correos/pago_rechazado', $dataEmail, true); 
+
+                $CI =& get_instance();
+                $message = $CI->load->view('general/correos/pago_rechazado', $dataEmail, true);
 
                 // Llamada a la función de envío de email desde general_model
                 if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
-                    $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Correo enviado a ' . $usuario->mail . ' para ' . $external_reference, 'mp_processor');
+                    $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Correo enviado a ' . $usuario->mail . ' para ' . $external_reference, 'webhook');
                 } else {
-                    $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Fallo al enviar correo a ' . $usuario->mail . ' para ' . $external_reference, 'mp_processor');
+                    $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Fallo al enviar correo a ' . $usuario->mail . ' para ' . $external_reference, 'webhook');
                 }
             } else {
-                $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Usuario o email no encontrado para external_reference ' . $external_reference . '. No se pudo enviar correo de rechazo.', 'mp_processor');
+                $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Usuario o email no encontrado para external_reference ' . $external_reference . '. No se pudo enviar correo de rechazo.', 'webhook');
             }
 
-            if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
-                log_message('error', 'PAGO RECHAZADO (WEBHOOK_MODEL): Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
-            }
-            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'mp_processor');
 
             $this->db->trans_commit();
-            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Transacción de DB para compra ID: ' . $compra_pendiente->id . ' COMPLETADA y COMMIT.', 'mp_processor');
+            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Transacción de DB para compra ID: ' . $compra_pendiente->id . ' COMPLETADA y COMMIT.', 'webhook');
             return true;
         } catch (Exception $e) {
             $this->db->trans_rollback();
-            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): EXCEPCIÓN: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '. Rollback de DB para compra ID: ' . $compra_pendiente->id, 'mp_processor');
-            throw $e; 
+            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): EXCEPCIÓN: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '. Rollback de DB para compra ID: ' . $compra_pendiente->id, 'webhook');
+            throw $e;
         }
     }
 }

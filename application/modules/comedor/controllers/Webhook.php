@@ -6,14 +6,14 @@ class Webhook extends CI_Controller
     public function __construct()
     {
         parent::__construct();
-        // Carga el modelo Webhook_model con el alias 'webhook_model'
+        // Carga de modelos
         $this->load->model('comedor/Webhook_model', 'webhook_model'); 
         $this->load->model('comedor/ticket_model'); 
     }
 
     /**
      * Mapea un código de estado de detalle de Mercado Pago a un mensaje más amigable para el usuario.
-     * Esta función ahora solo delega la llamada al método correspondiente en el Webhook_model.
+     * Esta función solo delega la llamada al método correspondiente en el Webhook_model.
      * @param string $mp_code El código de estado de detalle de Mercado Pago.
      * @return string Un mensaje descriptivo para el usuario.
      */
@@ -36,7 +36,7 @@ class Webhook extends CI_Controller
         $xRequestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
 
         if (empty($xSignature)) {
-            $this->webhook_model->_logManual('ERROR: Header x-signature no encontrado.', 'mp_processor');
+            $this->webhook_model->_logManual('ERROR: Header x-signature no encontrado.', 'webhook');
             return false;
         }
 
@@ -54,7 +54,7 @@ class Webhook extends CI_Controller
         }
 
         if (!$ts || !$v1) {
-            $this->webhook_model->_logManual('ERROR: ts o v1 no encontrados en x-signature.', 'mp_processor');
+            $this->webhook_model->_logManual('ERROR: ts o v1 no encontrados en x-signature.', 'webhook');
             return false;
         }
 
@@ -71,7 +71,7 @@ class Webhook extends CI_Controller
             $normalized_json_body = json_encode($data); 
 
             if ($normalized_json_body === false) {
-                 $this->webhook_model->_logManual('ERROR: Fallo al normalizar el JSON para la firma. JSON: ' . $input, 'mp_processor');
+                 $this->webhook_model->_logManual('ERROR: Fallo al normalizar el JSON para la firma. JSON: ' . $input, 'webhook');
                  return false;
             }
             $manifest = "ts:$ts;" . $normalized_json_body;
@@ -80,17 +80,17 @@ class Webhook extends CI_Controller
         $calculatedSignature = hash_hmac('sha256', $manifest, $secret_key);
 
         if (!hash_equals($calculatedSignature, $v1)) {
-            $this->webhook_model->_logManual("ERROR: Validación HMAC fallida. Calculado: $calculatedSignature, recibido: $v1. Manifiesto usado: '$manifest'", 'mp_processor');
+            $this->webhook_model->_logManual("ERROR: Validación HMAC fallida. Calculado: $calculatedSignature, recibido: $v1. Manifiesto usado: '$manifest'", 'webhook');
             return false;
         }
 
-        $this->webhook_model->_logManual('Validación HMAC exitosa.', 'mp_processor');
+        $this->webhook_model->_logManual('Validación HMAC exitosa.', 'webhook');
         return true;
     }
 
     public function mercadopago()
     {
-        $this->webhook_model->_logManual('Entré al webhook', 'mp_processor');
+        $this->webhook_model->_logManual('Entré al webhook', 'webhook');
 
         require_once FCPATH . 'vendor/autoload.php';
         $this->config->load('ticket');
@@ -100,18 +100,18 @@ class Webhook extends CI_Controller
         MercadoPago\SDK::setAccessToken($access_token);
 
         $input = file_get_contents('php://input');
-        $this->webhook_model->_logManual('Webhook recibido (RAW): ' . $input, 'mp_processor');
+        $this->webhook_model->_logManual('Webhook recibido (RAW): ' . $input, 'webhook');
 
         $data = json_decode($input, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->webhook_model->_logManual('ERROR JSON DECODE: ' . json_last_error_msg() . '. RAW: ' . $input, 'mp_processor');
+            $this->webhook_model->_logManual('ERROR JSON DECODE: ' . json_last_error_msg() . '. RAW: ' . $input, 'webhook');
             http_response_code(400);
             return;
         }
 
         if (!is_array($data) || empty($data)) {
-            $this->webhook_model->_logManual('ERROR JSON DATA: Datos vacíos o inválidos. RAW: ' . $input, 'mp_processor');
+            $this->webhook_model->_logManual('ERROR JSON DATA: Datos vacíos o inválidos. RAW: ' . $input, 'webhook');
             http_response_code(400);
             return;
         }
@@ -126,7 +126,7 @@ class Webhook extends CI_Controller
         try {
             if ((isset($data['type']) && $data['type'] == 'payment' && isset($data['data']['id']))) {
                 $payment_id = $data['data']['id'];
-                $this->webhook_model->_logManual('Webhook tipo PAYO (payment). ID de pago: ' . $payment_id, 'mp_processor');
+                $this->webhook_model->_logManual('Webhook tipo PAYO (payment). ID de pago: ' . $payment_id, 'webhook');
 
                 $payment_info = $this->ticket_model->getMercadoPagoPayment($payment_id);
 
@@ -135,61 +135,61 @@ class Webhook extends CI_Controller
                     $mp_status_from_mp = $payment_info->status;
                     $mp_status_detail = isset($payment_info->status_detail) ? $payment_info->status_detail : 'N/A';
 
-                    $this->webhook_model->_logManual('Estado de pago de MP para ' . $payment_id . ': ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). External Reference: ' . $external_reference, 'mp_processor');
+                    $this->webhook_model->_logManual('Estado de pago de MP para ' . $payment_id . ': ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). External Reference: ' . $external_reference, 'webhook');
 
                     $compra_pendiente = $this->ticket_model->getCompraPendiente($external_reference);
 
                     if ($compra_pendiente) {
                         $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, $mp_status_from_mp, $mp_status_detail);
-                        $this->webhook_model->_logManual('Actualizado mp_estado de compra_pendiente ' . $compra_pendiente->id . ' a: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'mp_processor');
+                        $this->webhook_model->_logManual('Actualizado mp_estado de compra_pendiente ' . $compra_pendiente->id . ' a: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
 
                         switch ($mp_status_from_mp) {
                             case 'approved':
                                 if ($this->webhook_model->procesarPagoAprobado($compra_pendiente, $payment_info)) {
-                                    $this->webhook_model->_logManual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' procesada y marcada.', 'mp_processor');
+                                    $this->webhook_model->_logManual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' procesada y marcada.', 'webhook');
                                 } else {
-                                    $this->webhook_model->_logManual('PAGO APROBADO: Fallo al procesar pago aprobado para compra ' . $compra_pendiente->id . '.', 'mp_processor');
+                                    $this->webhook_model->_logManual('PAGO APROBADO: Fallo al procesar pago aprobado para compra ' . $compra_pendiente->id . '.', 'webhook');
                                 }
                                 break;
 
                             case 'rejected':
                             case 'cancelled':
                             case 'expired_by_date_cutoff':
-                                $this->webhook_model->_logManual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'mp_processor');
+                                $this->webhook_model->_logManual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
                                 if ($this->webhook_model->procesarPagoRechazado($compra_pendiente, $payment_info)) {
-                                    $this->webhook_model->_logManual('PAGO RECHAZADO: Compra ' . $compra_pendiente->id . ' procesada como rechazada.', 'mp_processor');
+                                    $this->webhook_model->_logManual('PAGO RECHAZADO: Compra ' . $compra_pendiente->id . ' procesada como rechazada.', 'webhook');
                                 } else {
-                                    $this->webhook_model->_logManual('PAGO RECHAZADO: Fallo al procesar pago rechazado para compra ' . $compra_pendiente->id . '.', 'mp_processor');
+                                    $this->webhook_model->_logManual('PAGO RECHAZADO: Fallo al procesar pago rechazado para compra ' . $compra_pendiente->id . '.', 'webhook');
                                 }
                                 break;
 
                             case 'pending':
                             case 'in_process':
-                                $this->webhook_model->_logManual('PAGO PENDIENTE/EN PROCESO: Notificación para compra pendiente ' . $compra_pendiente->id . '. Estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). Se espera confirmación futura.', 'mp_processor');
+                                $this->webhook_model->_logManual('PAGO PENDIENTE/EN PROCESO: Notificación para compra pendiente ' . $compra_pendiente->id . '. Estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . '). Se espera confirmación futura.', 'webhook');
                                 $this->session->unset_userdata('external_reference');
                                 $this->session->unset_userdata('error_compra'); 
                                 break;
 
                             default:
-                                $this->webhook_model->_logManual('ESTADO DESCONOCIDO/NO MANEJADO (para acciones): Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'mp_processor');
+                                $this->webhook_model->_logManual('ESTADO DESCONOCIDO/NO MANEJADO (para acciones): Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
                                 break;
                         }
                     } else {
-                        $this->webhook_model->_logManual('ADVERTENCIA: Compra pendiente no encontrada para external_reference: ' . $external_reference . '. ID de pago: ' . $payment_id, 'mp_processor');
+                        $this->webhook_model->_logManual('ADVERTENCIA: Compra pendiente no encontrada para external_reference: ' . $external_reference . '. ID de pago: ' . $payment_id, 'webhook');
                     }
                 } else {
-                    $this->webhook_model->_logManual('ADVERTENCIA: No se pudo obtener la información de pago de MP para ID: ' . $payment_id, 'mp_processor');
+                    $this->webhook_model->_logManual('ADVERTENCIA: No se pudo obtener la información de pago de MP para ID: ' . $payment_id, 'webhook');
                 }
             } else {
-                $this->webhook_model->_logManual("Webhook recibido con formato desconocido o tipo no 'payment' (o sin data.id): " . $input, 'mp_processor');
+                $this->webhook_model->_logManual("Webhook recibido con formato desconocido o tipo no 'payment' (o sin data.id): " . $input, 'webhook');
             }
 
-            $this->webhook_model->_logManual('Proceso de webhook completado exitosamente.', 'mp_processor');
+            $this->webhook_model->_logManual('Proceso de webhook completado exitosamente.', 'webhook');
             http_response_code(200); 
             return;
 
         } catch (Exception $e) {
-            $this->webhook_model->_logManual('EXCEPCIÓN EN EL WEBHOOK: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '.', 'mp_processor');
+            $this->webhook_model->_logManual('EXCEPCIÓN EN EL WEBHOOK: ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine() . '.', 'webhook');
             http_response_code(500);
             return;
         }
