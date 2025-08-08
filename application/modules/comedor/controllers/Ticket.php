@@ -751,6 +751,8 @@ class Ticket extends CI_Controller
                     $dataRecivo['fechaHoy'] = date('d/m/Y', time());
                     $dataRecivo['horaAhora'] = date('H:i:s', time());
                     $dataRecivo['recivoNumero'] = $id_transaccion_real;
+                    $dataRecivo['nombreCliente'] = $usuario->nombre;
+                    
 
                     $subject = "Recibo de devolucion del comedor";
                     $message = $this->load->view('general/correos/recibo_devolucion', $dataRecivo, true);
