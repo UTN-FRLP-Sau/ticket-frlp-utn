@@ -665,7 +665,8 @@ class Ticket extends CI_Controller
                 $n_devolucion = 0; // Contador de devoluciones exitosas
                 $monto_total_devolucion = 0; // Suma total del dinero a devolver
                 $log_compras_insertadas_ids = []; // Para guardar IDs temporales de log_compra
-
+                $compras_devueltas_para_recibo = [];
+                
                 foreach ($ids_a_devolver as $id_compra) {
                     $compra = $this->ticket_model->getCompraById($id_compra); // Obtiene los detalles de la compra por su ID
 
@@ -702,6 +703,8 @@ class Ticket extends CI_Controller
 
                                 $n_devolucion++; // Incrementa el contador de devoluciones
                                 $monto_total_devolucion += $compra->precio; // Suma el precio de esta vianda al total a devolver
+                                $compras_devueltas_para_recibo[] = $compra;
+                                
                                 log_message('debug', 'DevolverCompra: Compra ID ' . $id_compra . ' procesada para devolución (eliminada).');
                             } else {
                                 log_message('error', 'DevolverCompra: Falló el proceso de eliminación de la compra ID: ' . $id_compra);
