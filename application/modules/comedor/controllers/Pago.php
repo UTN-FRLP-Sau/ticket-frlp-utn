@@ -51,7 +51,7 @@ class Pago extends CI_Controller
         $hayViandaInvalida = false;
         if (is_array($viandas_en_compra)) { // Asegurarse de que $viandas_en_compra sea un array
             foreach ($viandas_en_compra as $vianda) {
-                if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) { // Usar 'dia_comprado' si es la clave en el JSON
+                if (!$this->ticket_model->esFechaViandaAunOrdenable($vianda['dia_comprado'])) {
                     $hayViandaInvalida = true;
                     log_message('warning', 'PAGO: Vianda ' . $vianda['dia_comprado'] . ' de la compra ' . $external_reference . ' no es válida en el momento del pago.');
                     break; // Una vianda inválida es suficiente para cancelar toda la compra
