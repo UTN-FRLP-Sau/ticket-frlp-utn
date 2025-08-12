@@ -71,7 +71,7 @@
                     <p>
                         Ante cualquier duda o consulta con la página, menú o cuestión del comedor,
                         trasladarla a través del siguiente mail: 
-                        <a href="mailto:sau@frlp.utn.edu.ar">sau@frlp.utn.edu.ar</a>
+                        <a href="mailto:comedor@frlp.utn.edu.ar">comedor@frlp.utn.edu.ar</a>
                     </p>
                 </div>
             </div>
