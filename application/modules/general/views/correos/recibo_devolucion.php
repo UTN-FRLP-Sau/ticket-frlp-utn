@@ -55,7 +55,15 @@
                         <tr>
                             <td><?= date('d-m-Y', strtotime($compra->dia_comprado)); ?></td>
                             <td><?= $dias[date('N', strtotime($compra->dia_comprado)) - 1]; ?></td>
-                            <td><?= $compra->turno; ?></td>
+                            <td>
+                                <?php
+                                if (strpos($compra->turno, 'manana') !== false) {
+                                    echo 'mañana';
+                                } else {
+                                    echo $compra->turno;
+                                }
+                                ?>
+                            </td>
                             <td><?= $compra->menu; ?></td>
                             <td>$<?= number_format((float)$compra->precio, 2, '.', ','); ?></td>
                         </tr>
