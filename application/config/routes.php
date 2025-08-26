@@ -69,6 +69,7 @@ $route['logout'] = 'usuario/login/logout';
 $route['usuario/recovery'] = 'usuario/login/passwordRecoveryRequest';
 $route['usuario/recovery/(:any)'] = 'usuario/login/newPasswordRequest';
 
+$route['usuario/registro'] = 'usuario/registro/registro';
 $route['contacto'] = 'comedor/contacto/index';
 $route['faq'] = 'comedor/faq/index';
 $route['menu'] = 'comedor/menu/index';
@@ -84,6 +85,7 @@ $route['dbmigrate'] = 'admin/migrate/index';
 $route['admin'] = 'admin/vendedor/index';
 $route['admin/login'] = 'admin/login/index';
 $route['admin/nuevo_usuario'] = 'admin/vendedor/createUser';
+
 $route['admin/cargar_saldo'] = 'admin/vendedor/cargarSaldo';
 $route['admin/cargar_saldo/succes'] = 'admin/vendedor/cargarSaldoSucces';
 $route['admin/modificar_usuario/(:num)'] = 'admin/vendedor/updateUser/$1';
@@ -97,11 +99,15 @@ $route['admin/menu'] = 'admin/vendedor/updateMenu';
 $route['admin/ver_comentarios'] = 'admin/administrador/ver_comentarios';
 // $route['admin/ver_historial_menu'] = 'admin/vendedor/ver_historial_menu';
 
+$route['admin/aprobar_usuario'] = 'admin/administrador/aprobar_usuario';
 $route['admin/crear_vendedor'] = 'admin/administrador/createVendedor';
 $route['admin/csv_carga'] = 'admin/administrador/cargar_archivo_csv';
 $route['admin/csv_confirmar_carga'] = 'admin/administrador/confirmarCargasCVS';
 $route['admin/configuracion/periodos'] = 'admin/administrador/configuracion_general';
 $route['admin/configuracion/precios'] = 'admin/administrador/configuracion_costos';
+
+$route['admin/cambiar_correo_contacto'] = 'admin/administrador/cambiar_email';
+
 $route['admin/configuracion/feriados_list/(:num)'] = 'admin/administrador/feriados_list';
 $route['admin/configuracion/feriados_list/(:num)/d/(:num)'] = 'admin/administrador/borrar_feriado';
 $route['admin/conf/feriados/add/fecha'] = 'admin/administrador/add_feriado';

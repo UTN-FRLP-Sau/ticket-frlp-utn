@@ -798,4 +798,141 @@ class Administrador extends CI_Controller
             }
         }
     }
+
+    public function aprobar_usuario()
+    {
+        // Obtengo la lista de usuarios con estado 0 (pendientes)
+        $data['usuarios_pendientes'] = $this->administrador_model->getUsuariosByEstado(0);
+
+        $data['titulo'] = 'Aprobar Usuarios';
+        
+        $this->load->view('header', $data);
+        $this->load->view('admin/aprobar_usuario_view', $data);
+        $this->load->view('general/footer');
+    }
+
+public function aprobar($usuario_id)
+{
+    $estado = 1; // estado 'activo' para reflejar la aprobación
+
+    if ($this->administrador_model->updateEstado($usuario_id, $estado)) {
+
+        // Obtengo los datos del usuario para el correo. 
+        $usuario = $this->administrador_model->getUsuario($usuario_id);
+
+        if ($usuario) {
+            // Obtengo el correo de contacto desde el modelo
+            $configuracion = $this->administrador_model->obtener_configuracion();
+            $correo_contacto = $configuracion->correo_contacto;
+
+            // Preparo los datos y el mensaje del correo
+            $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
+            $dataEmail['user_email'] = $usuario->mail;
+            $dataEmail['correo_contacto'] = $correo_contacto;
+
+            $subject = "Cuenta Aprobada - Comedor UTN-FRLP";
+
+            // Cargo la vista del correo con los datos y almacenarla en una variable
+            $message = $this->load->view('general/correos/aprobacion_usuario', $dataEmail, true);
+
+            // envio del correo usando `generalticket`
+            if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                $this->session->set_flashdata('success', 'Usuario aprobado y correo de notificación enviado.');
+                log_message('info', 'Usuario ' . $usuario_id . ' aprobado. Correo enviado a ' . $usuario->mail);
+            } else {
+                $this->session->set_flashdata('error', 'Usuario aprobado, pero no se pudo enviar el correo de notificación.');
+                log_message('error', 'Usuario ' . $usuario_id . ' aprobado. Fallo al enviar correo a ' . $usuario->mail);
+            }
+        } else {
+            $this->session->set_flashdata('error', 'Error: Usuario no encontrado para enviar el correo.');
+        }
+    } else {
+        $this->session->set_flashdata('error', 'No se pudo actualizar el estado del usuario en la base de datos.');
+    }
+
+    // Redirige de vuelta a la pagina de usuarios pendientes
+    redirect('admin/aprobar_usuario');
+}
+
+
+public function rechazar($usuario_id)
+{
+    // 1. Obtengo los datos del usuario ANTES de eliminarlo
+    $usuario = $this->administrador_model->getUsuario($usuario_id);
+    
+    if ($usuario) {
+        // ELimina el usuario de la bd
+        if ($this->administrador_model->eliminarUsuario($usuario_id)) {
+            
+            // Obtengo el correo de contacto desde el modelo
+            $configuracion = $this->administrador_model->obtener_configuracion();
+            $correo_contacto = $configuracion->correo_contacto;
+
+            // Preparo los datos y el mensaje del correo
+            $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
+            $dataEmail['user_email'] = $usuario->mail;
+            $dataEmail['correo_contacto'] = $correo_contacto;
+            
+            $subject = "Solicitud de Registro Rechazada - Comedor UTN-FRLP";
+            
+            // Cargo la vista del correo con los datos
+            $message = $this->load->view('general/correos/rechazo_usuario', $dataEmail, true);
+            
+            // envio del correo usando `generalticket`
+            if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                $this->session->set_flashdata('success', 'Usuario rechazado y correo de notificación enviado.');
+                log_message('info', 'Usuario ' . $usuario_id . ' eliminado. Correo enviado a ' . $usuario->mail);
+            } else {
+                $this->session->set_flashdata('error', 'Usuario rechazado, pero no se pudo enviar el correo de notificación.');
+                log_message('error', 'Usuario ' . $usuario_id . ' eliminado. Fallo al enviar correo a ' . $usuario->mail);
+            }
+        } else {
+            $this->session->set_flashdata('error', 'No se pudo eliminar el usuario de la base de datos.');
+        }
+    } else {
+        $this->session->set_flashdata('error', 'Error: Usuario no encontrado.');
+    }
+    
+    // Redirige de vuelta a la pagina de usuarios pendientes
+    redirect('admin/aprobar_usuario');
+}
+
+    public function cambiar_email()
+    {
+        $this->load->library('form_validation');
+        $this->load->model('Administrador_model');
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            // reglas de validación
+            $this->form_validation->set_rules('nuevo_correo', 'Nuevo Correo', 'required|trim|valid_email');
+            $this->form_validation->set_message('required', 'El campo %s es obligatorio.');
+            $this->form_validation->set_message('valid_email', 'El campo %s debe ser una dirección de correo válida.');
+
+            if ($this->form_validation->run() === FALSE) {
+                // Si la validación falla, se carga la vista de nuevo con los errores
+                $data['titulo'] = 'Cambiar Correo de Contacto';
+                $data['configuracion'] = $this->Administrador_model->obtener_configuracion();
+                $this->load->view('header');
+                $this->load->view('admin/configuracion_correo_contacto', $data);
+                $this->load->view('general/footer');
+            } else {
+                // Si la validación es exitosa, se actualiza la base de datos
+                $nuevo_correo = $this->input->post('nuevo_correo');
+                if ($this->Administrador_model->actualizar_email_contacto($nuevo_correo)) {
+                    $this->session->set_flashdata('success', 'El correo de contacto se actualizó correctamente.');
+                } else {
+                    $this->session->set_flashdata('error', 'Ocurrió un error al actualizar el correo de contacto.');
+                }
+                // Redirige para evitar re-envíos del formulario
+                redirect('admin/cambiar_correo_contacto');
+            }
+        } else {
+            // Si no es un POST (es un GET), solo muestra el formulario
+            $data['titulo'] = 'Cambiar Correo de Contacto';
+            $data['configuracion'] = $this->Administrador_model->obtener_configuracion();
+            $this->load->view('header');
+            $this->load->view('admin/configuracion_correo_contacto', $data);
+            $this->load->view('general/footer');
+        }
+    }
 }

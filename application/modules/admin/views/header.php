@@ -112,51 +112,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="<?= base_url('admin/menu'); ?>"><i class="bi bi-journal-text me-1"></i> Menú</a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button"
-                                data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle me-1"></i><?= $this->session->userdata('apellido'); ?>, <?= $this->session->userdata('nombre'); ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAdmin">
-                                <?php if (in_array($this->session->userdata('admin_lvl'), [2])) : ?>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url("admin/repartidor/historial/".time()); ?>">
-                                        <i class="bi bi-clipboard-check me-1"></i> Asistencia
-                                    </a>
-                                </li>
-                                <?php endif; ?>
-                                <?php if (in_array($this->session->userdata('admin_lvl'), [0,1])) : ?>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url('admin/historial'); ?>">
-                                        <i class="bi bi-clock-history me-1"></i> Historial de cargas
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url('admin/nuevo_usuario'); ?>">
-                                        <i class="bi bi-person-plus me-1"></i> Crear nuevo usuario
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url('admin/listados'); ?>">
-                                        <i class="bi bi-download me-1"></i> Descargar Listados
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url('admin/informe'); ?>">
-                                        <i class="bi bi-cash-stack me-1"></i> Cierre de Caja
-                                    </a>
-                                </li>
-                                <?php endif; ?>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= base_url('logout'); ?>">
-                                        <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+
                         <?php if ($this->session->userdata('admin_lvl') == 1) : ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdminConfig" role="button"
@@ -208,8 +164,64 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/cambiar_correo_contacto'); ?>">
+                                        <i class="bi bi-envelope me-1"></i> Cambiar Correo de contacto
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item" href="<?= base_url('admin/configuracion/precios'); ?>">
                                         <i class="bi bi-currency-dollar me-1"></i> Precios
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i><?= $this->session->userdata('apellido'); ?>, <?= $this->session->userdata('nombre'); ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAdmin">
+                                <?php if (in_array($this->session->userdata('admin_lvl'), [2])) : ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url("admin/repartidor/historial/".time()); ?>">
+                                        <i class="bi bi-clipboard-check me-1"></i> Asistencia
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <?php if (in_array($this->session->userdata('admin_lvl'), [0,1])) : ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/historial'); ?>">
+                                        <i class="bi bi-clock-history me-1"></i> Historial de cargas
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/nuevo_usuario'); ?>">
+                                        <i class="bi bi-person-plus me-1"></i> Crear nuevo usuario
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/aprobar_usuario'); ?>">
+                                        <i class="bi bi-check2-circle me-1"></i> Aprobar Usuarios
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/listados'); ?>">
+                                        <i class="bi bi-download me-1"></i> Descargar Listados
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/informe'); ?>">
+                                        <i class="bi bi-cash-stack me-1"></i> Cierre de Caja
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('logout'); ?>">
+                                        <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
                                     </a>
                                 </li>
                             </ul>

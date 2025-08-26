@@ -90,4 +90,31 @@ class Usuario_model extends CI_Model
         $query = $this->db->get('cargasvirtuales');
         return $query->result();
     }
+
+    
+    /**
+     * @param array $data_usuario
+     * @return bool
+     * Registra un nuevo usuario en la base de datos.
+     */
+    public function registrar_usuario($data_usuario) {
+        $datos_a_insertar = array(
+            'nombre'           => $data_usuario['nombre'],
+            'apellido'         => $data_usuario['apellido'],
+            'documento'        => $data_usuario['documento'],
+            'legajo'           => $data_usuario['legajo'],
+            'mail'             => $data_usuario['mail'],
+            'pass'             => $data_usuario['pass'],
+            'tipo'             => $data_usuario['tipo'],
+            'especialidad'     => $data_usuario['especialidad'],
+            'certificado_path' => $data_usuario['certificado_path'],
+            'estado'           => 0,
+            'saldo'            => 0,
+            'id_precio'        => $data_usuario['id_precio'],
+        );
+        
+        $this->db->insert('usuarios', $datos_a_insertar);
+        return ($this->db->affected_rows() > 0);
+    }
+
 }

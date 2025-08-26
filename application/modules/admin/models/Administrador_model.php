@@ -348,4 +348,92 @@ class Administrador_model extends CI_Model
         $this->db->delete('cargasvirtuales');
         return true;
     }
+
+    public function getUsuariosByEstado($estado)
+    {
+        $this->db->where('estado', $estado);
+        $query = $this->db->get('usuarios');
+        return $query->result();
+    }
+
+    public function updateEstado($id_usuario, $estado)
+    {
+        $this->db->set('estado', $estado);
+        $this->db->where('id', $id_usuario);
+        $this->db->update('usuarios');
+        return ($this->db->affected_rows() > 0);
+    }
+/**
+     * Elimina un usuario de la base de datos y su certificado asociado.
+     *
+     * @param int $id_usuario El ID del usuario a eliminar.
+     * @return bool True si se eliminó una fila, false si no.
+     */
+    public function eliminarUsuario($id_usuario)
+    {
+        // Obtengo la ruta del certificado
+        $this->db->select('certificado_path');
+        $this->db->where('id', $id_usuario);
+        $query = $this->db->get('usuarios');
+        $usuario_data = $query->row();
+
+        // elimino el usuario
+        $this->db->where('id', $id_usuario);
+        $this->db->delete('usuarios');
+
+        //  Verifico si se elimino alguna fila en la bd
+        if ($this->db->affected_rows() > 0) {
+
+            // Si la eliminación de la base de datos fue exitosa, intento eliminar el archivo
+            if ($usuario_data && !empty($usuario_data->certificado_path)) {
+                $file_path = $usuario_data->certificado_path;
+
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+            }
+            return TRUE;
+        }
+
+        return FALSE;
+    }
+
+    public function getUsuario($id_usuario)
+    {
+        $this->db->where('id', $id_usuario);
+        $query = $this->db->get('usuarios');
+
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtiene la fila de configuración de la base de datos.
+     * Se usa para obtener el correo de contacto actual.
+     *
+     * @return object|null Objeto que contiene los datos de configuración o null si no se encuentra.
+     */
+    public function obtener_configuracion()
+    {
+        $query = $this->db->get('configuracion');
+        return $query->row();
+    }
+    
+    /**
+     * Actualiza el correo de contacto en la tabla de configuración.
+     *
+     * @param string $nuevo_correo El nuevo correo a guardar.
+     * @return bool True si se actualizó una fila, false si no.
+     */
+    public function actualizar_email_contacto($nuevo_correo)
+    {
+        // Asumiendo que la tabla 'configuracion' tiene una sola fila de configuración
+        $this->db->set('correo_contacto', $nuevo_correo);
+        $this->db->update('configuracion');
+
+        return ($this->db->affected_rows() > 0);
+    }
 }
