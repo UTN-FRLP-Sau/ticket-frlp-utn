@@ -53,7 +53,7 @@ class Registro extends CI_Controller {
                 }
 
                 $config['upload_path']   = $upload_path;
-                $config['allowed_types'] = 'gif|jpg|jpeg|png|pdf';
+                $config['allowed_types'] = 'jpg|jpeg|png|pdf';
                 $config['max_size']      = 8192; // (8 MB)
                 $config['encrypt_name']  = TRUE;
                 
