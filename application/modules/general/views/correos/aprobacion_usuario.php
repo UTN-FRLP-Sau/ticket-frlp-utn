@@ -26,7 +26,7 @@
             <p style="text-align: center;">
                 <a href="<?= base_url('login'); ?>" class="button">Ir a Iniciar Sesión</a>
             </p>
-            <p>Si tienes alguna pregunta, no dudes en contactarnos en 
+            <p>Si tienes alguna pregunta, por favor comunícate a 
                 <a href="mailto:<?= htmlspecialchars($correo_contacto); ?>"><?= htmlspecialchars($correo_contacto); ?></a>.
             </p>
         </div>
