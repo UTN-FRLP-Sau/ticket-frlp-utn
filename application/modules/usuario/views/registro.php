@@ -153,7 +153,7 @@
                     <div class="col-12">
                         <label for="userfile" class="form-label">Adjuntar Certificado de Alumno Regular (PDF o imagen)</label>
                         <input class="form-control" type="file" id="userfile" name="userfile">
-                        <div class="form-text">El archivo puede ser .pdf, .jpg, .jpeg, o .png. Tamaño máximo 2MB.</div>
+                        <div class="form-text">El archivo puede ser .pdf, .jpg, .jpeg, o .png. Tamaño máximo 8MB.</div>
                     </div>
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-success">Registrarme</button>

@@ -811,53 +811,54 @@ class Administrador extends CI_Controller
         $this->load->view('general/footer');
     }
 
-public function aprobar($usuario_id)
-{
-    $estado = 1; // estado 'activo' para reflejar la aprobación
+    public function aprobar($usuario_id)
+    {
+        $estado = 1; // estado 'activo' para reflejar la aprobación
 
-    if ($this->administrador_model->updateEstado($usuario_id, $estado)) {
-
-        // Obtengo los datos del usuario para el correo. 
         $usuario = $this->administrador_model->getUsuario($usuario_id);
 
         if ($usuario) {
-            // Obtengo el correo de contacto desde el modelo
-            $configuracion = $this->administrador_model->obtener_configuracion();
-            $correo_contacto = $configuracion->correo_contacto;
+            if ($this->administrador_model->updateEstado($usuario_id, $estado)) {
 
-            // Preparo los datos y el mensaje del correo
-            $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
-            $dataEmail['user_email'] = $usuario->mail;
-            $dataEmail['correo_contacto'] = $correo_contacto;
+                $this->administrador_model->eliminarCertificado($usuario_id);
 
-            $subject = "Cuenta Aprobada - Comedor UTN-FRLP";
+                // Obtengo el correo de contacto desde el modelo
+                $configuracion = $this->administrador_model->obtener_configuracion();
+                $correo_contacto = $configuracion->correo_contacto;
 
-            // Cargo la vista del correo con los datos y almacenarla en una variable
-            $message = $this->load->view('general/correos/aprobacion_usuario', $dataEmail, true);
+                // Preparo los datos y el mensaje del correo
+                $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
+                $dataEmail['user_email'] = $usuario->mail;
+                $dataEmail['correo_contacto'] = $correo_contacto;
 
-            // envio del correo usando `generalticket`
-            if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
-                $this->session->set_flashdata('success', 'Usuario aprobado y correo de notificación enviado.');
-                log_message('info', 'Usuario ' . $usuario_id . ' aprobado. Correo enviado a ' . $usuario->mail);
+                $subject = "Cuenta Aprobada - Comedor UTN-FRLP";
+
+                // Cargo la vista del correo con los datos y almacenarla en una variable
+                $message = $this->load->view('general/correos/aprobacion_usuario', $dataEmail, true);
+
+                // Envio del correo usando `generalticket`
+                if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                    $this->session->set_flashdata('success', 'Usuario aprobado y correo de notificación enviado.');
+                    log_message('info', 'Usuario ' . $usuario_id . ' aprobado. Correo enviado a ' . $usuario->mail);
+                } else {
+                    $this->session->set_flashdata('error', 'Usuario aprobado, pero no se pudo enviar el correo de notificación.');
+                    log_message('error', 'Usuario ' . $usuario_id . ' aprobado. Fallo al enviar correo a ' . $usuario->mail);
+                }
             } else {
-                $this->session->set_flashdata('error', 'Usuario aprobado, pero no se pudo enviar el correo de notificación.');
-                log_message('error', 'Usuario ' . $usuario_id . ' aprobado. Fallo al enviar correo a ' . $usuario->mail);
+                $this->session->set_flashdata('error', 'No se pudo actualizar el estado del usuario en la base de datos.');
             }
         } else {
-            $this->session->set_flashdata('error', 'Error: Usuario no encontrado para enviar el correo.');
+            $this->session->set_flashdata('error', 'Error: Usuario no encontrado.');
         }
-    } else {
-        $this->session->set_flashdata('error', 'No se pudo actualizar el estado del usuario en la base de datos.');
+
+        // Redirige de vuelta a la pagina de usuarios pendientes
+        redirect('admin/aprobar_usuario');
     }
 
-    // Redirige de vuelta a la pagina de usuarios pendientes
-    redirect('admin/aprobar_usuario');
-}
 
 
 public function rechazar($usuario_id)
 {
-    // 1. Obtengo los datos del usuario ANTES de eliminarlo
     $usuario = $this->administrador_model->getUsuario($usuario_id);
     
     if ($usuario) {

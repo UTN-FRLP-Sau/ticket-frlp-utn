@@ -363,7 +363,30 @@ class Administrador_model extends CI_Model
         $this->db->update('usuarios');
         return ($this->db->affected_rows() > 0);
     }
-/**
+
+    public function eliminarCertificado($id_usuario)
+    {
+        $this->db->select('certificado_path');
+        $this->db->where('id', $id_usuario);
+        $query = $this->db->get('usuarios');
+        $usuario_data = $query->row();
+
+        if ($usuario_data && !empty($usuario_data->certificado_path)) {
+            $file_path = $usuario_data->certificado_path;
+
+            if (file_exists($file_path)) {
+                unlink($file_path);
+            }
+        }
+        // Limpia el campo certificado_path en la base de datos
+        $this->db->set('certificado_path', null);
+        $this->db->where('id', $id_usuario);
+        $this->db->update('usuarios');
+
+        return $this->db->affected_rows() > 0;
+    }
+
+    /**
      * Elimina un usuario de la base de datos y su certificado asociado.
      *
      * @param int $id_usuario El ID del usuario a eliminar.
@@ -371,27 +394,15 @@ class Administrador_model extends CI_Model
      */
     public function eliminarUsuario($id_usuario)
     {
-        // Obtengo la ruta del certificado
-        $this->db->select('certificado_path');
-        $this->db->where('id', $id_usuario);
-        $query = $this->db->get('usuarios');
-        $usuario_data = $query->row();
+        // Llama a la función que borra el archivo y limpia el campo en la BD
+        $this->eliminarCertificado($id_usuario);
 
-        // elimino el usuario
+        // Ahora, elimina el usuario de la base de datos
         $this->db->where('id', $id_usuario);
         $this->db->delete('usuarios');
 
-        //  Verifico si se elimino alguna fila en la bd
+        // Verifica si se eliminó alguna fila en la BD
         if ($this->db->affected_rows() > 0) {
-
-            // Si la eliminación de la base de datos fue exitosa, intento eliminar el archivo
-            if ($usuario_data && !empty($usuario_data->certificado_path)) {
-                $file_path = $usuario_data->certificado_path;
-
-                if (file_exists($file_path)) {
-                    unlink($file_path);
-                }
-            }
             return TRUE;
         }
 
