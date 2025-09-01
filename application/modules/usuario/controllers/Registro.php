@@ -16,7 +16,8 @@ class Registro extends CI_Controller {
         $this->form_validation->set_rules('apellido', 'Apellido', 'required|trim|min_length[2]|max_length[50]');
         $this->form_validation->set_rules('dni', 'DNI', 'required|trim|numeric|max_length[20]|is_unique[usuarios.documento]');
         $this->form_validation->set_rules('legajo', 'Legajo', 'required|trim|numeric|is_unique[usuarios.legajo]');
-        $this->form_validation->set_rules('email', 'Correo Electrónico', 'required|trim|valid_email|is_unique[usuarios.mail]');
+        $this->form_validation->set_rules('email', 'Correo Electrónico', 'required|trim|valid_email|is_unique[usuarios.mail]|matches[email_conf]');
+        $this->form_validation->set_rules('email_conf', 'Confirmar Correo Electrónico', 'required');
         $this->form_validation->set_rules('password', 'Contraseña', 'required|min_length[6]|matches[passconf]');
         $this->form_validation->set_rules('passconf', 'Confirmar Contraseña', 'required');
         $this->form_validation->set_rules('claustro', 'Claustro', 'required|in_list[Alumno,No docente,Docente]');
@@ -29,7 +30,7 @@ class Registro extends CI_Controller {
         $this->form_validation->set_message('exact_length', 'El campo %s debe tener exactamente %s dígitos.');
         $this->form_validation->set_message('valid_email', 'El campo %s debe ser una dirección de correo válida.');
         $this->form_validation->set_message('is_unique', 'El %s ya está registrado.');
-        $this->form_validation->set_message('matches', 'Las contraseñas no coinciden.');
+        $this->form_validation->set_message('matches', 'Los campos de %s no coinciden.');
         $this->form_validation->set_message('in_list', 'El campo %s debe ser uno de los valores permitidos.');
 
         $data = array();

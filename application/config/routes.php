@@ -118,6 +118,7 @@ $route['admin/compras/devolver/(:num)/(:num)'] = 'admin/administrador/devolver_c
 $route['admin/configuracion/links'] = 'admin/administrador/listar_link_pagos';
 $route['admin/configuracion/links/add'] = 'admin/administrador/add_link_pago';
 $route['admin/configuracion/links/rm'] = 'admin/administrador/remove_link_pago';
+$route['admin/configuracion/instructivo'] = 'admin/administrador/instructivo';
 $route['admin/cargasvirtuales/list'] = 'admin/administrador/cargas_virtuales_all_list';
 $route['admin/cargasvirtuales/list/(:any)'] = 'admin/administrador/cargas_virtuales_all_list/$1';
 $route['admin/cargasvirtuales/list/(:any)/aprobar'] = 'admin/administrador/carga_virtual_ok/$1';

@@ -36,13 +36,13 @@
           text-decoration: none !important;
       }
       .nav-link.dropdown-toggle {
-            display: flex !important;
-            justify-content: center;
-            align-items: center;
-            min-width: 180px;
-            text-align: center;
-            white-space: nowrap;
-        }
+          display: flex !important;
+          justify-content: center;
+          align-items: center;
+          min-width: 180px;
+          text-align: center;
+          white-space: nowrap;
+      }
       .nav-link:hover, .nav-link:focus {
           color: #0094e9ff !important;
           background-color: rgba(255, 255, 255, 0.05);
@@ -106,9 +106,12 @@
 
         <div class="collapse navbar-collapse" id="navbarHeader">
             <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('usuario'); ?>"><i class="bi bi-cart-plus me-1"></i> Comprar</a>
-                </li>
+                <?php if ($this->session->userdata('id_usuario')) : ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= base_url('usuario'); ?>"><i class="bi bi-cart-plus me-1"></i> Comprar</a>
+                    </li>
+                <?php endif; ?>
+
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('menu'); ?>"><i class="bi bi-journal-text me-1"></i> Menú</a>
                 </li>
@@ -117,6 +120,10 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('contacto'); ?>"><i class="bi bi-envelope me-1"></i> Contacto</a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('uploads/instructivo/instructivo_compra.pdf'); ?>" target="_blank"><i class="bi bi-file-earmark-pdf me-1"></i> Instructivo</a>
                 </li>
 
                 <?php if ($this->session->userdata('id_usuario')) : ?>
@@ -135,6 +142,10 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?= base_url('logout'); ?>"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</a></li>
                         </ul>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= base_url('usuario/login'); ?>"><i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión</a>
                     </li>
                 <?php endif; ?>
             </ul>

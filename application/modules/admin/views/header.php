@@ -164,6 +164,11 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="dropdown-item" href="<?= base_url('admin/configuracion/instructivo'); ?>">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> Cargar Instructivo de Compra
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item" href="<?= base_url('admin/cambiar_correo_contacto'); ?>">
                                         <i class="bi bi-envelope me-1"></i> Cambiar Correo de contacto
                                     </a>

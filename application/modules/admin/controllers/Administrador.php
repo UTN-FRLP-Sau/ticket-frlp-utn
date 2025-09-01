@@ -936,4 +936,44 @@ public function rechazar($usuario_id)
             $this->load->view('general/footer');
         }
     }
+
+
+    public function instructivo() {
+
+        $upload_path = FCPATH . 'uploads/instructivo/';
+
+        // Verifica y crea la carpeta si no existe, con permisos 0777
+        if (!is_dir($upload_path)) {
+            mkdir($upload_path, 0777, TRUE);
+        }
+        // Si la solicitud es POST, procesa la subida del archivo.
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            $config['upload_path']   = './uploads/instructivo/';
+            $config['allowed_types'] = 'pdf';
+            $config['max_size']      = 20480; // 20MB
+            $config['file_name']     = 'instructivo_compra.pdf';
+            $config['overwrite']     = TRUE;
+
+            $this->load->library('upload', $config);
+
+            if (!$this->upload->do_upload('instructivo_pdf')) {
+                // Si hay un error al subir, se guarda el mensaje en la sesión flash.
+                $this->session->set_flashdata('error', $this->upload->display_errors('', ''));
+            } else {
+                // Si la subida es exitosa, se guarda el mensaje de éxito.
+                $this->session->set_flashdata('success', 'El instructivo se cargó correctamente.');
+            }
+
+            redirect(current_url());
+        }
+
+        $data['titulo'] = 'Cargar Instructivo';
+        
+        $file_path = FCPATH . 'uploads/instructivo/instructivo_compra.pdf';
+        $data['instructivo_actual'] = file_exists($file_path);
+        
+        $this->load->view('header', $data);
+        $this->load->view('admin/subir_instructivo_view', $data);
+        $this->load->view('general/footer');
+    }
 }
