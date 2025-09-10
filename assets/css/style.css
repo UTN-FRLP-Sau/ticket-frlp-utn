@@ -491,6 +491,7 @@ body {
 .text-muted {
     color: #323232 !important;
 }
+
 .navbar-nav .dropdown-menu {
     min-width: auto;
     max-width: calc(100vw - 20px);
@@ -507,6 +508,7 @@ body {
     padding-left: 1rem;   
     padding-right: 1rem;
 }
+
 
 /* Responsive Adjustments */
 @media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
@@ -572,25 +574,9 @@ body {
     .accordion-button {
         font-size: 1rem;
     }
-        .navbar-nav .dropdown-menu {
-        width: 100%;
-        position: static;
-        
-    
-        margin: 0 !important; 
-        padding: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-        
-    
-        text-align: center;
-    }
 
 
-    .navbar-nav .dropdown-menu .dropdown-item {
-        width: 100%;
-    
-    }
+
 }
 
 @media (max-width: 504px) {
