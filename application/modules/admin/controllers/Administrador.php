@@ -516,65 +516,63 @@ class Administrador extends CI_Controller
         }
     }
 
-    public function ver_compras_userid()
-    {
-        $id_vendedor = $this->session->userdata('id_vendedor');
-        $admin = $this->administrador_model->getAdminById($id_vendedor);
-        if ($admin->nivel == 1) {
-            $id_user = $this->uri->segment(4);
-            $usuario = $this->administrador_model->getUserByID($id_user);
-            $compras = $this->administrador_model->getComprasByUserId($id_user);
-            $data['titulo'] = 'Historico de compras de '.$usuario->nombre;
-            $data['usuario'] = $usuario;
-            $limit_por_pagina = 10;
-            $start_index = ($this->uri->segment(5)) ? $this->uri->segment(5) : 0;
-            $total_registros = count($compras);
-            $start_index = floor($start_index/10)*10;
+public function ver_compras_userid()
+{
+    $id_vendedor = $this->session->userdata('id_vendedor');
+    $admin = $this->administrador_model->getAdminById($id_vendedor);
 
-            $data['ultimo'] = floor($total_registros/$limit_por_pagina)*10;
-
-            $data['compras'] = $this->administrador_model->getComprasInRangeByIDUser($limit_por_pagina, $start_index, $id_user);
-            //Botones para la paginacion
-            if ($start_index==0) {
-                //Si el id es 0, estamos en la primera pagina, y lo seteamos
-                $data['primera'] = 1;
-            } elseif ($start_index <= 10) {
-                $link[] =[
-                    'id'=>0,
-                    'num'=>floor($start_index/10)
-                ];
-            } elseif ($start_index>10) {
-                $link[] = [
-                    'id'=>$start_index - 10,
-                    'num'=>floor($start_index/10)
-                ];
-            }
-
-            $link[] = [
-                'id' => $start_index,
-                'num' => floor($start_index / 10) + 1,
-                'act' =>'active'
-            ];
-
-            if ($start_index+10<=$total_registros) {
-                $link[] = [
-                    'id'=>$start_index + 10,
-                    'num'=>floor($start_index/10)+2
-                ];
-            } else {
-                $data['ultima'] = 1;
-            }
-            if ($total_registros>$limit_por_pagina){
-                $data['links']= $link;
-            }
-
-            $this->load->view('header', $data);
-            $this->load->view('ver_compras', $data);
-            $this->load->view('general/footer');
-        } else {
-            redirect(base_url('usuario'));
-        }
+    if ($admin->nivel != 1) {
+        redirect(base_url('usuario'));
+        return;
     }
+
+    $id_user = $this->uri->segment(4);
+    $usuario = $this->administrador_model->getUserByID($id_user);
+
+    $limit_por_pagina = 10;
+    $start_index = ($this->uri->segment(5)) ? $this->uri->segment(5) : 0;
+    $start_index = floor($start_index / $limit_por_pagina) * $limit_por_pagina;
+
+    // Obtengo todas las compras para el conteo total
+    $total_compras = $this->administrador_model->getComprasConMedioDePago($id_user);
+    $total_registros = count($total_compras);
+
+    // Obtengo solo las compras del rango actual (paginación)
+    $compras = $this->administrador_model->getComprasConMedioDePago($id_user, $limit_por_pagina, $start_index);
+
+    $data['titulo'] = 'Histórico de compras de ' . $usuario->nombre;
+    $data['usuario'] = $usuario;
+    $data['compras'] = $compras;
+    $data['ultimo'] = floor($total_registros / $limit_por_pagina) * $limit_por_pagina;
+
+    // Generación de links para paginación
+    $link = [];
+
+    if ($start_index == 0) {
+        $data['primera'] = 1;
+    } elseif ($start_index <= $limit_por_pagina) {
+        $link[] = ['id' => 0, 'num' => floor($start_index / $limit_por_pagina)];
+    } elseif ($start_index > $limit_por_pagina) {
+        $link[] = ['id' => $start_index - $limit_por_pagina, 'num' => floor($start_index / $limit_por_pagina)];
+    }
+
+    $link[] = ['id' => $start_index, 'num' => floor($start_index / $limit_por_pagina) + 1, 'act' => 'active'];
+
+    if ($start_index + $limit_por_pagina <= $total_registros) {
+        $link[] = ['id' => $start_index + $limit_por_pagina, 'num' => floor($start_index / $limit_por_pagina) + 2];
+    } else {
+        $data['ultima'] = 1;
+    }
+
+    if ($total_registros > $limit_por_pagina) {
+        $data['links'] = $link;
+    }
+
+    // Carga de vistas
+    $this->load->view('header', $data);
+    $this->load->view('ver_compras', $data);
+    $this->load->view('general/footer');
+}
 
     public function devolver_compra_by_id()
     {

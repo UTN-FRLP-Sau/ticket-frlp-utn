@@ -348,4 +348,37 @@ class Administrador_model extends CI_Model
         $this->db->delete('cargasvirtuales');
         return true;
     }
+
+  public function getComprasConMedioDePago($id_user, $limit = null, $offset = null)
+{
+    $this->db->select('c.*, t.transaccion');
+    $this->db->from('compra c');
+    $this->db->join('transacciones t', 't.id = c.transaccion_id', 'left');
+    $this->db->where('c.id_usuario', $id_user);
+    $this->db->order_by('c.dia_comprado', 'DESC');
+
+    if ($limit !== null && $offset !== null) {
+        $this->db->limit($limit, $offset);
+    }
+
+    $query = $this->db->get();
+    $compras = $query->result();
+
+    // Mapeo de transacciones a MP o Saldo
+    foreach ($compras as $compra) {
+        switch ($compra->transaccion) {
+            case 'Compra por Mercado P':
+                $compra->medio_pago = 'MP';
+                break;
+            case 'Compra con saldo':
+                $compra->medio_pago = 'Saldo';
+                break;
+            default:
+                $compra->medio_pago = $compra->transaccion;
+        }
+    }
+
+    return $compras;
+}
+
 }
