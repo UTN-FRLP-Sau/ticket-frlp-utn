@@ -32,6 +32,7 @@
                     <th style="text-align: left">Monto</th>
                     <th style="text-align: left">Forma</th>
                     <th style="text-align: left">Vendedor</th>
+                    <th style="text-align: left">Referencia Externa</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,7 +43,9 @@
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->nombre; ?></td>
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->apellido; ?></td>
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->monto; ?></td>
-                    <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->formato; ?></td> <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->nombre_usuario; ?></td>
+                    <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->formato; ?></td>
+                    <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->nombre_usuario; ?></td>
+                    <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->external_reference; ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

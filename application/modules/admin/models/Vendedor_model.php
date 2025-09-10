@@ -147,8 +147,11 @@ class Vendedor_model extends CI_Model
         $this->db->from('log_carga');
         $this->db->join('vendedores', 'log_carga.id_vendedor=vendedores.id_vendedor');
         $this->db->join('usuarios', 'log_carga.id_usuario=usuarios.id');
+        
+        // Une la tabla de transacciones para obtener el external_reference y el método de pago
+        $this->db->join('transacciones', 'log_carga.transaccion_id = transacciones.id', 'left');
         $this->db->order_by('log_carga.id', 'DESC');
-        $this->db->where('fecha', $fecha);
+        $this->db->where('log_carga.fecha', $fecha);
         $query = $this->db->get();
         return $query->result();
     }

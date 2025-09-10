@@ -608,6 +608,8 @@ class Vendedor extends CI_Controller
                     $totalMercadoPago = $totalMercadoPago + $carga->monto;
                     $nMercadoPago = $nMercadoPago + 1;
                 }
+                // Agregamos el external_reference al objeto de la carga
+                $carga->external_reference = isset($carga->external_reference) ? $carga->external_reference : 'N/A';
             }
 
             //Guardamos todo en $data
