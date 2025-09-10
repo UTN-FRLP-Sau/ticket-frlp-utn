@@ -40,6 +40,14 @@ class Tareas extends CI_Controller {
         file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
     }
 
+    private function log_preferencia($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/preferencia_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
+
     public function consultar_estado_mp() {
         $this->config->load('ticket');
         $access_token = $this->config->item('MP_ACCESS_TOKEN');
@@ -86,11 +94,18 @@ class Tareas extends CI_Controller {
 
                         echo "ID de Pago MP: {$payment_info->id} | Estado: {$estado} | Detalle: {$mp_status_detail}\n";
                         $this->_logManual("CRON_MP: ID de Pago MP: {$payment_info->id} | Estado: {$estado} | Detalle: {$mp_status_detail}", 'Cron');
+                        
+                        // Extraigo el DNI del campo de descripción de la preferencia
+                        $descripcion = $payment_info->additional_info->items[0]->description;
+                        $parts = preg_split('/\s+/', trim($descripcion)); // separa por espacios
+                        $documento = end($parts); // toma siempre el último string, que es el DNI
 
                         if ($estado === 'approved') {
                             // Llama a la función del Webhook_model para manejar el pago aprobado
                             if ($this->webhook_model->procesarPagoAprobado($compra, $payment_info)) {
                                 $found_approved = true;
+
+                                $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount) . ' ; Pago aprobado procesado por CRON_MP';
                                 $this->_logManual('CRON_MP: Pago aprobado procesado por Webhook_model para compra ID: ' . $compra->id, 'Cron');
                                 break; // Si se encuentra un aprobado, procesamos y salimos para esta external_reference
                             } else {
@@ -101,6 +116,7 @@ class Tareas extends CI_Controller {
                             if (!$found_approved) {
                                 // Llama a la función del Webhook_model para manejar el pago rechazado
                                 if ($this->webhook_model->procesarPagoRechazado($compra, $payment_info)) {
+                                    $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount) . ' ; Pago rechazado procesado por CRON_MP';
                                     $this->_logManual('CRON_MP: Pago rechazado procesado por Webhook_model para compra ID: ' . $compra->id, 'Cron');
                                 } else {
                                     $this->_logManual('CRON_MP: Fallo en procesarPagoRechazado desde Webhook_model para compra ID: ' . $compra->id, 'Cron_error');

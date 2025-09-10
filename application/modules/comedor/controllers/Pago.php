@@ -134,6 +134,7 @@ class Pago extends CI_Controller
         // Caso 2: Error al generar la preferencia de Mercado Pago (e.g., API issues)
         else if ($preferencia_info === false) {
             log_message('error', 'PAGO: ERROR en generarPreferenciaConSaldo (retornó FALSE).');
+            $this->log_manual('PAGO: Error al generar la preferencia de Mercado Pago para external_reference: ' . $external_reference);
             show_error('Error al generar la preferencia de pago. Intente nuevamente.');
             return;
         }

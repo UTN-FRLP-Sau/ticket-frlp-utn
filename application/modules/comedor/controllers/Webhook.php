@@ -11,6 +11,13 @@ class Webhook extends CI_Controller
         $this->load->model('comedor/ticket_model'); 
     }
 
+    private function log_preferencia($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/preferencia_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
     /**
      * Mapea un código de estado de detalle de Mercado Pago a un mensaje más amigable para el usuario.
      * Esta función solo delega la llamada al método correspondiente en el Webhook_model.
@@ -143,10 +150,22 @@ class Webhook extends CI_Controller
                         $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, $mp_status_from_mp, $mp_status_detail);
                         $this->webhook_model->_logManual('Actualizado mp_estado de compra_pendiente ' . $compra_pendiente->id . ' a: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
 
+                        
+                        $descripcion = $payment_info->additional_info->items[0]->description ?? '';
+                        if (preg_match('/(\d+)$/', $descripcion, $matches)) {
+                            $documento = $matches[1];
+                        } else {
+                            $documento = 'N/A';
+}
+
                         switch ($mp_status_from_mp) {
                             case 'approved':
                                 if ($this->webhook_model->procesarPagoAprobado($compra_pendiente, $payment_info)) {
+
+                                    $this->log_preferencia('Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount . ' ;Pago aprobado procesado por Webhook');
+
                                     $this->webhook_model->_logManual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' procesada y marcada.', 'webhook');
+
                                 } else {
                                     $this->webhook_model->_logManual('PAGO APROBADO: Fallo al procesar pago aprobado para compra ' . $compra_pendiente->id . '.', 'webhook');
                                 }
@@ -157,7 +176,10 @@ class Webhook extends CI_Controller
                             case 'expired_by_date_cutoff':
                                 $this->webhook_model->_logManual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
                                 if ($this->webhook_model->procesarPagoRechazado($compra_pendiente, $payment_info)) {
+                                    
+                                    $this->log_preferencia('Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount . ' ;Pago rechazado procesado por Webhook');
                                     $this->webhook_model->_logManual('PAGO RECHAZADO: Compra ' . $compra_pendiente->id . ' procesada como rechazada.', 'webhook');
+                                    
                                 } else {
                                     $this->webhook_model->_logManual('PAGO RECHAZADO: Fallo al procesar pago rechazado para compra ' . $compra_pendiente->id . '.', 'webhook');
                                 }

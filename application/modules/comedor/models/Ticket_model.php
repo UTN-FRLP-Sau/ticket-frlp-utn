@@ -8,6 +8,22 @@ class Ticket_model extends CI_Model
         parent::__construct();
     }
 
+    private function log_manual($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/ticket_model_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
+
+    private function log_preferencia($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/preferencia_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
+
     public function addCompra($data)
     {
         /* Usado en:
@@ -100,6 +116,7 @@ class Ticket_model extends CI_Model
 
         log_message('debug', "Saldo usuario: $saldo_usuario, total: $monto_total, monto a pagar: $monto_a_pagar");
 
+
         if ($monto_a_pagar <= 0) {
             return null;
         }
@@ -145,10 +162,13 @@ class Ticket_model extends CI_Model
             $saved = $preference->save();
 
             if (!$saved) {
-                log_message('error', 'Error guardando preferencia Mercado Pago: La validación de la preferencia falló o los datos son inválidos.');
+                $this->log_preferencia('Error guardando preferencia Mercado Pago: La validación de la preferencia falló o los datos son inválidos.');
+                $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
                 return false;
             }
 
+            $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
+            
             return [
                 'id' => $preference->id,
                 'init_point' => $preference->init_point,
@@ -157,7 +177,8 @@ class Ticket_model extends CI_Model
             ];
         } catch (Exception $e) {
             // Captura cualquier excepción que Mercado Pago SDK pueda lanzar (ej. errores de conexión, errores de API).
-            log_message('error', 'Excepción al intentar guardar la preferencia de Mercado Pago: ' . $e->getMessage());
+            $this->log_preferencia('Excepción al intentar guardar la preferencia de Mercado Pago: ' . $e->getMessage());
+            $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
             return false;
         }
     }
@@ -472,7 +493,20 @@ class Ticket_model extends CI_Model
         Ticket 
         compra()
         */
-        return $this->db->insert('compras_pendientes', $data);
+        try {
+            $resultado = $this->db->insert('compras_pendientes', $data);
+
+            if ($resultado) {
+                $this->log_manual('guardarCompraPendiente: Compra pendiente guardada correctamente. Data: ' . json_encode($data), 'DB');
+            } else {
+                $this->log_manual('guardarCompraPendiente: Error al insertar en compras_pendientes. Error: ' . $this->db->error()['message'], 'DB_error');
+            }
+
+            return $resultado;
+        } catch (Exception $e) {
+            $this->log_manual('guardarCompraPendiente: Excepción atrapada -> ' . $e->getMessage() . ' en ' . $e->getFile() . ' línea ' . $e->getLine(), 'DB_error');
+            return false;
+        }
     }
 
     public function getCompraPendiente($external_reference) {
