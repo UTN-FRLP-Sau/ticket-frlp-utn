@@ -796,4 +796,29 @@ public function ver_compras_userid()
             }
         }
     }
+
+
+    public function mostrar_logs() {
+        $this->load->helper('file');
+        $log_path = APPPATH . 'logs/';
+        $files = get_dir_file_info($log_path);
+        $data['log_files'] = $files;
+
+        $this->load->view('header', $data);
+        $this->load->view('admin/logs_view', $data);
+        $this->load->view('general/footer', $data);
+    }
+
+    public function view_log_contenido($file_name) {
+        $log_path = APPPATH . 'logs/' . $file_name;
+        
+        if (file_exists($log_path)) {
+            $data['log_contenido'] = file_get_contents($log_path);
+            $data['file_name'] = $file_name;
+            
+            $this->load->view('admin/log_contenido_view', $data);
+        } else {
+            show_404();
+        }
+    }
 }
