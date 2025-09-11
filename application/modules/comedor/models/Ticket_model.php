@@ -163,7 +163,7 @@ class Ticket_model extends CI_Model
 
             if (!$saved) {
                 $this->log_preferencia('Error guardando preferencia Mercado Pago: La validación de la preferencia falló o los datos son inválidos.');
-                $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
+                $this->log_preferencia('ERROR de GUARDADO ;Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
                 return false;
             }
 
@@ -178,7 +178,7 @@ class Ticket_model extends CI_Model
         } catch (Exception $e) {
             // Captura cualquier excepción que Mercado Pago SDK pueda lanzar (ej. errores de conexión, errores de API).
             $this->log_preferencia('Excepción al intentar guardar la preferencia de Mercado Pago: ' . $e->getMessage());
-            $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
+            $this->log_preferencia('ERROR de GUARDADO ;Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $external_reference .' ; Saldo: ' . $saldo_usuario . ' ; Total: ' . $monto_total . ' ; Monto a pagar: ' . $monto_a_pagar);
             return false;
         }
     }

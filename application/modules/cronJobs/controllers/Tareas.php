@@ -105,7 +105,7 @@ class Tareas extends CI_Controller {
                             if ($this->webhook_model->procesarPagoAprobado($compra, $payment_info)) {
                                 $found_approved = true;
 
-                                $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount) . ' ; Pago aprobado procesado por CRON_MP';
+                                $this->log_preferencia('Pago APROBADO CRON ;Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount);
                                 $this->_logManual('CRON_MP: Pago aprobado procesado por Webhook_model para compra ID: ' . $compra->id, 'Cron');
                                 break; // Si se encuentra un aprobado, procesamos y salimos para esta external_reference
                             } else {
@@ -116,7 +116,7 @@ class Tareas extends CI_Controller {
                             if (!$found_approved) {
                                 // Llama a la función del Webhook_model para manejar el pago rechazado
                                 if ($this->webhook_model->procesarPagoRechazado($compra, $payment_info)) {
-                                    $this->log_preferencia('Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount) . ' ; Pago rechazado procesado por CRON_MP';
+                                    $this->log_preferencia('Pago RECHAZADO CRON ;Usuario ID: '. $compra->id_usuario . ' ;DNI: '. $documento . ' ;External Reference: '. $compra->external_reference . ' ; Monto: ' . $payment_info->transaction_amount);
                                     $this->_logManual('CRON_MP: Pago rechazado procesado por Webhook_model para compra ID: ' . $compra->id, 'Cron');
                                 } else {
                                     $this->_logManual('CRON_MP: Fallo en procesarPagoRechazado desde Webhook_model para compra ID: ' . $compra->id, 'Cron_error');

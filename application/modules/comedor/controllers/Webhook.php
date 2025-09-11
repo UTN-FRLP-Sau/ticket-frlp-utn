@@ -162,7 +162,7 @@ class Webhook extends CI_Controller
                             case 'approved':
                                 if ($this->webhook_model->procesarPagoAprobado($compra_pendiente, $payment_info)) {
 
-                                    $this->log_preferencia('Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount . ' ;Pago aprobado procesado por Webhook');
+                                    $this->log_preferencia('Pago APROBADO Webhook ;Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount);
 
                                     $this->webhook_model->_logManual('PAGO APROBADO: Compra ' . $compra_pendiente->id . ' procesada y marcada.', 'webhook');
 
@@ -177,7 +177,7 @@ class Webhook extends CI_Controller
                                 $this->webhook_model->_logManual('PAGO RECHAZADO/CANCELADO: Notificación para compra pendiente ' . $compra_pendiente->id . ' con estado: ' . $mp_status_from_mp . ' (Detalle: ' . $mp_status_detail . ').', 'webhook');
                                 if ($this->webhook_model->procesarPagoRechazado($compra_pendiente, $payment_info)) {
                                     
-                                    $this->log_preferencia('Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount . ' ;Pago rechazado procesado por Webhook');
+                                    $this->log_preferencia('Pago RECHAZADO Webhook ;Usuario ID: ' . $compra_pendiente->id_usuario . ' ;DNI: ' . $documento . ' ;External Reference: ' . $compra_pendiente->external_reference . ' ;Monto: ' . $payment_info->transaction_amount);
                                     $this->webhook_model->_logManual('PAGO RECHAZADO: Compra ' . $compra_pendiente->id . ' procesada como rechazada.', 'webhook');
                                     
                                 } else {
