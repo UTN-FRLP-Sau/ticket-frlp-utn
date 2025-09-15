@@ -58,11 +58,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     <div><h2 class="my-0 fw-bold">Ticket Web - Compra de Viandas - UTN FRLP</h2></div>
                 </div>
                 <div class="card-body p-4">
-                    <div id="tarjetaSaldo" class="alert saldo-titulo d-flex align-items-center mb-4 border-0" role="alert">
-                        <i class="bi bi-cash me-3 fs-4"></i>
-                        <div>
-                            <strong>Saldo disponible:</strong> $<span id="saldoUsuarioDisplay"><?= number_format($usuario->saldo, 2) ?></span>
-                        </div>
+                    <div id="tarjetaSaldo" class="alert saldo-titulo d-flex flex-column flex-sm-row align-items-center justify-content-between mb-4 border-0" role="alert">
+                            <div class="d-flex align-items-start align-items-sm-center mb-3 mb-sm-0">
+                                <!-- <i class="bi bi-cash me-3 fs-4"></i> -->
+                                <div>
+                                    <strong id="saldo-titulo">Saldo disponible:</strong>
+                                    <br class="d-block d-sm-none">
+                                    <span id="saldoUsuarioDisplay" class="saldo-numero-movil">$<?= number_format($usuario->saldo, 2) ?></span>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row text-center mt-3 mt-sm-0">
+                                <a href="<?= base_url('faq'); ?>" class="btn btn-primary btn-lg shadow-sm me-sm-3 mb-2 mb-sm-0">
+                                    <i class="bi bi-envelope-fill me-2"></i> Preguntas Frecuentes
+                                </a>
+                                <a href="https://forms.office.com/r/95Nm8WSntH" target="_blank" class="btn btn-danger btn-lg shadow-sm">
+                                    <i class="bi bi-envelope-fill me-2"></i> Reportar un problema
+                                </a>
+                            </div>
                     </div>
 
                     <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
@@ -70,15 +82,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                         <strong>Importante:</strong> El saldo de tu cuenta se aplicará automáticamente para pagar la vianda. Si es suficiente, no necesitarás pagar adicionalmente. Si es parcial, solo abonarás la diferencia directamente a través de MercadoPago.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
-                    <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
-                        <i class="bi bi-lightbulb-fill me-2"></i>
-                        <strong>Importante:</strong> Una vez realizada la compra, en caso de pedir una devolución no se te transferirá el dinero a tu cuenta bancaria o billetera virtual, sino que se acreditará el saldo a tu cuenta de usuario del comedor para futuras compras.                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    <div class="alert alert-primary alert-dismissible fade show mb-4 border-0" role="alert">
-                        <i class="bi bi-lightbulb-fill me-2"></i>
-                        <strong>Importante:</strong> La elección de una vianda turno mediodía o noche es excluyente. Solo podrás seleccionar la vianda de un solo turno en un mismo día.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                    
                     <input type="number" id="saldoCuenta" value="<?= $usuario->saldo; ?>" hidden>
                     <input type="number" id="costoVianda" value="<?= $costoVianda; ?>" hidden>
 

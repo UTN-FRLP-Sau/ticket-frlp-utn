@@ -38,9 +38,10 @@ body {
     /* Color will be handled by the parent's text-white class */
 }
 
-#tarjetaSaldo{
+#tarjetaSaldo {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     font-size: 1.5rem;
     color: black;
 }
@@ -589,6 +590,16 @@ body {
     #tarjetaSaldo {
         font-size: 1.2rem !important;
     }
+    .saldo-numero-movil {
+        font-size: 2.2rem;
+        font-weight: bold;
+        display: block;
+        margin-top: 5px;
+        text-align: center;
+    }
+    #saldo-titulo {
+        font-size: 1.2rem !important;
+    }
     
 }
 
@@ -600,6 +611,6 @@ body {
         padding: 1rem !important;
     }
     #tarjetaSaldo {
-        font-size: 1.2rem !important;
+        font-size: 1.5rem !important;
     }
 }
