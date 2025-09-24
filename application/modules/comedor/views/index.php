@@ -337,25 +337,44 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                 </div>
 
                 <div class="card border-0 bg-light-subtle mb-4">
-                    <div class="card-body py-3 px-4">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
-                                <i class="bi bi-cash-stack me-2 text-primary fs-5"></i>Monto Total:
-                            </div>
-                            <div class="col-sm-6 text-end text-sm-end fw-bold text-success fs-3">
-                                $<span id="modalAmount"></span>
-                            </div>
+                <div class="card-body py-3 px-4">
+                    <div class="row g-2 align-items-center">
+                        <?php
+                            $saldo_usuario = isset($usuario) ? (float)$usuario->saldo : 0;
+                            $total_compra = isset($pending_purchase_details->total) ? (float)$pending_purchase_details->total : 0;
+                            $total_a_pagar = max(0, $total_compra - $saldo_usuario);
+                        ?>
+                        <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                            <i class="bi bi-cash-stack me-2 text-primary fs-5"></i>Costo total de viandas:
                         </div>
-                        <div class="row g-2 mt-2 align-items-center">
-                            <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
-                                <i class="bi bi-food-multiple me-2 text-primary fs-5"></i>Viandas Seleccionadas:
-                            </div>
-                            <div class="col-sm-6 text-end text-sm-end text-muted fw-semibold">
-                                <span id="modalViandaCount"></span> viandas
-                            </div>
+                        <div class="col-sm-6 text-end text-sm-end fw-bold text-success fs-3">
+                            <span class="fw-bold">$<?= number_format($total_compra, 2, ',', '.'); ?></span>
+                        </div>
+                        
+                        <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                            <i class="bi bi-wallet me-2 text-success fs-5"></i>Saldo disponible:
+                        </div>
+                        <div class="col-sm-6 text-end text-sm-end fw-bold text-success fs-3">
+                            <span class="fw-bold">$<?= number_format($saldo_usuario, 2, ',', '.'); ?></span>
+                        </div>
+                        
+                        <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                            <i class="bi bi-credit-card me-2 text-danger fs-5"></i>TOTAL A PAGAR:
+                        </div>
+                        <div class="col-sm-6 text-end text-sm-end fw-bold fs-3">
+                            <span class="fw-bold text-danger">$<?= number_format($total_a_pagar, 2, ',', '.'); ?></span>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2 align-items-center">
+                        <div class="col-sm-6 text-dark fw-semibold d-flex align-items-center">
+                            <i class="bi bi-food-multiple me-2 text-primary fs-5"></i>Viandas Seleccionadas:
+                        </div>
+                        <div class="col-sm-6 text-end text-sm-end text-muted fw-semibold">
+                            <span id="modalViandaCount"></span> viandas
                         </div>
                     </div>
                 </div>
+            </div>
 
                 <h6 class="mb-3 text-dark fw-bold border-bottom pb-2">
                     <i class="bi bi-box-seam-fill me-2 text-primary"></i>Detalle de Viandas:
