@@ -143,7 +143,7 @@ class Webhook_model extends CI_Model {
 
             $data_transaccion = [
                 'id_usuario' => $id_usuario,
-                'monto' => -1 * $total_compra,
+                'monto' => $total_compra,
                 'fecha' => date('Y-m-d'),
                 'hora' => date('H:i:s'),
                 'transaccion' => 'Compra por Mercado Pago',
