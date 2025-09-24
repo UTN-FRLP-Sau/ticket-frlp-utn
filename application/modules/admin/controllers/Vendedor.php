@@ -595,6 +595,10 @@ class Vendedor extends CI_Controller
             $nMercadoPago = 0; // cargas por mercado pago
             $totalMercadoPago = 0; // dinero total por mercado pago
             foreach ($cargas as $carga) {
+                
+                // Se convierte el monto a valor absoluto
+                $carga->monto = abs($carga->monto);
+
                 if ($carga->formato == 'Efectivo') {
                     // Si la carga fue en efectivo
                     $totalEfectivo = $totalEfectivo + $carga->monto;
