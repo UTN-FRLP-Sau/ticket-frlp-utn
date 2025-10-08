@@ -1,4 +1,4 @@
-<footer class="my-5">
+<footer>
     <div class="container">
         <div class="row">
             <div class="col">
@@ -8,7 +8,7 @@
                 </p>
                 <p class="text-center mb-0" style="font-size:95%">Actualizado por <strong>Secretaria de Asuntos
                         Universitarios </strong> - <strong>UTN-FRLP</strong>.</p>
-                <p class=" text-center mb-0" style="font-size:95%">Basado en el sistema desarrollado por Lautaro BIFANO, Dario RUMBO y Jose DORCE.</p>
+                <p class=" text-center mt-3 mb-0" style="font-size:95%">Basado en el sistema desarrollado por Lautaro BIFANO, Dario RUMBO y Jose DORCE.</p>
                 <p class="text-center mb-0"><strong>Ticket-Web © Copyright <?= date('Y'); ?></strong></p>
             </div>
         </div>
@@ -23,3 +23,21 @@
 </body>
 
 </html>
+
+<style>
+footer{
+    background-color: #212529;
+    color:white;
+    padding: 3rem;
+}
+
+
+@media (max-width: 767.98px) { 
+    footer{
+    background-color: #212529;
+    color:white;
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+}
+</style>

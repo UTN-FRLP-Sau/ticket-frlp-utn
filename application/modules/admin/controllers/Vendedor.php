@@ -592,7 +592,13 @@ class Vendedor extends CI_Controller
             $totalVirtual = 0; // dinero total en eefectivo
             $nEfectivo = 0; //cargas virtuales
             $totalEfectivo = 0; //dinero total virtual
+            $nMercadoPago = 0; // cargas por mercado pago
+            $totalMercadoPago = 0; // dinero total por mercado pago
             foreach ($cargas as $carga) {
+                
+                // Se convierte el monto a valor absoluto
+                $carga->monto = abs($carga->monto);
+
                 if ($carga->formato == 'Efectivo') {
                     // Si la carga fue en efectivo
                     $totalEfectivo = $totalEfectivo + $carga->monto;
@@ -601,7 +607,13 @@ class Vendedor extends CI_Controller
                     // Si la carga fue virtual
                     $totalVirtual = $totalVirtual + $carga->monto;
                     $nVirtual = $nVirtual + 1;
+                } elseif ($carga->formato == 'MP') {
+                    // Si la carga fue con Mercado Pago
+                    $totalMercadoPago = $totalMercadoPago + $carga->monto;
+                    $nMercadoPago = $nMercadoPago + 1;
                 }
+                // Agregamos el external_reference al objeto de la carga
+                $carga->external_reference = isset($carga->external_reference) ? $carga->external_reference : 'N/A';
             }
 
             //Guardamos todo en $data
@@ -610,6 +622,8 @@ class Vendedor extends CI_Controller
             $data['cantidad_virtual'] = $nVirtual;
             $data['total_efectivo'] = $totalEfectivo;
             $data['cantidad_efectivo'] = $nEfectivo;
+            $data['total_mercadopago'] = $totalMercadoPago;
+            $data['cantidad_mercadopago'] = $nMercadoPago;
             $data['vendedor'] = $this->vendedor_model->getVendedorById($id_vendedor);
             $data['fecha'] = date("d-m-Y", $strtime);
 
@@ -633,48 +647,66 @@ class Vendedor extends CI_Controller
             $fecha2 = date('Y-m-d', $strtime2);
             $cargas = $this->vendedor_model->getCargasByRangeFechaForPDF($fecha1, $fecha2);
 
-            $fecha  = $fecha1;
+            $fecha_actual_loop = $fecha1;
             $i = 0;
             $detalle = array();
-            while ($fecha <= $fecha2) {
+
+            while (strtotime($fecha_actual_loop) <= strtotime($fecha2)) { // Comparar como timestamps
                 $cantidad_efec = 0;
                 $total_efec = 0;
                 $cantidad_virt = 0;
                 $total_virt = 0;
+                $cantidad_mp = 0; // contador de cantidad para Mercado Pago por día
+                $total_mp = 0;    // acumulador de monto para Mercado Pago por día
+
                 foreach ($cargas as $carga) {
-                    if ($carga->fecha == $fecha) {
+                    if ($carga->fecha == $fecha_actual_loop) {
                         if ($carga->formato == 'Efectivo') {
                             $cantidad_efec = $cantidad_efec + 1;
                             $total_efec = $total_efec + $carga->monto;
                         } elseif ($carga->formato == 'Virtual') {
                             $cantidad_virt = $cantidad_virt + 1;
                             $total_virt = $total_virt + $carga->monto;
+                        } elseif ($carga->formato == 'MP') {
+                            $cantidad_mp = $cantidad_mp + 1;
+                            $total_mp = $total_mp + $carga->monto;
                         }
                     }
                 }
-                $detalle[$i]['fecha'] = $fecha;
+                
+                $detalle[$i]['fecha'] = $fecha_actual_loop;
                 $detalle[$i]['cantidad_efectivo'] = $cantidad_efec;
                 $detalle[$i]['total_efectivo'] = $total_efec;
                 $detalle[$i]['cantidad_virtual'] = $cantidad_virt;
                 $detalle[$i]['total_virtual'] = $total_virt;
+                $detalle[$i]['cantidad_mercadopago'] = $cantidad_mp;
+                $detalle[$i]['total_mercadopago'] = $total_mp;
+
                 $i = $i + 1;
-                $fecha = date('Y-m-d', $strtime1 + ($i * 24 * 60 * 60));
+                // Avanzar al siguiente dia
+                $fecha_actual_loop = date('Y-m-d', strtotime($fecha1) + ($i * 24 * 60 * 60));
             }
 
             $data['detalle'] = $detalle;
             $data['vendedor'] = $this->vendedor_model->getVendedorById($id_vendedor);
             $data['fecha1'] = date("d-m-Y", $strtime1);
             $data['fecha2'] = date("d-m-Y", $strtime2);
+            
+            // Totales generales para todo el rango de fechas
             $data['cantidad_efectivo'] = array_sum(array_column($detalle, 'cantidad_efectivo'));
             $data['cantidad_virtual'] = array_sum(array_column($detalle, 'cantidad_virtual'));
             $data['total_efectivo'] = array_sum(array_column($detalle, 'total_efectivo'));
             $data['total_virtual'] = array_sum(array_column($detalle, 'total_virtual'));
+            
+            // Nuevo: Totales generales para Mercado Pago
+            $data['cantidad_mercadopago'] = array_sum(array_column($detalle, 'cantidad_mercadopago'));
+            $data['total_mercadopago'] = array_sum(array_column($detalle, 'total_mercadopago'));
 
             $dompdf = new Dompdf();
             $dompdf->loadHtml($this->load->view('pdf_view/cajaSemanal', $data, true));
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-            $dompdf->stream("Cierre_{$fecha1}_{$fecha2}.pdf", array("Attachment" => 0)); //0 para ver, 1 para descargar
+            $dompdf->stream("Cierre_{$fecha1}_{$fecha2}.pdf", array("Attachment" => 0));
         } else {
             redirect(base_url('admin/informe'));
         }

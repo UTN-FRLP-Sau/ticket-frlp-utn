@@ -12,10 +12,12 @@ class Login extends CI_Controller
 
     public function index()
     {
+        // 1. Verificación si el usuario ya está logueado
         if ($this->session->userdata('is_user')) {
             if ($this->session->userdata('is_admin')) {
                 redirect(base_url('logout'));
             }
+            // Si es usuario normal y ya logueado, redirige al panel de usuario
             redirect(base_url('usuario'));
         }
 
@@ -23,37 +25,57 @@ class Login extends CI_Controller
             'titulo' => 'Login'
         ];
 
+        // 2. Manejo de la solicitud POST (cuando el usuario envía el formulario de login)
         if ($this->input->method() == 'post') {
             $documento = $this->input->post('documento');
             $password = $this->input->post('password');
             $usuario = $this->login_model->getUserByDocumento($documento);
 
-            //Verificamos que el usuario exista
+            // Verificamos que el usuario exista
             if (!$usuario) {
                 $this->session->set_flashdata('error', 'El documento no se encuentra relacionado a ningun usuario activo');
-                //si existe el usuario, verificamos que se encuentre activo
                 redirect(base_url('login'));
-            } elseif ($usuario->estado != 1) {
+            }
+            // Si existe el usuario, verificamos que se encuentre activo
+            elseif ($usuario->estado != 1 && $usuario->estado != 2) {
                 $this->session->set_flashdata('error', 'El usuario relacionado a ese documento no se encuentra activo');
-                //si existe y encuentra activo, validamos el login
                 redirect(base_url('login'));
-            } elseif ($this->login_model->validateUser($documento, md5($password))) {
+            }
+            // Para cuando la plataforma esta en mantenimiento
+            elseif ($usuario->estado == 2) {
+                $this->session->set_flashdata('error', 'La plataforma se encuentra en mantenimiento, por favor intente más tarde.');
+                redirect(base_url('login'));
+            }
+            // Si existe y está activo, validamos el login con la contraseña
+            elseif ($this->login_model->validateUser($documento, md5($password))) {
+                // Autenticación exitosa: Establecer datos de sesión
                 $session = [
                     'id_usuario'  => $usuario->id,
                     'apellido' => $usuario->apellido,
                     'nombre' => $usuario->nombre,
+                    'documento' => $usuario->documento,
                     'is_user' => TRUE,
                     'is_admin' => FALSE,
                     'admin_lvl' => FALSE,
                 ];
                 $this->session->set_userdata($session);
-                //Si no se valida, la contraseña es incorrecta
+                
+                // Limpieza de registros compras pendientes
+                $this->load->library('tasks');
+                // Llama al método de limpieza de la librería, pasándole el ID del usuario logueado
+                $this->tasks->cleanupUserExpiredOrders($usuario->id);
+
+                // Redirigir al usuario al panel después de la autenticación y la limpieza
                 redirect(base_url('usuario'));
-            } else {
+            }
+            // Si no se valida, la contraseña es incorrecta
+            else {
                 $this->session->set_flashdata('error', 'Contraseña incorrecta');
                 redirect(base_url('login'));
             }
-        } else {
+        }
+        // 3. Manejo de la solicitud GET (cuando el usuario visita la página de login)
+        else {
             $this->load->view('header', $data);
             $this->load->view('login');
             $this->load->view('general/footer');
@@ -82,7 +104,7 @@ class Login extends CI_Controller
                 $token = md5($str);
                 if ($this->login_model->getRecoveryByToken($token)) {
                     //Si existe, informo la existencia y lo redirijo a login
-                    $this->session->set_flashdata('success', "Ya existe una solicitud de rescuperacion de contraseña, por favor revise su correo");
+                    $this->session->set_flashdata('success', "Ya existe una solicitud de recuperacion de contraseña, por favor revise su correo");
                     redirect(base_url('login'));
                 } else { //Si no existe
                     //Armo la informacion para enviar el correo
@@ -91,7 +113,7 @@ class Login extends CI_Controller
                     $data['apellido'] = $usuario->apellido;
                     $data['dni'] = $usuario->documento;
                     $data['link'] = base_url("usuario/recovery/{$token}");
-                    $subject = "Solicitud de restablecimineto de contraseña";
+                    $subject = "Solicitud de restablecimiento de contraseña";
                     $message = $this->load->view('general/correos/cambio_contraseña', $data, true);
                     //Si el correo se envia
                     if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
@@ -142,12 +164,12 @@ class Login extends CI_Controller
                         $this->login_model->deleteRecoverylogById($id_rec);
                         $this->session->set_flashdata(
                             'success',
-                            "La contraseña se a actualizado correctamente"
+                            "La contraseña se ha actualizado correctamente"
                         );
                     } else {
                         $this->session->set_flashdata(
                             'alerta',
-                            "Se a producido un errror, por favor vuelva a intentarlo"
+                            "Se ha producido un error, por favor vuelva a intentarlo"
                         );
                         redirect(base_url("usuario/recovery/{$token}"));
                     }

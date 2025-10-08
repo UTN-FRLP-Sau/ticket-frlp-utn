@@ -70,6 +70,7 @@ $route['usuario/recovery'] = 'usuario/login/passwordRecoveryRequest';
 $route['usuario/recovery/(:any)'] = 'usuario/login/newPasswordRequest';
 
 $route['contacto'] = 'comedor/contacto/index';
+$route['faq'] = 'comedor/faq/index';
 $route['menu'] = 'comedor/menu/index';
 $route['comentarios'] = 'comedor/comentarios/index';
 $route['comedor/agregar_comentario'] = 'comedor/comentarios/agregar_comentario';
@@ -119,3 +120,10 @@ $route['admin/cargasvirtuales/list/(:any)/rechazar'] = 'admin/administrador/carg
 $route['admin/repartidor'] = 'admin/repartidor/buscar_compra_por_fecha_user';
 $route['admin/repartidor/entregar'] = 'admin/repartidor/entregar_compra_by_id';
 $route['admin/repartidor/historial/(:num)'] = 'admin/repartidor/historial_entregas_by_fecha';
+
+$route['admin/logs'] = 'admin/administrador/mostrar_logs';
+$route['admin/logs/(:any)'] = 'admin/administrador/view_log_contenido/$1';
+
+$route['webhook/mercadopago'] = 'comedor/webhook/mercadopago';
+
+$route['cron/mp_estado'] = 'cronjobs/Tareas/consultar_estado_mp';

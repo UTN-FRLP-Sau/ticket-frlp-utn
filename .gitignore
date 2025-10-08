@@ -36,3 +36,8 @@ uploads/carga.csv
 script/
 
 node_modules
+
+.env
+
+application/config/ticket.php
+

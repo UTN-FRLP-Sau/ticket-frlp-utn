@@ -16,7 +16,10 @@
             Monto total en efectivo: <strong>$ <?= $total_efectivo; ?> -. </strong> </p>
         <p style="margin: 1%;"> Cantidad de cargas Virtuales: <strong><?= $cantidad_virtual; ?></strong> -
             Monto total virtual: <strong>$ <?= $total_virtual; ?> -. </strong> </p>
-    </div>
+
+        <p style="margin: 1%;"> Cantidad de cargas Mercado Pago: <strong><?= $cantidad_mercadopago; ?></strong> -
+            Monto total Mercado Pago: <strong>$ <?= $total_mercadopago; ?> -. </strong> </p>
+        </div>
 
     <div style="align-items: center;">
         <table style="width: 100%; text-align: center;">
@@ -29,6 +32,7 @@
                     <th style="text-align: left">Monto</th>
                     <th style="text-align: left">Forma</th>
                     <th style="text-align: left">Vendedor</th>
+                    <th style="text-align: left">Referencia Externa</th>
                 </tr>
             </thead>
             <tbody>
@@ -41,6 +45,7 @@
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->monto; ?></td>
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->formato; ?></td>
                     <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->nombre_usuario; ?></td>
+                    <td style="border-bottom: 1px solid #ddd; text-align: left"><?= $carga->external_reference; ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

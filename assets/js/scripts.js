@@ -1,75 +1,78 @@
-var $cantidad_dias = 0;
 var $monto = 0;
-var $saldo = 0;
 var $costo = parseInt(document.getElementById("costoVianda").value);
 
-function check(event) {
-    if (document.getElementById(event.currentTarget.checkDia).checked) {
-        document.getElementById(event.currentTarget.dia).disabled = false;
-        $cantidad_dias += 1;
-        $monto += $costo;
-    } else {
-        document.getElementById(event.currentTarget.dia).disabled = true;
-        $cantidad_dias -= 1;
-        $monto -= $costo;
+const checkboxesViandas = document.querySelectorAll('input[type="checkbox"].check-vianda');
+const costoDisplayDiv = document.getElementById('costoDisplay');
+const btnCompra = document.getElementById('btnCompra');
+const formCompra = document.getElementById('formCompraId');
+const btnReset = document.getElementById('btnReset');
+
+function calcularTotalYEstadoBoton() {
+    $monto = 0;
+    let algunaViandaSeleccionada = false;
+
+    checkboxesViandas.forEach(checkbox => {
+        const fieldsetPadre = checkbox.closest('fieldset');
+        const selectsDentro = fieldsetPadre ? fieldsetPadre.querySelectorAll('select') : [];
+
+        // Si el fieldset está deshabilitado por el backend (ya comprado o feriado)
+        if (fieldsetPadre && fieldsetPadre.hasAttribute('disabled')) {
+            checkbox.checked = checkbox.hasAttribute('checked');
+            selectsDentro.forEach(select => select.disabled = true);
+        } else {
+            // Si el fieldset no está deshabilitado
+            if (checkbox.checked) {
+                $monto += $costo;
+                algunaViandaSeleccionada = true;
+                selectsDentro.forEach(select => select.disabled = false);
+            } else {
+                selectsDentro.forEach(select => select.disabled = true);
+            }
+        }
+    });
+
+    if (costoDisplayDiv) {
+        costoDisplayDiv.innerHTML = "<strong>Costo: $ " + $monto.toFixed(2) + "-.</strong>";
     }
 
-    var $saldo = document.getElementById("saldoCuenta").value;
-
-    if ($monto > 0 && $monto <= $saldo) {
-        document.getElementById("btnCompra").disabled = false;
-    } else {
-        document.getElementById("btnCompra").disabled = true;
+    if (btnCompra) {
+        btnCompra.disabled = !algunaViandaSeleccionada;
     }
 
-    document.getElementById("compra").innerHTML = "<strong>Costo: $ " + $monto + "-.<\strong>";
-
-    document.getElementById("totalCompra").innerHTML =
-        '<input name="total" value="' + $monto + '" hidden>';
+    let totalInput = formCompra.querySelector('input[name="total"]');
+    if (!totalInput) {
+        totalInput = document.createElement('input');
+        totalInput.type = 'hidden';
+        totalInput.name = 'total';
+        formCompra.appendChild(totalInput);
+    }
+    totalInput.value = $monto.toFixed(2);
 }
 
-const lunes = document.getElementById("checkLunes");
-lunes.addEventListener("change", check, false);
-lunes.checkDia = "checkLunes";
-lunes.dia = "lunes";
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotalYEstadoBoton();
 
-const martes = document.getElementById("checkMartes");
-martes.addEventListener("change", check, false);
-martes.checkDia = "checkMartes";
-martes.dia = "martes";
+    checkboxesViandas.forEach(checkbox => {
+        checkbox.addEventListener('change', calcularTotalYEstadoBoton);
+        
+        // Al cargar la página, si un fieldset está deshabilitado (ya comprado o feriado)
+        const fieldsetPadre = checkbox.closest('fieldset');
+        if (fieldsetPadre && fieldsetPadre.hasAttribute('disabled')) {
+            const selectsDentro = fieldsetPadre.querySelectorAll('select');
+            selectsDentro.forEach(select => select.disabled = true);
+        }
+    });
 
-const miercoles = document.getElementById("checkMiercoles");
-miercoles.addEventListener("change", check, false);
-miercoles.checkDia = "checkMiercoles";
-miercoles.dia = "miercoles";
-
-const jueves = document.getElementById("checkJueves");
-jueves.addEventListener("change", check, false);
-jueves.checkDia = "checkJueves";
-jueves.dia = "jueves";
-
-const viernes = document.getElementById("checkViernes");
-viernes.addEventListener("change", check, false);
-viernes.checkDia = "checkViernes";
-viernes.dia = "viernes";
-
-document.getElementById("btnReset").addEventListener("click", function () {
-    $monto = 0;
-    var $saldo = document.getElementById("saldoCuenta").value;
-    document.getElementById("lunes").disabled = true;
-    document.getElementById("martes").disabled = true;
-    document.getElementById("miercoles").disabled = true;
-    document.getElementById("jueves").disabled = true;
-    document.getElementById("viernes").disabled = true;
-
-    if ($monto > 0 && $monto <= $saldo) {
-        document.getElementById("btnCompra").disabled = false;
-    } else {
-        document.getElementById("btnCompra").disabled = true;
+    if (btnReset) {
+        btnReset.addEventListener('click', function() {
+            // Recorre todos los checkboxes y los desmarca
+            checkboxesViandas.forEach(checkbox => {
+                const fieldsetPadre = checkbox.closest('fieldset');
+                if (fieldsetPadre && !fieldsetPadre.hasAttribute('disabled')) {
+                    checkbox.checked = false;
+                }
+            });
+            calcularTotalYEstadoBoton(); // Recalcula el monto y estados de los botones/selects
+        });
     }
-
-    document.getElementById("compra").innerHTML = $monto;
-
-    document.getElementById("totalCompra").innerHTML =
-        '<input name="total" value="' + $monto + '" hidden>';
 });

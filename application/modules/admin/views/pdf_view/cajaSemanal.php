@@ -79,6 +79,37 @@
         </table>
     </div>
 
-</body>
+    <div style="align-items: center;">
+        <h3 class="text-center">Informe de cargas Mercado Pago</h3>
+        <table style="width: 100%; text-align: center;">
+            <thead style="border-bottom: 3px solid #000">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Cantidad</th>
+                    <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($detalle as $key => $det) : ?>
+                <?php if ($detalle[$key]['cantidad_mercadopago'] !== 0) : ?>
+                <tr>
+                    <td style="border-bottom: 1px solid #ddd"><?= date('d-M', strtotime($detalle[$key]['fecha'])); ?>
+                    </td>
+                    <td style="border-bottom: 1px solid #ddd"><?= $detalle[$key]['cantidad_mercadopago']; ?></td>
+                    <td style="border-bottom: 1px solid #ddd">$
+                        <?= number_format($detalle[$key]['total_mercadopago'], 0, ',', '.'); ?></td>
+                </tr>
+                <?php endif; ?>
+                <?php endforeach; ?>
+                <tr>
+                    <td style="border-bottom: 2px solid #000; border-top: 1px solid #000"> Total </td>
+                    <td style="border-bottom: 2px solid #000; border-top: 1px solid #000"><?= $cantidad_mercadopago; ?></td>
+                    <td style="border-bottom: 2px solid #000; border-top: 1px solid #000"> $
+                        <?= number_format($total_mercadopago, 0, ',', '.'); ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    </body>
 
 </html>

@@ -2,6 +2,21 @@
 <html lang="es">
 <head>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+        }
+
         .table-responsive {
             min-height:40vh;
         }
@@ -72,8 +87,7 @@
             </div>
         </div>
     </div>
-    <!-- ... -->
-<script>
+    <script>
     document.addEventListener('DOMContentLoaded', function () {
         const toggleCommentLinks = document.querySelectorAll('.toggle-comment');
 
@@ -142,8 +156,6 @@
     }
 
     });
-
-
 </script>
 </body>
 </html>

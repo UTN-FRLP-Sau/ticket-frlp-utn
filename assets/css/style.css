@@ -1,22 +1,628 @@
+/* General Body & Container */
 body {
-    font-family: tahoma;
-    /*background-color: #AAB4DC;*/
-    background: #f7f7f7;
+    background-color: #f0f2f5;
+    font-family: 'Roboto', sans-serif;
+    color: #333;
 }
 
-.ticket {
-    background: #ffffff;
-    margin: 2% auto;
-    border-radius: 30px;
+.container {
+    max-width: 1200px;
 }
-
-.title {
-    margin-top: 1em;
-}
-
 .form-center {
+    justify-content: center;
+}
+/* Main Card Styling */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+.col-lg-9 {
+    width: 100%;
+}    
+.header-logo {
+    max-width: 50%;
+    height: auto;
+    margin-bottom: 0.5rem;
+}
+
+/* Title of the Web Ticket Purchase Menu */
+#card-titulo{
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-top: 1em;
+    background-color: #2f96ff !important;
+}
+
+#card-titulo h2 {
+    font-size: 2rem;
+    /* Color will be handled by the parent's text-white class */
+}
+
+#tarjetaSaldo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.5rem;
+    color: black;
+}
+
+.card-header {
+    background-color: #ff5e00;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    border-bottom: none;
+    padding: 1.5rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.card-header h2 {
+    font-size: 1.8rem;
+    margin-bottom: 0;
+}
+
+.badge.bg-primary {
+    margin-top: 0.2rem;
+}
+.badge.bg-warning{
+    margin-top: 0.2rem;
+    pointer-events: auto !important;
+    cursor: help;
+}
+
+/* Alert Messages */
+.alert {
+    border-radius: 8px;
+    font-size: 0.95rem;
+    padding: 1rem 1.5rem;
+}
+
+.alert-info {
+    background-color: #e6f7ff;
+    color: #0056b3;
+    border-left: 5px solid #007bff;
+}
+
+.alert-primary {
+    background-color: #e2f0f7;
+    color: #004085;
+    border-left: 5px solid #007bff;
+}
+
+.alert .bi {
+    font-size: 1.25rem;
+    vertical-align: middle;
+}
+
+.btn-close {
+    font-size: 0.85rem;
+}
+
+/* Specific Badge/Label Styles for Day Cards */
+.badge-multiline {
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.badge-purchased {
+    background-color: #198754 !important;
+}
+
+.badge-esperando-acreditacion{
+    background-color: #e4bd10;
+    color: #000000 !important;
+    pointer-events: auto !important;
+    cursor: help;
+}
+
+.badge-holiday {
+    background-color: #5d5d5d !important;
+    color: #ffffff !important;
+}
+
+.badge-recess {
+    background-color: #5d5d5d  !important;
+    color: white !important;
+}
+
+.badge-past {
+    background-color: #5d5d5d !important;
+    color: #ffffff !important;
+}
+
+.saldo-titulo {
+    background-color: #e5e5e5 !important;
+}
+
+.dropdown-menu{
+    background-color: rgb(33 37 41) !important;
+}
+
+/* Estilos para el contenedor del carrusel de días */
+.days-carousel-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+    padding-top: 0.4rem;
+}
+.accordion-body {
+    padding: 1rem 1rem;
+}
+/* Estilos para cada columna de día dentro del carrusel */
+.day-column {
+    flex: 1 1 250px;
+    max-width: calc(20% - 1rem);
+}
+
+/* Estilos para el scrollbar */
+.days-carousel-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.days-carousel-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.days-carousel-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.days-carousel-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Clases de estilo para los estados de las viandas */
+.meal-disabled {
+    background-color: #f8f9fa !important;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.meal-disabled .form-check-input,
+.meal-disabled select {
+    cursor: not-allowed;
+}
+
+/* Day Option Cards (Each Day's Block) - Normal Days */
+.day-option-card {
+    border: 1px solid #7b7b7b;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* General hover effect for day cards, excluding specific states */
+.day-option-card:hover:not(.day-card-holiday):not(.day-card-recess):not(.day-card-past) {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
+}
+
+.day-option-card .card-header {
+    border-radius: 10px 10px 0 0;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Style for Normal Day Card Header */
+.day-card-normal-header-bg {
+    background-color: #2f96ff !important;
+    color: #ffffff !important;
+}
+
+.day-option-card .card-header .badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.7em;
+}
+
+/* assets/css/style.css */
+
+.text-white-custom {
+    color: #FFFFFF !important; /* Blanco puro */
+}
+
+.text-black-custom {
+    color: #000000 !important; /* Negro puro */
+}
+
+/* Custom styles for Holiday Cards */
+.day-card-holiday {
+    border-color: #7b7b7b !important;
+    background-color: #e7e7e7 !important;
+}
+
+.day-card-holiday-header-bg {
+    background-color: #aaaaaa  !important;
+    color: rgb(0, 0, 0) !important;
+}
+
+/* Custom styles for Winter Recess Cards */
+.day-card-recess {
+    border-color: #7b7b7b !important;
+    background-color: #e7e7e7 !important;
+}
+
+.day-card-recess-header-bg {
+    background-color: #aaaaaa  !important;
+    color: rgb(0, 0, 0)tant;
+}
+
+/* Style for past days card (only applied if 'meal-past' class is present) */
+.day-card-past {
+    opacity: 0.8;
+}
+
+
+/* Meal Time Blocks (Mediodía/Noche) */
+.meal-time-block {
+    background-color: #fdfdfd;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.meal-time-block:hover:not(.meal-disabled) {
+    background-color: #f0f8ff;
+    border-color: #a2d2ff;
+}
+
+/* Custom Checkbox Styling */
+.form-check.custom-checkbox {
+    padding-left: 0;
+    margin-bottom: 0.5rem;
+    margin-left: 2.5em;
+
+}
+
+.form-check-input.meal-checkbox {
+    width: 1.5em;
+    height: 1.5em;
+    margin-top: 0.25em;
+    margin-right: 0.75em;
+    border-radius: 0.35em;
+    flex-shrink: 0;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-check-input.meal-checkbox:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+    box-shadow: none;
+}
+
+.form-check-input.meal-checkbox:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+.form-check-input.meal-checkbox:disabled {
+    background-color: #e9ecef;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.form-check-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 1.05rem;
+}
+
+.form-check-label .bi {
+    font-size: 1.2rem;
+    color: #434343;
+}
+
+.form-check-label .badge {
+    font-size: 0.7rem;
+    font-weight: normal;
+    padding: 0.3em 0.6em;
+    border-radius: 0.3em;
+}
+
+/* Hidden Options (Selects) */
+.vianda-options {
+    margin-top: 1rem;
+    transition: all 0.3s ease-out;
+    opacity: 1;
+    max-height: 150px;
+    overflow: hidden;
+
+}
+
+.vianda-options.d-none {
+    max-height: 0;
+    opacity: 0;
+    padding-left: 0;
+    border-left: none;
+    margin-top: 0;
+}
+
+/* Disabled Meal Blocks */
+.meal-time-block.meal-disabled {
+    background-color: #f8f9fa;
+    opacity: 0.7;
+    cursor: not-allowed;
+    border-color: #dee2e6;
+}
+
+.meal-time-block.meal-disabled .form-check-label {
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Select Inputs */
+.form-select {
+    border-radius: 6px;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    outline: 0;
+}
+
+/* Purchase Summary Card */
+.summary-card {
+    border: 1px solid #7171716b;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.15);
+}
+
+.summary-card .card-header {
+    background-color: #28a745;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.5rem;
+}
+
+.summary-card .card-header h5 {
+    font-size: 1.4rem;
+}
+
+.summary-card .card-body span,
+.summary-card .card-body strong {
+    font-size: 1.1rem;
+    padding: 0.25rem 0;
+}
+
+.summary-card .card-body .fs-4 {
+    font-size: 1.6rem !important;
+}
+
+#totalPagar {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Action Buttons */
+.d-grid.gap-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.btn-lg {
+    padding: 0.9rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-lg:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #343a40;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+    color: #343a40;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Modal Styling */
+.modal-header.bg-primary {
+    background-color: #007bff !important;
+    color: white;
+}
+
+.modal-title .bi {
+    font-size: 1.3rem;
+    vertical-align: middle;
+}
+
+.modal-body strong {
+    color: #007bff;
+}
+
+.modal-body .text-success {
+    color: #28a745 !important;
+}
+
+.modal-footer .btn {
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.btn-close-white {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+
+.text-muted {
+    color: #323232 !important;
+}
+
+.navbar-nav .dropdown-menu {
+    min-width: auto;
+    max-width: calc(100vw - 20px);
+    
+
+    left: auto !important; 
+    transform: none !important;
+    right: auto !important;
+    float: none !important;
+}
+.navbar-nav .dropdown-item {
+    white-space: normal;  
+    word-wrap: break-word;
+    padding-left: 1rem;   
+    padding-right: 1rem;
+}
+
+
+/* Responsive Adjustments */
+@media (min-width: 992px) { /* Para pantallas de escritorio grandes (o tablets grandes en landscape) */
+    .days-carousel-container {
+        overflow-x: visible;
+        justify-content: center;
+    }
+    .day-column {
+        flex: 1 1 calc(20% - 1rem);
+        max-width: calc(20% - 1rem);
+    }
+    
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) { /* Para tablets en portrait */
+    .day-column {
+        flex: 1 1 calc(33.33% - 1rem);
+        max-width: calc(33.33% - 1rem);
+    }
+}
+
+@media (max-width: 767.98px) { /* Para pantallas pequeñas (móviles) */
+    .card-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .day-option-card .card-header h5 {
+        font-size: 1.05rem;
+    }
+
+    .day-option-card .card-header .badge {
+        font-size: 0.65rem;
+    }
+
+    .form-check-label {
+        font-size: 0.95rem;
+    }
+
+    /* Vuelve a comportarse como carrusel en pantallas pequeñas */
+    .days-carousel-container {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+    .day-column {
+        flex-shrink: 0; 
+        min-width: 250px;
+        max-width: 250px;
+    }
+
+    .vianda-options {
+        padding-left: 1rem;
+    }
+
+    .d-grid.gap-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-lg {
+        padding: 0.8rem 1.2rem;
+        font-size: 1rem;
+    }
+    .accordion-button {
+        font-size: 1rem;
+    }
+
+    #tarjetaSaldo {
+        font-size: 1.2rem !important;
+    }
+    .saldo-numero-movil {
+        font-size: 2.2rem;
+        font-weight: bold;
+        display: block;
+        margin-top: 5px;
+        text-align: center;
+    }
+    #saldo-titulo {
+        font-size: 1.2rem !important;
+    }
+
+}
+
+@media (max-width: 504px) {
+    #card-titulo h2 {
+        font-size: 1.5rem !important;
+    }
+    .card-header {
+        padding: 1rem !important;
+    }
+    #tarjetaSaldo {
+        font-size: 1.2rem !important;
+    }
+    .saldo-numero-movil {
+        font-size: 2.2rem;
+        font-weight: bold;
+        display: block;
+        margin-top: 5px;
+        text-align: center;
+    }
+    #saldo-titulo {
+        font-size: 1.2rem !important;
+    }
+    
+}
+
+@media (max-width: 400px) {
+    #card-titulo h2 {
+        font-size: 1.4rem !important;
+    }
+    .card-header {
+        padding: 1rem !important;
+    }
+    #tarjetaSaldo {
+        font-size: 1.5rem !important;
+    }
 }
