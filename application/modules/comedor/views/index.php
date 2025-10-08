@@ -86,7 +86,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                     <input type="number" id="saldoCuenta" value="<?= $usuario->saldo; ?>" hidden>
                     <input type="number" id="costoVianda" value="<?= $costoVianda; ?>" hidden>
 
-                    <form method="post" action="<?= base_url('usuario/comprar'); ?>" id="formCompraId">
+                    <form method="post" action="<?= base_url('usuario/comprar'); ?>" id="formCompraId" autocomplete="off">
                         <div class="accordion mb-4" id="accordionSemanas">
                             <?php foreach ($weeksData as $week): ?>
                                 <?php

@@ -97,16 +97,50 @@ class Webhook_model extends CI_Model {
      */
     public function procesarPagoAprobado($compra_pendiente, $payment_info) {
         $this->_logManual('INICIANDO PROCESAMIENTO PAGO APROBADO (WEBHOOK_MODEL) para Compra ID: ' . $compra_pendiente->id, 'webhook');
+        $this->_logManual('DEBUG: Estado inicial compra_pendiente: ' . json_encode($compra_pendiente), 'webhook');
 
         $this->db->trans_begin(); // Inicia la transacción de la base de datos
 
         try {
-            // Verifica si la compra ya fue procesada para evitar duplicados
-            if ($compra_pendiente->procesada == 1) {
-                $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Compra ' . $compra_pendiente->id . ' ya estaba procesada. No se realizó ninguna acción adicional.', 'webhook');
+            $this->_logManual('DEBUG: Entrando a transacción y bloqueo pesimista para compra_pendiente ID: ' . $compra_pendiente->id, 'webhook');
+
+            // === INICIO DEL BLOQUEO PESIMISTA ===
+            $id_compra = $compra_pendiente->id;
+
+            // La sentencia FOR UPDATE debe ir en SQL nativo en CI3 para MySQL.
+            $sql = "SELECT * FROM compras_pendientes WHERE id = ? FOR UPDATE";
+            $query = $this->db->query($sql, array($id_compra));
+            $fila_bloqueada = $query->row();
+
+            // 1. Verifica si la fila fue eliminada por otro proceso.
+            if ($fila_bloqueada === null) {
+                $this->_logManual('DEBUG: Fila bloqueada es null para compra_pendiente ID: ' . $compra_pendiente->id, 'webhook');
+                $this->_logManual('PAGO OMITIDO: Compra pendiente ' . $compra_pendiente->id . ' no encontrada (probablemente eliminada por otro proceso).', 'webhook');
                 $this->db->trans_rollback();
                 return true;
             }
+
+            // 2. Verifica si la fila ya fue procesada por otro proceso.
+            if ($fila_bloqueada->procesada == 1) {
+                $this->_logManual('DEBUG: Fila bloqueada ya procesada para compra_pendiente ID: ' . $compra_pendiente->id, 'webhook');
+                // Si ya está procesada, no hacemos nada.
+                $this->_logManual('PAGO OMITIDO: Compra ' . $fila_bloqueada->id . ' ya estaba marcada como procesada (procesada=1).', 'webhook');
+                $this->db->trans_rollback();
+                return true;
+            }
+
+            $data_update = array(
+                'procesada' => 1,
+                'mp_estado' => $payment_info->status . ' (Detalle: ' . (isset($payment_info->status_detail) ? $payment_info->status_detail : 'accredited') . ')'
+            );
+            $this->db->where('id', $compra_pendiente->id);
+            if (!$this->db->update('compras_pendientes', $data_update)) {
+                // Si falla el update, forzamos un rollback y reintentamos.
+                throw new Exception('Fallo al marcar la compra pendiente como procesada (Update procesada=1).');
+            }
+
+            $compra_pendiente = $fila_bloqueada;
+            $this->_logManual('DEBUG: Fila bloqueada obtenida: ' . json_encode($fila_bloqueada), 'webhook');
 
             $id_usuario = $compra_pendiente->id_usuario;
             $total_compra = (float)$compra_pendiente->total;
@@ -114,6 +148,7 @@ class Webhook_model extends CI_Model {
             $payment_id_mp = $payment_info->id;
 
             $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo actual del usuario ' . $id_usuario . ' (antes de deducción): ' . $this->ticket_model->getSaldoByIDUser($id_usuario), 'webhook');
+            $this->_logManual('DEBUG: Datos de payment_info: ' . json_encode($payment_info), 'webhook');
 
             $monto_pagado_mp = 0;
             if (isset($payment_info->transaction_amount)) {
@@ -139,6 +174,7 @@ class Webhook_model extends CI_Model {
             }
 
             $saldo_para_registro_transaccion = $this->ticket_model->getSaldoByIDUser($id_usuario);
+            $this->_logManual('DEBUG: Antes de crear transacción principal. Data: ' . json_encode($data_transaccion), 'webhook');
             $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Saldo final del usuario de la DB para registro: ' . $saldo_para_registro_transaccion, 'webhook');
 
             $data_transaccion = [
@@ -151,6 +187,7 @@ class Webhook_model extends CI_Model {
                 'external_reference' => $external_reference,
             ];
             $id_transaccion = $this->ticket_model->addTransaccion($data_transaccion);
+            $this->_logManual('DEBUG: ID de transacción principal creado: ' . $id_transaccion, 'webhook');
 
             if ($id_transaccion === false) {
                 throw new Exception('No se pudo insertar la transacción principal.');
@@ -159,8 +196,10 @@ class Webhook_model extends CI_Model {
 
             $email_vendedor_mp = 'mercado@pago';
             $id_vendedor_mp = $this->ticket_model->getVendedorIdByEmail($email_vendedor_mp);
+            $this->_logManual('DEBUG: ID de vendedor MP: ' . $id_vendedor_mp, 'webhook');
 
             if ($id_vendedor_mp !== null) {
+                $this->_logManual('DEBUG: Antes de crear log_carga. Data: ' . json_encode($data_log_carga), 'webhook');
                 $data_log_carga = [
                     'fecha'      => date('Y-m-d'),
                     'hora'       => date('H:i:s'),
@@ -180,11 +219,13 @@ class Webhook_model extends CI_Model {
             }
 
             $viandas_en_compra = $this->ticket_model->getViandasCompraPendiente($compra_pendiente->id);
+            $this->_logManual('DEBUG: Viandas obtenidas para compra_pendiente ID ' . $compra_pendiente->id . ': ' . json_encode($viandas_en_compra), 'webhook');
             if (empty($viandas_en_compra)) {
                 throw new Exception('No se encontraron viandas para la compra pendiente ' . $compra_pendiente->id . '. No se procederá con la inserción de compras/logs.');
             }
 
             foreach ($viandas_en_compra as $vianda_item) {
+                $this->_logManual('DEBUG: Antes de crear item de compra. Data: ' . json_encode($data_compra), 'webhook');
                 $data_compra = [
                     'fecha' => date('Y-m-d'),
                     'hora' => date('H:i:s'),
@@ -217,18 +258,22 @@ class Webhook_model extends CI_Model {
                     'transaccion_id'     => $id_transaccion
                 ];
                 $this->ticket_model->addLogCompra($log_data);
+                $this->_logManual('DEBUG: Log de compra creado para item: ' . $vianda_item['menu'], 'webhook');
                 $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Log de compra insertado para item: ' . $vianda_item['menu'], 'webhook');
             }
 
             // Elimina la compra pendiente solo si todo lo demás fue exitoso
             if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
+                $this->_logManual('ERROR: Fallo al eliminar compra_pendiente ID: ' . $compra_pendiente->id, 'webhook');
                 log_message('error', 'PAGO APROBADO (WEBHOOK_MODEL): Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
             } else {
                 $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'webhook');
             }
 
             $usuario = $this->ticket_model->getUserById($id_usuario);
+            $this->_logManual('DEBUG: Usuario obtenido para recibo: ' . json_encode($usuario), 'webhook');
             $compras_para_recibo = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion);
+            $this->_logManual('DEBUG: Compras para recibo obtenidas: ' . json_encode($compras_para_recibo), 'webhook');
 
             if ($usuario && $compras_para_recibo) {
                 $this->_logManual('PAGO APROBADO (WEBHOOK_MODEL): Intentando enviar email de compra exitosa.', 'webhook');
@@ -289,12 +334,9 @@ class Webhook_model extends CI_Model {
                 return true;
             }
 
-            // Elimina la compra pendiente
-            if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
-                log_message('error', 'PAGO RECHAZADO (WEBHOOK_MODEL): Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . '.');
-            }
-            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado.', 'webhook');
-            
+            $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'rejected', $mp_status_detail);
+            $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Registro de compra pendiente ' . $compra_pendiente->id . ' marcado como rechazado (sin procesar).', 'webhook');
+
             $usuario = $this->ticket_model->getUserById($compra_pendiente->id_usuario);
 
             if ($usuario && $usuario->mail) {
@@ -325,7 +367,6 @@ class Webhook_model extends CI_Model {
             } else {
                 $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Usuario o email no encontrado para external_reference ' . $external_reference . '. No se pudo enviar correo de rechazo.', 'webhook');
             }
-
 
             $this->db->trans_commit();
             $this->_logManual('PAGO RECHAZADO (WEBHOOK_MODEL): Transacción de DB para compra ID: ' . $compra_pendiente->id . ' COMPLETADA y COMMIT.', 'webhook');

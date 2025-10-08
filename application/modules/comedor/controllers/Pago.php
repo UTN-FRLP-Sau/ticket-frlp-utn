@@ -32,7 +32,7 @@ class Pago extends CI_Controller
         }
 
         $this->load->model('ticket_model');
-        $this->load->library('session'); // Asegúrate de que la librería de sesión esté cargada
+        $this->load->library('session');
 
         $compra = $this->ticket_model->getCompraPendiente($external_reference);
         // --- LOG DE COMPRA PENDIENTE ---
@@ -219,7 +219,6 @@ class Pago extends CI_Controller
                 $dataEmail['user_name'] = $usuario->nombre . ' ' . $usuario->apellido;
                 $dataEmail['compras'] = $compras;
                 $dataEmail['total'] = abs($transaccion_data->monto);
-                $dataEmail['total'] = abs($transaccion_data->monto); 
                 
                 $dataEmail['fechaHoy'] = date('d/m/Y', time());
                 $dataEmail['horaAhora'] = date('H:i:s', time());
@@ -251,7 +250,7 @@ class Pago extends CI_Controller
 
     public function compra_fallida()
     {
-        log_message('debug', 'PAGO: Método compra_fallida() alcanzado.');
+        $this->log_manual('PAGO: compra_fallida() alcanzado.');
         $this->session->unset_userdata('error_compra'); 
         $this->session->unset_userdata('external_reference');
         $this->load->view('usuario/header', ['titulo' => 'Pago fallido']);
@@ -316,14 +315,10 @@ class Pago extends CI_Controller
 
         // --- Actualiza estado a 'cancelled_by_user' ---
         $this->ticket_model->updateCompraPendienteEstado($compra_pendiente->id, 'cancelled_by_user', 'Usuario canceló orden desde modal en el menú principal');
-        log_message('debug', 'PAGO: Compra pendiente ' . $compra_pendiente->id . ' marcada como cancelada por usuario.');
-        
-        if (!$this->ticket_model->deleteCompraPendiente($compra_pendiente->id)) {
-            log_message('error', 'PAGO: Fallo al eliminar el registro de compra pendiente ' . $compra_pendiente->id . ' después de la cancelación del usuario.');
-        
-        } else {
-            log_message('debug', 'PAGO: Registro de compra pendiente ' . $compra_pendiente->id . ' eliminado tras cancelación por usuario.');
-        }
+
+        $this->log_manual('PAGO: Compra pendiente ' . $compra_pendiente->id . ' marcada como cancelled_by_user por el usuario.');
+
+  
 
         // --- Limpiar la external_reference de la sesión del usuario ---
         $this->session->unset_userdata('external_reference');

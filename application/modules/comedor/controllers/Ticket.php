@@ -18,6 +18,14 @@ class Ticket extends CI_Controller
         }
     }
 
+    private function log_manual($mensaje)
+    {
+        // ruta del archivo de log específica del webhook
+        $ruta_log = APPPATH . 'logs/ticket_manual_' . date('Y-m-d') . '.log';
+        $fecha = date('Y-m-d H:i:s');
+        file_put_contents($ruta_log, "[$fecha] $mensaje\n", FILE_APPEND);
+    }
+
     public function estadoComedor()
     {
         //Con esta funcion se verifica si el comedor se encuentra cerrado, definiendo los periodos
@@ -96,8 +104,7 @@ class Ticket extends CI_Controller
                 } else {
                     // Si la fecha de la vianda no es válida, actualiza el estado de la compra en la DB a 'expired_by_date_cutoff'
                     $this->ticket_model->updateCompraPendienteEstado($purchase['id'], 'expired_by_date_cutoff');
-                    log_message('debug', 'TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
-                    $this->ticket_model->deleteCompraPendiente($purchase['id']);
+                    $this->log_manual('TICKET_INDEX: Compra pendiente ID ' . $purchase['id'] . ' marcada como expired_by_date_cutoff debido a fecha de vianda inválida.');
                 }
             }
         }
@@ -155,11 +162,15 @@ class Ticket extends CI_Controller
                     if ($compra_desde_sesion->mp_estado === 'pasarela' && !$is_session_purchase_valid_by_date) {
                         $this->ticket_model->updateCompraPendienteEstado($compra_desde_sesion->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde sesión).');
                     }
+                    redirect(base_url('comedor/ticket'));
+                    return;
                 }
             } else {
                 // No se encontró compra para la external_reference en sesión o es inválida, limpiar.
                 $this->session->unset_userdata('external_reference');
                 log_message('debug', 'TICKET_INDEX: external_reference de sesión limpiada. Razón: No se encontró compra válida para la referencia.');
+                redirect(base_url('comedor/ticket'));
+                return; // Detener la ejecución
             }
         }
 
@@ -422,7 +433,7 @@ class Ticket extends CI_Controller
         // --- INICIO: VERIFICACIÓN DE COMPRA PENDIENTE EXISTENTE ---
         $existing_pending_purchase = $this->ticket_model->getAnyPasarelaPurchaseForUser($id_usuario);
         if ($existing_pending_purchase) {
-            log_message('info', 'TICKET_COMPRA: Usuario ' . $id_usuario . ' intentó iniciar una nueva compra pero ya tiene una pendiente con external_reference: ' . $existing_pending_purchase->external_reference);
+            $this->log_manual('TICKET_COMPRA: Usuario ' . $id_usuario . ' intentó iniciar una nueva compra pero ya tiene una pendiente con external_reference: ' . $existing_pending_purchase->external_reference);
             $this->session->set_userdata('error_compra', ['Ya tienes una compra pendiente de pago. Por favor, retómala o cancélala antes de iniciar una nueva.']);
             redirect(base_url('comedor/ticket'));
             return; // Detener la ejecución
@@ -479,12 +490,46 @@ class Ticket extends CI_Controller
         //  Verifica si, después de todo el procesamiento y filtrado, no quedó nada en $seleccion
         // Esto captura casos donde el formulario se envió vacío o todas las selecciones fueron invalidadas.
         if (empty($seleccion)) {
-            redirect(base_url('comedor/ticket')); // Redirige a la página principal de selección
+            redirect(base_url('comedor/ticket'));
             return; // Detener la ejecución
         }
 
-        $external_reference = $id_usuario . '-' . time();
 
+        // --- INICIO: VERIFICACIÓN DE VIANDAS YA COMPRADAS Y APROBADAS ---
+
+        // 1. Prepara el array con los días y turnos seleccionados para la verificación
+        $viandas_a_verificar = [];
+        foreach ($seleccion as $vianda) {
+            $viandas_a_verificar[] = [
+                'dia_comprado' => $vianda['dia_comprado'],
+                'turno' => $vianda['turno']
+            ];
+        }
+
+        // 2. Consulta al modelo para obtener los conflictos
+        $compras_en_conflicto = $this->ticket_model->obtenerComprasEnConflicto($id_usuario, $viandas_a_verificar);
+
+        if (!empty($compras_en_conflicto)) {
+            $erroresCompra = [];
+            foreach ($compras_en_conflicto as $conflicto) {
+                $fecha = date('d/m/Y', strtotime($conflicto['dia_comprado']));
+                $turno = ucfirst($conflicto['turno']); // Capitaliza 'manana' o 'noche'
+                $erroresCompra[] = "La vianda para el día {$fecha} en el turno de {$turno} ya fue comprada y no puede ser procesada.";
+            }
+
+            $this->session->set_userdata('error_compra', $erroresCompra);
+            log_message('warning', 'TICKET_COMPRA: Conflicto de compra detectado (Vianda ya comprada). Usuario ID: ' . $id_usuario . '. Redirigiendo.');
+            
+            // Detiene el proceso de pago y redirige al home con el error
+            redirect(base_url('comedor/ticket')); 
+            return; 
+        }
+        // --- FIN: VERIFICACIÓN DE VIANDAS YA COMPRADAS Y APROBADAS ---
+
+        // Limpia compras pendientes rechazadas antes de crear una nueva
+        $this->ticket_model->limpiarComprasPendientesRechazadas($id_usuario);
+
+        $external_reference = $id_usuario . '-' . time();
         $this->ticket_model->guardarCompraPendiente([
             'external_reference' => $external_reference,
             'id_usuario' => $id_usuario,

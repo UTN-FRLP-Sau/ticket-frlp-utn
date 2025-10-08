@@ -61,9 +61,9 @@ class Login extends CI_Controller
                 $this->session->set_userdata($session);
                 
                 // Limpieza de registros compras pendientes
-                $this->load->library('cron_tasks');
+                $this->load->library('tasks');
                 // Llama al método de limpieza de la librería, pasándole el ID del usuario logueado
-                $this->cron_tasks->cleanupUserExpiredOrders($usuario->id);
+                $this->tasks->cleanupUserExpiredOrders($usuario->id);
 
                 // Redirigir al usuario al panel después de la autenticación y la limpieza
                 redirect(base_url('usuario'));

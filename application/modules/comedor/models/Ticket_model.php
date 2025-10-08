@@ -457,7 +457,7 @@ class Ticket_model extends CI_Model
         
         $result = $query->row();
         if ($result) {
-            log_message('debug', 'Ticket_model: getUserById() - Usuario encontrado: ' . json_encode($result)); // Nuevo log
+            log_message('debug', 'Ticket_model: getUserById() - Usuario encontrado: '); // Nuevo log
         } else {
             log_message('debug', 'Ticket_model: getUserById() - Usuario NO encontrado para ID: ' . $id); // Nuevo log
         }
@@ -546,8 +546,7 @@ class Ticket_model extends CI_Model
 
     public function updateCompraPendienteEstado($id_compra_pendiente, $estado_mp) {
         $data = [
-            'mp_estado' => $estado_mp,
-            'procesada' => ($estado_mp == 'approved') ? 1 : 0
+            'mp_estado' => $estado_mp
         ];
         $this->db->where('id', $id_compra_pendiente);
         $this->db->update('compras_pendientes', $data);
@@ -758,5 +757,59 @@ public function esFechaViandaAunOrdenable(string $fechaViandaStr)
             log_message('error', 'Error en esFechaViandaAunOrdenable (MODEL): ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+        * Elimina todas las compras pendientes del usuario con estado 'rejected', procesada = 0 y más de 1 día de antigüedad
+     */
+    public function limpiarComprasPendientesRechazadas($id_usuario) {
+        $this->db->where('id_usuario', $id_usuario);
+        $this->db->where('mp_estado', 'rejected');
+        $this->db->where('procesada', 0);
+        $this->db->where('created_at <', date('Y-m-d H:i:s', strtotime('-1 day')));
+        $this->db->delete('compras_pendientes');
+    }
+
+
+    /**
+     * Verifica si alguna de las viandas seleccionadas ya fue comprada
+     * * @param int $id_usuario ID del usuario actual.
+     * @param array $viandas_a_verificar Array de arrays con ['dia_comprado' => 'AAAA-MM-DD', 'turno' => 'manana'|'noche'].
+     * @return array Array de las viandas que generan conflicto (ya compradas).
+     */
+    public function obtenerComprasEnConflicto($id_usuario, $viandas_a_verificar)
+    {
+        // Si no hay viandas para verificar, retorna un array vacío inmediatamente.
+        if (empty($viandas_a_verificar)) {
+            return [];
+        }
+
+        // 1. Prepara las condiciones WHERE para la consulta.
+        $condiciones_where = [];
+        foreach ($viandas_a_verificar as $vianda) {
+            // Sanitiza los valores de fecha y turno para la consulta SQL.
+            $fecha_db = $this->db->escape_str($vianda['dia_comprado']);
+            $turno_db = $this->db->escape_str($vianda['turno']);
+            
+            // Crea una condición para cada combinación de día y turno seleccionada.
+            $condiciones_where[] = "(dia_comprado = '{$fecha_db}' AND turno = '{$turno_db}')";
+        }
+
+        // 2. Ejecuta la consulta en CodeIgniter.
+        
+        // Selecciona solo los campos necesarios para identificar el conflicto.
+        $this->db->select('dia_comprado, turno');
+        
+        // Filtra por el ID del usuario.
+        $this->db->where('id_usuario', $id_usuario);
+        
+        // Combina todas las condiciones de día/turno con OR para encontrar cualquier conflicto.
+        $this->db->where('(' . implode(' OR ', $condiciones_where) . ')');
+
+        // Ejecuta la consulta en la tabla 'compra'.
+        $consulta = $this->db->get('compra'); 
+
+        // Retorna los resultados en formato array.
+        return $consulta->result_array(); 
     }
 }
