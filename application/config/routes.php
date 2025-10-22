@@ -95,6 +95,7 @@ $route['admin/informe/pedido'] = 'admin/vendedor/descargarResumenPedidosSemana';
 $route['admin/historial'] = 'admin/vendedor/historialCargas';
 $route['admin/menu'] = 'admin/vendedor/updateMenu';
 $route['admin/ver_comentarios'] = 'admin/administrador/ver_comentarios';
+$route['admin/vendedor/triggerPasswordRecovery/(:num)'] = 'admin/vendedor/triggerPasswordRecovery/$1';
 // $route['admin/ver_historial_menu'] = 'admin/vendedor/ver_historial_menu';
 
 $route['admin/crear_vendedor'] = 'admin/administrador/createVendedor';

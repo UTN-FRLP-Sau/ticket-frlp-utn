@@ -820,4 +820,46 @@ class Vendedor extends CI_Controller
             $this->load->view('general/footer');
         }
     }
+
+    public function triggerPasswordRecovery($documento)
+    {
+        $this->load->model('usuario/login_model');
+
+        // Buscamos al usuario por el documento proporcionado en la URL
+        $usuario = $this->login_model->getUserByDocumento($documento);
+
+        if ($usuario) {
+            // Generamos un token único para la solicitud
+            $str = "{$usuario->id}_{$usuario->mail}";
+            $token = md5($str);
+
+            // Si existe una solicitud anterior, la eliminamos para generar una nueva.
+            $existing_recovery = $this->login_model->getRecoveryByToken($token);
+            if ($existing_recovery) {
+                $this->login_model->deleteRecoverylogById($existing_recovery->id);
+            }
+
+            // Preparamos los datos para el correo electrónico
+            $data['nombre'] = $usuario->nombre;
+            $data['apellido'] = $usuario->apellido;
+            $data['dni'] = $usuario->documento;
+            $data['tipo'] = 'solicitud';
+            $data['link'] = base_url("usuario/recovery/{$token}");
+            $subject = "Solicitud de restablecimiento de contraseña";
+            $message = $this->load->view('general/correos/cambio_contraseña', $data, true);
+
+            // Intentamos enviar el correo
+            if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
+                // Si el correo se envía, registramos la nueva solicitud en la base de datos
+                $this->login_model->addLogPassrecovery(['fecha' => date('Y-m-d'), 'hora' => date('H:i:s'), 'id_usuario' => $usuario->id, 'token' => $token]);
+                $this->session->set_flashdata('success', "Se ha enviado correctamente el correo de restablecimiento de contraseña al usuario.");
+            } else {
+                $this->session->set_flashdata('error', "Hubo un error al intentar enviar el correo electrónico.");
+            }
+        } else {
+            $this->session->set_flashdata('error', "No se encontró un usuario con el documento proporcionado.");
+        }
+        // Redirigimos de vuelta al panel principal del administrador
+        redirect(base_url('admin'));
+    }
 }
