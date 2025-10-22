@@ -32,8 +32,7 @@ class Vendedor extends CI_Controller
             $usuario = $this->vendedor_model->getUserByDocumento($documento);
             if ($usuario) {
                 $data['usuario'] = $usuario;
-                //Seteo el numero de documento como variable de sesion
-                $this->session->set_flashdata('documento', $documento);
+                $this->session->set_userdata('documento_buscado', $documento);
             } else {
                 $data['usuario'] = FALSE;
             }
@@ -852,14 +851,17 @@ class Vendedor extends CI_Controller
             if ($this->generalticket->smtpSendEmail($usuario->mail, $subject, $message)) {
                 // Si el correo se envía, registramos la nueva solicitud en la base de datos
                 $this->login_model->addLogPassrecovery(['fecha' => date('Y-m-d'), 'hora' => date('H:i:s'), 'id_usuario' => $usuario->id, 'token' => $token]);
-                $this->session->set_flashdata('success', "Se ha enviado correctamente el correo de restablecimiento de contraseña al usuario.");
+                $status = 'success';
+                $message = urlencode("Se ha enviado correctamente el correo de restablecimiento de contraseña al usuario.");
             } else {
-                $this->session->set_flashdata('error', "Hubo un error al intentar enviar el correo electrónico.");
+                $status = 'error';
+                $message = urlencode("Hubo un error al intentar enviar el correo electrónico.");
             }
         } else {
-            $this->session->set_flashdata('error', "No se encontró un usuario con el documento proporcionado.");
+            $status = 'error';
+            $message = urlencode("No se encontró un usuario con el documento proporcionado.");
         }
         // Redirigimos de vuelta al panel principal del administrador
-        redirect(base_url('admin'));
+        redirect(base_url('admin?status=' . $status . '&msg=' . $message));
     }
 }

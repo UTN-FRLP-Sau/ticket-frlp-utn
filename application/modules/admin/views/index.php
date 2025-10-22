@@ -111,19 +111,14 @@
                 <h2>Ingrese un Documento a buscar</h2>
             </div>
             <div class="col-12 col-md-8 col-lg-6">
-                <?php if (isset($this->session) && $this->session->flashdata('success')): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?= $this->session->flashdata('success'); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php elseif (isset($this->session) && $this->session->flashdata('error')): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <?= $this->session->flashdata('error'); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php elseif (isset($this->session) && $this->session->flashdata('info')): ?>
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        <?= $this->session->flashdata('info'); ?>
+                <?php
+                $status = $this->input->get('status');
+                $msg = $this->input->get('msg');
+                if ($status && $msg):
+                    $alert_class = ($status == 'success') ? 'alert-success' : 'alert-danger';
+                ?>
+                    <div class="alert <?= $alert_class ?> alert-dismissible fade show" role="alert">
+                        <?= urldecode($msg); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
