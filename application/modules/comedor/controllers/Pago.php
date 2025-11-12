@@ -66,6 +66,7 @@ class Pago extends CI_Controller
         if ($hayViandaInvalida) {
             // Marca la compra como expirada/cancelada debido a la revalidación de fechas
             $this->ticket_model->updateCompraPendienteEstado($compra->id, 'expired_by_date_cutoff', 'Compra expirada por revalidación de fecha en el momento del pago.');
+            $this->log_manual('PAGO: compra pendiente actualizada a expired_by_date_cutoff por revalidacion al momento del pago');
             $this->session->unset_userdata('external_reference');
 
 
@@ -250,6 +251,7 @@ class Pago extends CI_Controller
 
     public function compra_fallida()
     {
+        log_message('debug', 'PAGO: Método compra_fallida() alcanzado.');
         $this->log_manual('PAGO: compra_fallida() alcanzado.');
         $this->session->unset_userdata('error_compra'); 
         $this->session->unset_userdata('external_reference');
@@ -261,7 +263,7 @@ class Pago extends CI_Controller
     public function compra_pendiente()
     {
         log_message('debug', 'PAGO: Método compra_pendiente() alcanzado.');
-
+        $this->log_manual('PAGO: compra_pendiente() alcanzado.');
         $this->load->model('ticket_model');
 
         $external_reference = $this->input->get('external_reference');

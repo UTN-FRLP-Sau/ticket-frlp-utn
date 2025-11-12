@@ -161,7 +161,11 @@ class Ticket extends CI_Controller
                  
                     if ($compra_desde_sesion->mp_estado === 'pasarela' && !$is_session_purchase_valid_by_date) {
                         $this->ticket_model->updateCompraPendienteEstado($compra_desde_sesion->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde sesión).');
+                        $this->log_manual(
+                            'TICKET_INDEX: Compra expirada por fecha de vianda al cargar la página principal. External-Refernce: ' . $compra_desde_sesion->external_reference
+                        );
                     }
+                    
                     redirect(base_url('comedor/ticket'));
                     return;
                 }

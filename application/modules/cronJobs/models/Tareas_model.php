@@ -9,7 +9,7 @@ class Tareas_model extends CI_Model
     }
 
     public function getComprasPendientes() {
-        $this->db->where_in('mp_estado', ['pending', 'in_process']);
+        $this->db->where_in('mp_estado', ['pending', 'in_process','pasarela']);
         $query = $this->db->get('compras_pendientes'); 
         return $query->result();
     }
