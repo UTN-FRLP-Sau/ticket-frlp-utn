@@ -271,7 +271,14 @@ class Webhook_model extends CI_Model {
             }
 
             $usuario = $this->ticket_model->getUserById($id_usuario);
-            $this->_logManual('DEBUG: Usuario obtenido para recibo: ' . json_encode($usuario), 'webhook');
+            $usuario_datos = (object)[
+                'id' => $usuario->id,
+                'dni' => $usuario->documento,
+                'apellido' => $usuario->apellido,
+                'nombre' => $usuario->nombre
+            ];
+            $this->_logManual('DEBUG: Usuario obtenido para recibo: ' . json_encode($usuario_datos), 'webhook');
+           
             $compras_para_recibo = $this->ticket_model->getlogComprasByIDTransaccion($id_transaccion);
             $this->_logManual('DEBUG: Compras para recibo obtenidas: ' . json_encode($compras_para_recibo), 'webhook');
 
