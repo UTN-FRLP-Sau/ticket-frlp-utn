@@ -206,8 +206,11 @@ class Ticket extends CI_Controller
                         log_message('debug', 'TICKET_INDEX: Se encontró una compra "pasarela" activa y válida en la BD para el usuario (ID: ' . $usuario_id . ').');
                         $this->session->set_userdata('external_reference', $compra_a_mostrar->external_reference);
                     } else {
-                         log_message('warning', 'TICKET_INDEX: Compra "pasarela" ID ' . $compra_pasarela_db->id . ' encontrada en BD, pero contiene viandas expiradas. Marcándola como expired_by_date_cutoff.');
-                         $this->ticket_model->updateCompraPendienteEstado($compra_pasarela_db->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde DB).');
+                        log_message('warning', 'TICKET_INDEX: Compra "pasarela" ID ' . $compra_pasarela_db->id . ' encontrada en BD, pero contiene viandas expiradas. Marcándola como expired_by_date_cutoff.');
+                        $this->ticket_model->updateCompraPendienteEstado($compra_pasarela_db->id, 'expired_by_date_cutoff', 'Compra expirada por fecha de vianda al cargar la página principal (desde DB).');
+                        $this->log_manual(
+                            'TICKET_INDEX: Compra expirada por fecha de vianda al cargar la página principal. External-Refernce: ' . $compra_pasarela_db->external_reference
+                        );
                     }
                 } else {
                      log_message('debug', 'TICKET_INDEX: No se encontraron compras "pasarela" en la BD para el usuario (ID: ' . $usuario_id . ').');
