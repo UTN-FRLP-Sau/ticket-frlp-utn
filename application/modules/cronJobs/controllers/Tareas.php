@@ -219,4 +219,12 @@ class Tareas extends CI_Controller {
         $this->_logManual('CRON_CLI: Ejecutando otra tarea diaria.', 'Cron');
         echo "Otra tarea diaria ejecutada.\n";
     }
+
+    public function limpiar_passrecovery() {
+        $this->db->where('TIMESTAMP(fecha, hora) <', date('Y-m-d H:i:s', strtotime('-1 hour')), false);
+        $this->db->delete('passrecovery');
+        $affected = $this->db->affected_rows();
+        $this->_logManual("CRON_CLI: Se eliminaron {$affected} registros de passrecovery.", 'Cron');
+        echo "Registros eliminados: {$affected}\n";
+    }
 }
