@@ -24,13 +24,13 @@
 
             <?php if ($retiro_mediodia): ?>
             <div class="turno">
-                <p>Recordá que compraste tu vianda de hoy, podés retirarla de <strong><?= substr($retiro_mediodia_desde, 0, 5); ?></strong> a <strong><?= substr($retiro_mediodia_hasta, 0, 5); ?></strong> (turno mediodía).</p>
+                <p>Recordá que compraste tu vianda de hoy, podés retirarla de <strong><?= (new DateTime($retiro_mediodia_desde))->format('H:i'); ?></strong> a <strong><?= (new DateTime($retiro_mediodia_hasta))->format('H:i'); ?></strong> (turno mediodía).</p>
             </div>
             <?php endif; ?>
 
             <?php if ($retiro_noche): ?>
             <div class="turno">
-                <p>Recordá que compraste tu vianda de hoy, podés retirarla de <strong><?= substr($retiro_noche_desde, 0, 5); ?></strong> a <strong><?= substr($retiro_noche_hasta, 0, 5); ?></strong> (turno noche).</p>
+                <p>Recordá que compraste tu vianda de hoy, podés retirarla de <strong><?= (new DateTime($retiro_noche_desde))->format('H:i'); ?></strong> a <strong><?= (new DateTime($retiro_noche_hasta))->format('H:i'); ?></strong> (turno noche).</p>
             </div>
             <?php endif; ?>
 
