@@ -126,6 +126,7 @@
               <li><a class="dropdown-item" href="<?= base_url('usuario/ultimos-movimientos'); ?>"><i class="bi bi-clock-history me-1"></i> Últimos movimientos</a></li>
               <li><a class="dropdown-item" href="<?= base_url('usuario/devolver_compra'); ?>"><i class="bi bi-arrow-counterclockwise me-1"></i> Gestionar devoluciones</a></li>
               <li><a class="dropdown-item" href="<?= base_url('usuario/cambio-password'); ?>"><i class="bi bi-key me-1"></i> Cambiar contraseña</a></li>
+              <li><a class="dropdown-item" href="<?= base_url('usuario/notificaciones'); ?>"><i class="bi bi-bell me-1"></i> Mis notificaciones</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="<?= base_url('logout'); ?>"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</a></li>
             </ul>

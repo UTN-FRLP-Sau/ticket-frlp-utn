@@ -90,4 +90,25 @@ class Usuario_model extends CI_Model
         $query = $this->db->get('cargasvirtuales');
         return $query->result();
     }
+
+    public function getPreferenciasNotificacion($id_user)
+    {
+        /*Usado en:
+        notificaciones
+        */
+        $this->db->select('notif_recordatorio_compra, notif_recordatorio_retiro');
+        $this->db->where('id', $id_user);
+        $query = $this->db->get('usuarios');
+        return $query->row();
+    }
+
+    public function updatePreferenciasNotificacion($id_user, $data)
+    {
+        /*Usado en:
+        notificaciones
+        */
+        $this->db->where('id', $id_user);
+        $this->db->update('usuarios', $data);
+        return true;
+    }
 }

@@ -85,6 +85,34 @@ class Usuario extends CI_Controller
         }
     }
 
+    public function notificaciones()
+    {
+        $data = [
+            'titulo' => 'Mis notificaciones'
+        ];
+        $id_user = $this->session->userdata('id_usuario');
+
+        if ($this->input->method() == 'post') {
+            $preferencias = [
+                'notif_recordatorio_compra' => $this->input->post('notif_recordatorio_compra') ? 1 : 0,
+                'notif_recordatorio_retiro' => $this->input->post('notif_recordatorio_retiro') ? 1 : 0,
+            ];
+            if ($this->usuario_model->updatePreferenciasNotificacion($id_user, $preferencias)) {
+                $this->session->set_flashdata(
+                    'success',
+                    'Preferencias de notificaciones actualizadas correctamente'
+                );
+            }
+            redirect(base_url('usuario/notificaciones'));
+        } else {
+            $data['preferencias'] = $this->usuario_model->getPreferenciasNotificacion($id_user);
+
+            $this->load->view('header', $data);
+            $this->load->view('notificaciones', $data);
+            $this->load->view('general/footer');
+        }
+    }
+
     public function ultimosMovimientos()
     {
         $data['titulo'] = 'Ultimos movimientos';
