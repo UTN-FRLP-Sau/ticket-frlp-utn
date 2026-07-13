@@ -142,6 +142,7 @@
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/feriados_list/'.date('Y')); ?>"><i class="bi bi-calendar-x me-1"></i> Feriados</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/links'); ?>"><i class="bi bi-link-45deg me-1"></i> Botones de Pagos</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/precios'); ?>"><i class="bi bi-currency-dollar me-1"></i> Precios</a></li>
+                <li><a class="dropdown-item" href="<?= base_url('admin/instructivo'); ?>"><i class="bi bi-file-earmark-pdf me-1"></i> Instructivo de Login</a></li>
                 <li>
                     <a class="dropdown-item" href="<?= base_url('admin/logs'); ?>">
                         <i class="bi bi-file-text-fill me-1"></i> Logs

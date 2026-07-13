@@ -175,6 +175,31 @@ class Administrador extends CI_Controller
         }
     }
 
+    public function actualizar_instructivo()
+    {
+        $data['titulo'] = 'Instructivo de Login';
+
+        if ($this->input->method() == 'post') {
+            $config['upload_path'] = "uploads";
+            $config['file_name'] = "instructivo_login";
+            $config['overwrite'] = TRUE;
+            $config['allowed_types'] = "pdf";
+            $config['max_size'] = "10000"; // ~10MB, en KB
+
+            $this->load->library('upload', $config);
+
+            if (!$this->upload->do_upload('archivo_instructivo')) {
+                $data['subidoError'] = $this->upload->display_errors();
+            } else {
+                $data['subidoCorrecto'] = TRUE;
+            }
+        }
+
+        $this->load->view('header', $data);
+        $this->load->view('actualizar_instructivo', $data);
+        $this->load->view('general/footer');
+    }
+
     public function confirmarCargasCVS()
     {
         if ($this->input->method() == 'post') {
