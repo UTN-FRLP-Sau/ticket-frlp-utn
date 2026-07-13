@@ -129,3 +129,4 @@ $route['admin/logs/(:any)'] = 'admin/administrador/view_log_contenido/$1';
 $route['webhook/mercadopago'] = 'comedor/webhook/mercadopago';
 
 $route['cron/mp_estado'] = 'cronjobs/Tareas/consultar_estado_mp';
+$route['cron/recordatorio_compra_semanal'] = 'cronjobs/Tareas/recordatorio_compra_semanal';

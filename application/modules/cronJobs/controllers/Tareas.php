@@ -227,4 +227,100 @@ class Tareas extends CI_Controller {
         $this->_logManual("CRON_CLI: Se eliminaron {$affected} registros de passrecovery.", 'Cron');
         echo "Registros eliminados: {$affected}\n";
     }
+
+    /**
+     * Recordatorio semanal de compra: todos los jueves, les avisa por mail a los
+     * estudiantes activos (estado = 1) que no desactivaron la notificación
+     * (notif_recordatorio_compra = 1) y que todavía no tienen ninguna compra
+     * (ni pendiente) para ningún día de la semana próxima.
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor (a la hora
+     * de cierre de venta configurada menos 30 minutos); internamente valida que
+     * hoy sea jueves y no hace nada si no lo es, para no depender de reconfigurar
+     * el cron cada vez que cambie 'hora_final' desde el admin.
+     */
+    public function recordatorio_compra_semanal() {
+        $this->_logManual('CRON_RECORDATORIO: ************************************************************');
+
+        $hoy = new DateTime('now');
+        if ((int)$hoy->format('N') !== 4) { // 1 = lunes ... 4 = jueves ... 7 = domingo
+            $this->_logManual('CRON_RECORDATORIO: Hoy (' . $hoy->format('Y-m-d') . ') no es jueves, se omite la ejecución.', 'Cron');
+            echo "Hoy no es jueves, no corresponde enviar el recordatorio.\n";
+            return;
+        }
+
+        // "Semana próxima" = lunes a domingo de la semana siguiente a la actual,
+        // usando la misma convención de semana (lunes a lunes) que
+        // Ticket_model::esFechaViandaAunOrdenable().
+        $lunesSemanaActual = clone $hoy;
+        $lunesSemanaActual->setTime(0, 0, 0);
+        if ((int)$lunesSemanaActual->format('N') !== 1) {
+            $lunesSemanaActual->modify('last monday');
+        }
+        $lunesProximaSemana = clone $lunesSemanaActual;
+        $lunesProximaSemana->modify('+7 days');
+        $domingoProximaSemana = clone $lunesProximaSemana;
+        $domingoProximaSemana->modify('+6 days');
+
+        $fecha_inicio = $lunesProximaSemana->format('Y-m-d');
+        $fecha_fin = $domingoProximaSemana->format('Y-m-d');
+
+        $this->_logManual("CRON_RECORDATORIO: Hoy es jueves. Buscando estudiantes sin compra para la semana próxima ({$fecha_inicio} a {$fecha_fin}).", 'Cron');
+
+        $estudiantes = $this->tareas_model->getEstudiantesSinCompraProximaSemana($fecha_inicio, $fecha_fin);
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_RECORDATORIO: No hay estudiantes para notificar (todos tienen compra/pendiente o desactivaron el aviso).', 'Cron');
+            echo "No hay estudiantes para notificar.\n";
+            return;
+        }
+
+        $enviados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            if (empty($estudiante->mail)) {
+                $fallidos[] = $estudiante->id . ':sin_mail';
+                $this->_logManual("CRON_RECORDATORIO: Usuario ID {$estudiante->id} no tiene mail configurado, se omite.", 'Cron_error');
+                continue;
+            }
+
+            $data = [
+                'nombre' => $estudiante->nombre,
+                'apellido' => $estudiante->apellido,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+            ];
+
+            $subject = 'Recordatorio: todavía no compraste tu vianda para la próxima semana';
+
+            try {
+                $message = $this->load->view('general/correos/recordatorio_compra_semanal', $data, true);
+
+                if ($this->generalticket->smtpSendEmail($estudiante->mail, $subject, $message)) {
+                    $enviados[] = $estudiante->id;
+                    $this->_logManual("CRON_RECORDATORIO: Mail enviado a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron');
+                } else {
+                    $fallidos[] = $estudiante->id;
+                    $this->_logManual("CRON_RECORDATORIO: Fallo al enviar mail a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron_error');
+                }
+            } catch (Exception $e) {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_RECORDATORIO: Excepción al enviar mail a usuario ID {$estudiante->id}: " . $e->getMessage(), 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_RECORDATORIO: Finalizado. Semana próxima: %s a %s. Candidatos: %d. Enviados: %d [%s]. Fallidos: %d [%s].',
+            $fecha_inicio,
+            $fecha_fin,
+            count($estudiantes),
+            count($enviados),
+            implode(',', $enviados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Recordatorios enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
+    }
 }
