@@ -107,6 +107,28 @@
                 </div>
 
                 <div class="accordion-item border-0">
+                    <h2 class="accordion-header" id="headingTen">
+                        <button class="accordion-button collapsed fs-5 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTen" aria-expanded="false" aria-controls="collapseTen">
+                            <i class="bi bi-question-circle-fill me-3 text-secondary"></i>
+                            ¿En qué horario puedo retirar mi vianda?
+                        </button>
+                    </h2>
+                    <div id="collapseTen" class="accordion-collapse collapse" aria-labelledby="headingTen"
+                        data-bs-parent="#faqAccordion">
+                        <div class="accordion-body bg-light text-secondary">
+                            <?php if (!empty($configuracion)): ?>
+                            El retiro de las viandas del turno mediodía es de
+                            <strong><?= (new DateTime($configuracion[0]->retiro_mediodia_desde))->format('H:i'); ?> hs</strong>
+                            a <strong><?= (new DateTime($configuracion[0]->retiro_mediodia_hasta))->format('H:i'); ?> hs</strong>,
+                            y el retiro de las viandas del turno noche es de
+                            <strong><?= (new DateTime($configuracion[0]->retiro_noche_desde))->format('H:i'); ?> hs</strong>
+                            a <strong><?= (new DateTime($configuracion[0]->retiro_noche_hasta))->format('H:i'); ?> hs</strong>.
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item border-0">
                     <h2 class="accordion-header" id="headingSeven">
                         <button class="accordion-button collapsed fs-5 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
                             <i class="bi bi-question-circle-fill me-3 text-secondary"></i>

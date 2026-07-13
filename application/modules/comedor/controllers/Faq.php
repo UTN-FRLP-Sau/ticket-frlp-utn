@@ -8,8 +8,12 @@ class Faq extends CI_Controller {
     }
 
     public function index() {
+        $this->load->model('ticket_model');
+        $configuracion = $this->ticket_model->getConfiguracion();
+
         $data = [
-            'titulo' => 'Preguntas Frecuentes'
+            'titulo' => 'Preguntas Frecuentes',
+            'configuracion' => $configuracion
         ];
 
         $this->load->view('usuario/header', $data);

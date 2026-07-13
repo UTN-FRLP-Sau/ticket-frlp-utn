@@ -306,7 +306,12 @@ class Administrador extends CI_Controller
                     'vacaciones_f' => $this->input->post('fin_receso'),
                     'dia_inicial' => $this->input->post('inicio_venta_semana'),
                     'dia_final' => $this->input->post('fin_venta_semana'),
-                    'hora_final' => $this->input->post('hora_cierre_venta')
+                    'hora_final' => $this->input->post('hora_cierre_venta'),
+                    'hora_apertura_venta' => $this->input->post('hora_apertura_venta'),
+                    'retiro_mediodia_desde' => $this->input->post('retiro_mediodia_desde'),
+                    'retiro_mediodia_hasta' => $this->input->post('retiro_mediodia_hasta'),
+                    'retiro_noche_desde' => $this->input->post('retiro_noche_desde'),
+                    'retiro_noche_hasta' => $this->input->post('retiro_noche_hasta')
                 ];
                 $this->administrador_model->updateConfiguracion($newConfig);
 
