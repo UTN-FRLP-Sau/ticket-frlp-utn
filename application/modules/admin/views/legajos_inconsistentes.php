@@ -60,10 +60,10 @@
                             <?php foreach ($usuarios as $usuario) : ?>
                                 <tr>
                                     <td><?= $usuario->legajo ?></td>
-                                    <td><?= $usuario->documento ?></td>
-                                    <td><?= $usuario->apellido ?></td>
-                                    <td><?= $usuario->nombre ?></td>
-                                    <td><?= $usuario->mail ?></td>
+                                    <td><?= htmlspecialchars($usuario->documento, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($usuario->apellido, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($usuario->nombre, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($usuario->mail, ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>
                                         <a href="<?= base_url('admin/modificar_usuario/' . $usuario->id) ?>" class="btn btn-primary btn-sm">
                                             Modificar usuario

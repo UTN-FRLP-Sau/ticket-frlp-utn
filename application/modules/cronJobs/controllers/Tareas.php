@@ -463,7 +463,18 @@ class Tareas extends CI_Controller {
         $fallidos = [];
 
         foreach ($estudiantes as $estudiante) {
-            if ($this->vendedor_model->updateUserById($estudiante->id, ['estado' => 0])) {
+            // Nota: Vendedor_model::updateUserById() siempre retorna true (no
+            // inspecciona el resultado real del UPDATE), por lo que acá no se
+            // puede confiar en su valor de retorno para saber si el cambio
+            // realmente se aplicó. Como 'database' está autocargada, $this->db
+            // en este controlador apunta a la misma conexión que usa el
+            // modelo, así que se verifica affected_rows() inmediatamente
+            // después del llamado en lugar de modificar el modelo compartido
+            // (usado también por Vendedor::updateUser(), fuera del alcance de
+            // esta tarea).
+            $this->vendedor_model->updateUserById($estudiante->id, ['estado' => 0]);
+
+            if ($this->db->affected_rows() > 0) {
                 $deshabilitados[] = $estudiante->id;
                 $this->_logManual("CRON_LEGAJOS: Usuario ID {$estudiante->id} (legajo {$estudiante->legajo}) deshabilitado por legajo provisorio fuera de rango.", 'Cron');
             } else {
