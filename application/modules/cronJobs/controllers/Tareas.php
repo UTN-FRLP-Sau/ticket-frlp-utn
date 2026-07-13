@@ -323,4 +323,96 @@ class Tareas extends CI_Controller {
         $this->_logManual($resumen, 'Cron');
         echo "Recordatorios enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
     }
+
+    /**
+     * Recordatorio diario de retiro: todas las mañanas, les avisa por mail a los
+     * estudiantes con una compra APROBADA (fila en 'compra') cuyo 'dia_comprado'
+     * es hoy, indicando el horario de retiro (configuración del issue 02) del
+     * turno o turnos (mediodía/noche) que compraron. Un estudiante que compró
+     * ambos turnos el mismo día recibe un único mail con ambos horarios.
+     *
+     * Respeta usuarios.estado = 1 y notif_recordatorio_retiro = 1 (opt-out),
+     * ambos filtrados en Tareas_model::getComprasAprobadasDeHoy(). No distingue
+     * compras pendientes/pasarela: esas nunca llegan a la tabla 'compra', así
+     * que quedan afuera naturalmente.
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor a una
+     * hora fija de la mañana (recomendado 09:00).
+     */
+    public function recordatorio_retiro_diario() {
+        $this->_logManual('CRON_RETIRO: ************************************************************');
+
+        $hoy = date('Y-m-d');
+        $this->_logManual("CRON_RETIRO: Buscando compras aprobadas para hoy ({$hoy}).", 'Cron');
+
+        $estudiantes = $this->tareas_model->getComprasAprobadasDeHoy();
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_RETIRO: No hay compras aprobadas para hoy (o todos los que tienen desactivaron el aviso).', 'Cron');
+            echo "No hay compras aprobadas para hoy.\n";
+            return;
+        }
+
+        $configuracion = $this->ticket_model->getConfiguracion();
+        if (empty($configuracion)) {
+            $this->_logManual('CRON_RETIRO: No se pudo obtener la configuración de horarios de retiro. Se aborta el envío.', 'Cron_error');
+            echo "Error: no se pudo obtener la configuración de horarios de retiro.\n";
+            return;
+        }
+        $config = $configuracion[0];
+
+        $enviados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            if (empty($estudiante->mail)) {
+                $fallidos[] = $estudiante->id . ':sin_mail';
+                $this->_logManual("CRON_RETIRO: Usuario ID {$estudiante->id} no tiene mail configurado, se omite.", 'Cron_error');
+                continue;
+            }
+
+            $retiro_mediodia = in_array('manana', $estudiante->turnos, true);
+            $retiro_noche = in_array('noche', $estudiante->turnos, true);
+
+            $data = [
+                'nombre' => $estudiante->nombre,
+                'apellido' => $estudiante->apellido,
+                'retiro_mediodia' => $retiro_mediodia,
+                'retiro_noche' => $retiro_noche,
+                'retiro_mediodia_desde' => $config->retiro_mediodia_desde,
+                'retiro_mediodia_hasta' => $config->retiro_mediodia_hasta,
+                'retiro_noche_desde' => $config->retiro_noche_desde,
+                'retiro_noche_hasta' => $config->retiro_noche_hasta,
+            ];
+
+            $subject = 'Recordatorio: hoy podés retirar tu vianda';
+
+            try {
+                $message = $this->load->view('general/correos/recordatorio_retiro_diario', $data, true);
+
+                if ($this->generalticket->smtpSendEmail($estudiante->mail, $subject, $message)) {
+                    $enviados[] = $estudiante->id;
+                    $this->_logManual("CRON_RETIRO: Mail enviado a usuario ID {$estudiante->id} ({$estudiante->mail}) - turnos: " . implode(',', $estudiante->turnos) . ".", 'Cron');
+                } else {
+                    $fallidos[] = $estudiante->id;
+                    $this->_logManual("CRON_RETIRO: Fallo al enviar mail a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron_error');
+                }
+            } catch (Exception $e) {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_RETIRO: Excepción al enviar mail a usuario ID {$estudiante->id}: " . $e->getMessage(), 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_RETIRO: Finalizado. Fecha: %s. Candidatos: %d. Enviados: %d [%s]. Fallidos: %d [%s].',
+            $hoy,
+            count($estudiantes),
+            count($enviados),
+            implode(',', $enviados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Recordatorios de retiro enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
+    }
 }

@@ -85,4 +85,47 @@ class Tareas_model extends CI_Model
 
         return $estudiantes_sin_compra;
     }
+
+    /**
+     * Devuelve, agrupados por estudiante, los turnos ('manana'/'noche') con
+     * compra ya APROBADA (fila existente en la tabla 'compra', que sólo se
+     * completa desde Webhook_model::procesarPagoAprobado() -> Ticket_model::addCompra()
+     * cuando el pago se confirma) para el día de hoy ('dia_comprado' = hoy).
+     *
+     * Filtra por usuarios activos (estado = 1) que no desactivaron el aviso
+     * de recordatorio de retiro (notif_recordatorio_retiro = 1). Un estudiante
+     * que compró ambos turnos el mismo día (permitir_ambos_turnos_mismo_dia)
+     * aparece una sola vez en el resultado, con los dos turnos en 'turnos'.
+     *
+     * @return array Lista de objetos { id, nombre, apellido, mail, turnos: string[] }.
+     */
+    public function getComprasAprobadasDeHoy() {
+        $hoy = date('Y-m-d');
+
+        $this->db->select('compra.id_usuario, compra.turno, usuarios.nombre, usuarios.apellido, usuarios.mail');
+        $this->db->from('compra');
+        $this->db->join('usuarios', 'usuarios.id = compra.id_usuario');
+        $this->db->where('compra.dia_comprado', $hoy);
+        $this->db->where('usuarios.estado', 1);
+        $this->db->where('usuarios.notif_recordatorio_retiro', 1);
+        $filas = $this->db->get()->result();
+
+        $estudiantes = [];
+        foreach ($filas as $fila) {
+            if (!isset($estudiantes[$fila->id_usuario])) {
+                $estudiantes[$fila->id_usuario] = (object) [
+                    'id' => $fila->id_usuario,
+                    'nombre' => $fila->nombre,
+                    'apellido' => $fila->apellido,
+                    'mail' => $fila->mail,
+                    'turnos' => [],
+                ];
+            }
+            if (!in_array($fila->turno, $estudiantes[$fila->id_usuario]->turnos, true)) {
+                $estudiantes[$fila->id_usuario]->turnos[] = $fila->turno;
+            }
+        }
+
+        return array_values($estudiantes);
+    }
 }
