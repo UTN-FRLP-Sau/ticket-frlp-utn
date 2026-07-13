@@ -292,6 +292,21 @@ class Administrador extends CI_Controller
         }
     }
 
+    public function ver_legajos_inconsistentes()
+    {
+        $id_vendedor = $this->session->userdata('id_vendedor');
+        $admin = $this->administrador_model->getAdminById($id_vendedor);
+        if ($admin->nivel == 1) {
+            $data['titulo'] = 'Legajos Inconsistentes';
+            $data['usuarios'] = $this->administrador_model->getUsuariosLegajoInconsistente();
+            $this->load->view('header', $data);
+            $this->load->view('legajos_inconsistentes', $data);
+            $this->load->view('general/footer');
+        } else {
+            redirect(base_url('admin'));
+        }
+    }
+
     public function configuracion_general()
     {
         $id_vendedor = $this->session->userdata('id_vendedor');

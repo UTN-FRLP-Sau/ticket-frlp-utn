@@ -96,6 +96,7 @@ $route['admin/informe/pedido'] = 'admin/vendedor/descargarResumenPedidosSemana';
 $route['admin/historial'] = 'admin/vendedor/historialCargas';
 $route['admin/menu'] = 'admin/vendedor/updateMenu';
 $route['admin/ver_comentarios'] = 'admin/administrador/ver_comentarios';
+$route['admin/legajos_inconsistentes'] = 'admin/administrador/ver_legajos_inconsistentes';
 $route['admin/vendedor/triggerPasswordRecovery/(:num)'] = 'admin/vendedor/triggerPasswordRecovery/$1';
 // $route['admin/ver_historial_menu'] = 'admin/vendedor/ver_historial_menu';
 
@@ -131,3 +132,4 @@ $route['webhook/mercadopago'] = 'comedor/webhook/mercadopago';
 $route['cron/mp_estado'] = 'cronjobs/Tareas/consultar_estado_mp';
 $route['cron/recordatorio_compra_semanal'] = 'cronjobs/Tareas/recordatorio_compra_semanal';
 $route['cron/recordatorio_retiro_diario'] = 'cronjobs/Tareas/recordatorio_retiro_diario';
+$route['cron/deshabilitar_legajos_provisorios'] = 'cronjobs/Tareas/deshabilitar_legajos_provisorios';

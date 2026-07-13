@@ -18,6 +18,8 @@ class Tareas extends CI_Controller {
         $this->load->model('comedor/ticket_model');
         $this->load->model('general/general_model', 'generalticket');
         $this->load->model('comedor/Webhook_model', 'webhook_model');
+        $this->load->model('admin/administrador_model');
+        $this->load->model('admin/vendedor_model');
     }
 
     /**
@@ -414,5 +416,71 @@ class Tareas extends CI_Controller {
         );
         $this->_logManual($resumen, 'Cron');
         echo "Recordatorios de retiro enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
+    }
+
+    /**
+     * Deshabilitación automática de legajos provisorios: solo actúa a partir
+     * del 1° de septiembre del año en curso (fecha hardcodeada a propósito,
+     * ver nota abajo), momento en el que pasa a estado = 0 a los estudiantes
+     * activos (estado = 1) cuyo legajo sigue fuera de rango (> 900000 o
+     * < 20000).
+     *
+     * Idempotencia: reutiliza Administrador_model::getUsuariosLegajoInconsistente(),
+     * que ya filtra por estado = 1 y tipo = 'Estudiante'. Por lo tanto, correrlo
+     * varios días seguidos después del 1/9 no vuelve a tocar a quien ya quedó
+     * en estado = 0 (deja de matchear el filtro), ni a quien corrigió su
+     * legajo (también deja de matchear).
+     *
+     * Se documenta como supuesto: la fecha 1° de septiembre queda hardcodeada
+     * (date('Y').'-09-01') en vez de agregarse como config editable, porque el
+     * pedido la describe como una regla puntual de este ciclo lectivo. Si se
+     * repitiera todos los años convendría moverla a la tabla 'configuracion'.
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor (no
+     * necesita ser exacto a la medianoche del 1/9, alcanza con una corrida diaria).
+     */
+    public function deshabilitar_legajos_provisorios() {
+        $this->_logManual('CRON_LEGAJOS: ************************************************************');
+
+        $hoy = date('Y-m-d');
+        $fecha_limite = date('Y') . '-09-01';
+
+        if ($hoy < $fecha_limite) {
+            $this->_logManual("CRON_LEGAJOS: Hoy ({$hoy}) es anterior al 1 de septiembre ({$fecha_limite}), se omite la ejecución.", 'Cron');
+            echo "Todavia no llego el 1 de septiembre, no corresponde deshabilitar legajos.\n";
+            return;
+        }
+
+        $estudiantes = $this->administrador_model->getUsuariosLegajoInconsistente();
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_LEGAJOS: No hay estudiantes activos con legajo provisorio para deshabilitar.', 'Cron');
+            echo "No hay estudiantes con legajo provisorio para deshabilitar.\n";
+            return;
+        }
+
+        $deshabilitados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            if ($this->vendedor_model->updateUserById($estudiante->id, ['estado' => 0])) {
+                $deshabilitados[] = $estudiante->id;
+                $this->_logManual("CRON_LEGAJOS: Usuario ID {$estudiante->id} (legajo {$estudiante->legajo}) deshabilitado por legajo provisorio fuera de rango.", 'Cron');
+            } else {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_LEGAJOS: Fallo al deshabilitar usuario ID {$estudiante->id} (legajo {$estudiante->legajo}).", 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_LEGAJOS: Finalizado. Candidatos: %d. Deshabilitados: %d [%s]. Fallidos: %d [%s].',
+            count($estudiantes),
+            count($deshabilitados),
+            implode(',', $deshabilitados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Usuarios deshabilitados: " . count($deshabilitados) . " / " . count($estudiantes) . "\n";
     }
 }

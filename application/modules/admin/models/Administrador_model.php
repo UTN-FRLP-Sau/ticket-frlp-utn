@@ -381,4 +381,29 @@ class Administrador_model extends CI_Model
     return $compras;
 }
 
+    public function getUsuariosLegajoInconsistente()
+    {
+        /*Usado en:
+        ver_legajos_inconsistentes (admin/administrador)
+        deshabilitar_legajos_provisorios (cronJobs/Tareas)
+
+        Estudiantes activos (estado = 1) con legajo "provisorio" (fuera del
+        rango válido: legajo > 900000 o legajo < 20000). Solo aplica a
+        tipo = 'Estudiante'. Al filtrar por estado = 1, este método es
+        naturalmente idempotente para el cron: un usuario ya deshabilitado
+        (estado = 0) deja de matchear, y uno que corrigió su legajo también.
+        */
+        $this->db->select('*');
+        $this->db->from('usuarios');
+        $this->db->where('estado', 1);
+        $this->db->where('tipo', 'Estudiante');
+        $this->db->group_start();
+        $this->db->where('legajo >', 900000);
+        $this->db->or_where('legajo <', 20000);
+        $this->db->group_end();
+        $this->db->order_by('apellido', 'ASC');
+        $query = $this->db->get();
+        return $query->result();
+    }
+
 }

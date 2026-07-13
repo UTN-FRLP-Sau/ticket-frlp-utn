@@ -55,6 +55,18 @@ class Ticket extends CI_Controller
         $id_usuario = $this->session->userdata('id_usuario');
         $usuario = $this->ticket_model->getUserById($id_usuario);
 
+        // --- LEGAJO PROVISORIO (fuera de rango) ---
+        // Aviso no bloqueante: no impide comprar, solo advierte que la cuenta
+        // quedará deshabilitada desde el 1° de septiembre si no se corrige.
+        // Se re-evalúa en cada carga de esta pantalla mientras el legajo siga
+        // sin corregir (ver cronJobs/Tareas::deshabilitar_legajos_provisorios()).
+        if ($usuario->tipo === 'Estudiante' && ((int) $usuario->legajo > 900000 || (int) $usuario->legajo < 20000)) {
+            $this->session->set_flashdata(
+                'info',
+                'Tu usuario fue creado con un legajo provisorio. Por favor actualizá tu legajo oficial, sino la cuenta quedará deshabilitada desde el 1° de septiembre del ' . date('Y') . '.'
+            );
+        }
+
         $data = [
             'titulo'                          => 'Comprar Viandas',
             'usuario'                         => $usuario,

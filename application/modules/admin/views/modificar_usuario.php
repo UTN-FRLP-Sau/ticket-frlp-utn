@@ -81,6 +81,24 @@
     	                        </select>
     	                    </div>
     	                </div>
+    	                <div class="row">
+    	                    <label class="col-sm-2 col-form-label">Estado:</label>
+    	                    <div class="col-md-3">
+    	                        <?php if ($usuario->estado == 2) : ?>
+    	                            <select class="mb-2 form-select" disabled>
+    	                                <option selected>En mantenimiento</option>
+    	                            </select>
+    	                            <small class="form-text text-muted">
+    	                                El estado "mantenimiento" se gestiona por otro medio, no se puede cambiar desde este formulario.
+    	                            </small>
+    	                        <?php else: ?>
+    	                            <select class="mb-2 form-select" name="estado">
+    	                                <option value="1" <?= ($usuario->estado == 1) ? 'selected' : ''; ?>>Activo</option>
+    	                                <option value="0" <?= ($usuario->estado != 1) ? 'selected' : ''; ?>>Inactivo</option>
+    	                            </select>
+    	                        <?php endif; ?>
+    	                    </div>
+    	                </div>
     	                <div>
     	                    <button type="submit" class="btn btn-success">Actualizar usuario</button>
     	                </div>
