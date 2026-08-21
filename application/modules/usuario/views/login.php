@@ -57,9 +57,11 @@
             </div>
         </div>
         <div class="row w-100 justify-content-center">
+            <!--
             <div class="col-12 text-center link-text-center mb-2">
                 <p style="font-size: larger; font-weight: bold;">Pedí tu usuario <a href="https://forms.gle/dt6NBGTLEsgbcaWS7" target="_blanck">ACÁ</a>.</p>
             </div>
+            -->
             <div class="col-12 text-center link-text-center mb-3">
                 <p style="font-size: larger; font-weight: bold;"><a href="<?= base_url('uploads/instructivo_login.pdf'); ?>" target="_blanck">Instructivo de Registro y Carga de Saldo</a></p>
             </div>
