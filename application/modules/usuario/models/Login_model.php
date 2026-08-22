@@ -116,6 +116,19 @@ class Login_model extends CI_Model
         return true;
     }
 
+    public function mailEstaRegistrado($mail)
+    {
+        /*Usada en:
+        confirmarCorreo
+
+        Revalida al momento de confirmar que nadie haya tomado ese mail
+        mientras la confirmación estaba pendiente (la validación is_unique
+        de perfil() solo corre al momento de solicitar el cambio).
+        */
+        $this->db->where('mail', $mail);
+        return $this->db->get('usuarios')->num_rows() > 0;
+    }
+
     public function updateUserMail($id_usuario, $mail)
     {
         /*Usada en:
