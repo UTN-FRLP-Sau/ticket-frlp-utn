@@ -33,8 +33,8 @@
         </div>
         <div class="card-body">
             <p class="text-muted">
-                Estudiantes activos con legajo fuera del rango válido (mayor a 900000 o menor a 20000).
-                Corregí el legajo desde "Modificar usuario" para que dejen de aparecer en este listado.
+                Estudiantes activos marcados como "aspirante" (todavía sin legajo oficial).
+                Actualizá el legajo y destildá "Aspirante" desde "Modificar usuario" para que dejen de aparecer en este listado.
             </p>
             <div class="mb-3">
                 <input type="text" class="form-control" id="legajoSearch" placeholder="Buscar por nombre, apellido, documento o legajo...">

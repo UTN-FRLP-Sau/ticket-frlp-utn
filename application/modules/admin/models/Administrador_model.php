@@ -387,20 +387,21 @@ class Administrador_model extends CI_Model
         ver_legajos_inconsistentes (admin/administrador)
         deshabilitar_legajos_provisorios (cronJobs/Tareas)
 
-        Estudiantes activos (estado = 1) con legajo "provisorio" (fuera del
-        rango válido: legajo > 900000 o legajo < 20000). Solo aplica a
+        Estudiantes activos (estado = 1) marcados como aspirante = 1 (todavía
+        no tienen legajo oficial, se les asignó uno provisorio). Solo aplica a
         tipo = 'Estudiante'. Al filtrar por estado = 1, este método es
         naturalmente idempotente para el cron: un usuario ya deshabilitado
-        (estado = 0) deja de matchear, y uno que corrigió su legajo también.
+        (estado = 0) deja de matchear, y uno que dejó de ser aspirante también.
+
+        Reemplaza la heurística anterior por rango de legajo (>900000 o
+        <20000) por el campo explícito 'aspirante', que un admin/vendedor
+        tilda a mano desde "modificar usuario".
         */
         $this->db->select('*');
         $this->db->from('usuarios');
         $this->db->where('estado', 1);
         $this->db->where('tipo', 'Estudiante');
-        $this->db->group_start();
-        $this->db->where('legajo >', 900000);
-        $this->db->or_where('legajo <', 20000);
-        $this->db->group_end();
+        $this->db->where('aspirante', 1);
         $this->db->order_by('apellido', 'ASC');
         $query = $this->db->get();
         return $query->result();
