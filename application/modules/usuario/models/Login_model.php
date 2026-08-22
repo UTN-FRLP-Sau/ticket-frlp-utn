@@ -85,16 +85,26 @@ class Login_model extends CI_Model
     public function getMailConfirmacionByToken($token)
     {
         /*Usado en:
-        perfil (usuario/Usuario)
         confirmarCorreo
-
-        El token es determinístico (id_usuario + mail_nuevo), así que este
-        mismo método sirve para detectar en perfil() si ya existe una
-        solicitud pendiente (y no reenviar el correo en cada submit) y para
-        resolver el token al confirmar.
         */
         $this->db->select('*');
         $this->db->where('token', $token);
+        return $this->db->get('mail_confirmacion')->row();
+    }
+
+    public function getMailConfirmacionPendiente($id_usuario, $mail_nuevo)
+    {
+        /*Usado en:
+        perfil (usuario/Usuario)
+
+        Dedupe por (id_usuario, mail_nuevo): el token es aleatorio (no
+        determinístico), así que no se puede recalcular para chequear si ya
+        existe una solicitud pendiente y evitar reenviar el correo en cada
+        submit del formulario.
+        */
+        $this->db->select('*');
+        $this->db->where('id_usuario', $id_usuario);
+        $this->db->where('mail_nuevo', $mail_nuevo);
         return $this->db->get('mail_confirmacion')->row();
     }
 

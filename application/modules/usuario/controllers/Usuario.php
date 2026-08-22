@@ -182,9 +182,9 @@ class Usuario extends CI_Controller
                 $mail_nuevo = strtolower($this->input->post('email'));
                 if ($mail_nuevo != $usuario->mail) {
                     $this->load->model('login_model');
-                    $token = md5("mailconfirm_{$id_user}_{$mail_nuevo}");
 
-                    if (!$this->login_model->getMailConfirmacionByToken($token)) {
+                    if (!$this->login_model->getMailConfirmacionPendiente($id_user, $mail_nuevo)) {
+                        $token = bin2hex(random_bytes(16));
                         $emailData = [
                             'nombre' => $usuario->nombre,
                             'apellido' => $usuario->apellido,
