@@ -123,6 +123,7 @@
                <i class="bi bi-person-circle me-1"></i><?= $this->session->userdata('apellido'); ?>, <?= $this->session->userdata('nombre'); ?>
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+              <li><a class="dropdown-item" href="<?= base_url('usuario/perfil'); ?>"><i class="bi bi-person-lines-fill me-1"></i> Mi perfil</a></li>
               <li><a class="dropdown-item" href="<?= base_url('usuario/ultimos-movimientos'); ?>"><i class="bi bi-clock-history me-1"></i> Últimos movimientos</a></li>
               <li><a class="dropdown-item" href="<?= base_url('usuario/devolver_compra'); ?>"><i class="bi bi-arrow-counterclockwise me-1"></i> Gestionar devoluciones</a></li>
               <li><a class="dropdown-item" href="<?= base_url('usuario/cambio-password'); ?>"><i class="bi bi-key me-1"></i> Cambiar contraseña</a></li>
