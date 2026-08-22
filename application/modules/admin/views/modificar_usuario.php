@@ -99,6 +99,17 @@
     	                        <?php endif; ?>
     	                    </div>
     	                </div>
+    	                <div class="row" v-if="es_estudiante">
+    	                    <label class="col-sm-2 col-form-label">Aspirante:</label>
+    	                    <div class="col-md-3 d-flex align-items-center">
+    	                        <div class="form-check">
+    	                            <input class="form-check-input" type="checkbox" name="aspirante" id="aspirante" value="1" <?= ($usuario->aspirante == 1) ? 'checked' : ''; ?>>
+    	                            <label class="form-check-label" for="aspirante">
+    	                                Todavía no tiene legajo oficial
+    	                            </label>
+    	                        </div>
+    	                    </div>
+    	                </div>
     	                <div>
     	                    <button type="submit" class="btn btn-success">Actualizar usuario</button>
     	                </div>

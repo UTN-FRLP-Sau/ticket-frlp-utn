@@ -513,6 +513,13 @@ class Vendedor extends CI_Controller
                     $updateUser['estado'] = (int) $estadoPost;
                 }
 
+                // El checkbox "aspirante" solo se muestra en la vista para
+                // claustro = Estudiante. Los checkbox no marcados no llegan
+                // en el POST, por eso se interpreta la ausencia como 0.
+                if ($updateUser['tipo'] === 'Estudiante') {
+                    $updateUser['aspirante'] = $this->input->post('aspirante') ? 1 : 0;
+                }
+
                 if ($this->vendedor_model->updateUserById($iduser, $updateUser)) {
                     redirect(base_url('admin'));
                 }
