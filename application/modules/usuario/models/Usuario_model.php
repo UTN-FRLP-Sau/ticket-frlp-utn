@@ -111,4 +111,25 @@ class Usuario_model extends CI_Model
         $this->db->update('usuarios', $data);
         return true;
     }
+
+    public function getPerfil($id_user)
+    {
+        /*Usado en:
+        perfil
+        */
+        $this->db->select('mail, legajo, aspirante');
+        $this->db->where('id', $id_user);
+        $query = $this->db->get('usuarios');
+        return $query->row();
+    }
+
+    public function updatePerfil($id_user, $data)
+    {
+        /*Usado en:
+        perfil
+        */
+        $this->db->where('id', $id_user);
+        $this->db->update('usuarios', $data);
+        return true;
+    }
 }

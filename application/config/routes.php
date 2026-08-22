@@ -65,6 +65,7 @@ $route['usuario/devolver/success'] = 'comedor/ticket/devolverCompraSuccess';
 $route['usuario/ultimos-movimientos'] = 'usuario/ultimosMovimientos';
 $route['usuario/ultimos-movimientos/(:num)'] = 'usuario/ultimosMovimientos';
 $route['usuario/notificaciones'] = 'usuario/notificaciones';
+$route['usuario/perfil'] = 'usuario/perfil';
 $route['login'] = 'usuario/login';
 $route['logout'] = 'usuario/login/logout';
 $route['usuario/recovery'] = 'usuario/login/passwordRecoveryRequest';

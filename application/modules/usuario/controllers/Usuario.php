@@ -113,6 +113,81 @@ class Usuario extends CI_Controller
         }
     }
 
+    public function perfil()
+    {
+        $data = [
+            'titulo' => 'Mi perfil'
+        ];
+        $id_user = $this->session->userdata('id_usuario');
+        $usuario = $this->usuario_model->getPerfil($id_user);
+
+        if ($this->input->method() == 'post') {
+            $unique_email = ($this->input->post('email') != $usuario->mail) ? '|is_unique[usuarios.mail]' : '';
+
+            $rules = [
+                [
+                    'field' => 'email',
+                    'label' => 'E-Mail',
+                    'rules' => "trim|required|valid_email{$unique_email}",
+                    'errors' => [
+                        'required' => 'Debe ingresar un %s',
+                        'valid_email' => 'No es un %s valido',
+                        'is_unique' => 'Ese %s ya esta registrado',
+                    ]
+                ],
+            ];
+
+            // El legajo solo es editable mientras el usuario sea aspirante
+            // (todavía no tiene legajo oficial). No se confía en el estado
+            // del campo en el HTML: se revalida server-side.
+            if ($usuario->aspirante == 1) {
+                $unique_legajo = ($this->input->post('legajo') != $usuario->legajo) ? '|is_unique[usuarios.legajo]' : '';
+                $rules[] = [
+                    'field' => 'legajo',
+                    'label' => 'Legajo',
+                    'rules' => "trim|min_length[5]|max_length[6]|required|numeric|integer{$unique_legajo}",
+                    'errors' => [
+                        'max_length' => 'El %s debe contener entre 5 y 6 digitos',
+                        'min_length' => 'El %s debe contener entre 5 y 6 digitos',
+                        'required' => 'Debe ingresar un %s',
+                        'numeric' => 'El %s debe ser un numero',
+                        'integer' => 'El %s debe ser un entero',
+                        'is_unique' => 'Ese %s ya esta registrado',
+                    ]
+                ];
+            }
+
+            $this->form_validation->set_rules($rules);
+            if ($this->form_validation->run() == FALSE) {
+                $data['usuario'] = $usuario;
+                $this->load->view('header', $data);
+                $this->load->view('perfil', $data);
+                $this->load->view('general/footer');
+            } else {
+                $updateData = [
+                    'mail' => strtolower($this->input->post('email')),
+                ];
+
+                if ($usuario->aspirante == 1) {
+                    $updateData['legajo'] = $this->input->post('legajo');
+                    $updateData['aspirante'] = 0;
+                }
+
+                $this->usuario_model->updatePerfil($id_user, $updateData);
+                $this->session->set_flashdata(
+                    'success',
+                    'Perfil actualizado correctamente'
+                );
+                redirect(base_url('usuario/perfil'));
+            }
+        } else {
+            $data['usuario'] = $usuario;
+            $this->load->view('header', $data);
+            $this->load->view('perfil', $data);
+            $this->load->view('general/footer');
+        }
+    }
+
     public function ultimosMovimientos()
     {
         $data['titulo'] = 'Ultimos movimientos';
