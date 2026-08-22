@@ -194,6 +194,15 @@
         </div>
 
         <div class="form-group row mb-2">
+            <label for="legajo_provisorio_limite" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Límite para
+                regularizar Legajo (Aspirantes):</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" id="legajo_provisorio_limite" name="legajo_provisorio_limite" class="form-control"
+                    value="<?= $configuracion[0]->legajo_provisorio_limite ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
             <div class="col-sm-4 col-md-3 offset-sm-3">
                 <button type="submit" class="btn btn-primary">Guardar</button>
             </div>

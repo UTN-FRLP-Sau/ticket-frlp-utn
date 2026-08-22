@@ -357,7 +357,8 @@ class Administrador extends CI_Controller
                     'retiro_mediodia_desde' => $this->input->post('retiro_mediodia_desde'),
                     'retiro_mediodia_hasta' => $this->input->post('retiro_mediodia_hasta'),
                     'retiro_noche_desde' => $this->input->post('retiro_noche_desde'),
-                    'retiro_noche_hasta' => $this->input->post('retiro_noche_hasta')
+                    'retiro_noche_hasta' => $this->input->post('retiro_noche_hasta'),
+                    'legajo_provisorio_limite' => $this->input->post('legajo_provisorio_limite')
                 ];
                 $this->administrador_model->updateConfiguracion($newConfig);
 
