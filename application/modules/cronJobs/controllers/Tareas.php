@@ -420,34 +420,31 @@ class Tareas extends CI_Controller {
 
     /**
      * Deshabilitación automática de legajos provisorios: solo actúa a partir
-     * del 1° de septiembre del año en curso (fecha hardcodeada a propósito,
-     * ver nota abajo), momento en el que pasa a estado = 0 a los estudiantes
-     * activos (estado = 1) cuyo legajo sigue fuera de rango (> 900000 o
-     * < 20000).
+     * de configuracion.legajo_provisorio_limite (editable desde el panel de
+     * admin, "Configuración General del Sitio"), momento en el que pasa a
+     * estado = 0 a los estudiantes activos (estado = 1) marcados como
+     * aspirante = 1 que siguen sin corregir su legajo.
      *
      * Idempotencia: reutiliza Administrador_model::getUsuariosLegajoInconsistente(),
-     * que ya filtra por estado = 1 y tipo = 'Estudiante'. Por lo tanto, correrlo
-     * varios días seguidos después del 1/9 no vuelve a tocar a quien ya quedó
-     * en estado = 0 (deja de matchear el filtro), ni a quien corrigió su
-     * legajo (también deja de matchear).
-     *
-     * Se documenta como supuesto: la fecha 1° de septiembre queda hardcodeada
-     * (date('Y').'-09-01') en vez de agregarse como config editable, porque el
-     * pedido la describe como una regla puntual de este ciclo lectivo. Si se
-     * repitiera todos los años convendría moverla a la tabla 'configuracion'.
+     * que ya filtra por estado = 1, tipo = 'Estudiante' y aspirante = 1. Por
+     * lo tanto, correrlo varios días seguidos después del límite no vuelve a
+     * tocar a quien ya quedó en estado = 0 (deja de matchear el filtro), ni a
+     * quien dejó de ser aspirante (también deja de matchear).
      *
      * Pensado para ser invocado a diario por el scheduler del servidor (no
-     * necesita ser exacto a la medianoche del 1/9, alcanza con una corrida diaria).
+     * necesita ser exacto a la medianoche del día límite, alcanza con una
+     * corrida diaria).
      */
     public function deshabilitar_legajos_provisorios() {
         $this->_logManual('CRON_LEGAJOS: ************************************************************');
 
         $hoy = date('Y-m-d');
-        $fecha_limite = date('Y') . '-09-01';
+        $configuracion = $this->ticket_model->getConfiguracion();
+        $fecha_limite = $configuracion[0]->legajo_provisorio_limite;
 
         if ($hoy < $fecha_limite) {
-            $this->_logManual("CRON_LEGAJOS: Hoy ({$hoy}) es anterior al 1 de septiembre ({$fecha_limite}), se omite la ejecución.", 'Cron');
-            echo "Todavia no llego el 1 de septiembre, no corresponde deshabilitar legajos.\n";
+            $this->_logManual("CRON_LEGAJOS: Hoy ({$hoy}) es anterior a la fecha límite configurada ({$fecha_limite}), se omite la ejecución.", 'Cron');
+            echo "Todavia no llego la fecha limite configurada, no corresponde deshabilitar legajos.\n";
             return;
         }
 
