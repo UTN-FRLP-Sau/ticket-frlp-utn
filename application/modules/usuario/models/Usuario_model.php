@@ -116,8 +116,11 @@ class Usuario_model extends CI_Model
     {
         /*Usado en:
         perfil
+
+        nombre/apellido/documento se usan para armar el correo de
+        confirmación de cambio de mail (general/correos/confirmar_correo).
         */
-        $this->db->select('mail, legajo, aspirante');
+        $this->db->select('mail, legajo, aspirante, nombre, apellido, documento');
         $this->db->where('id', $id_user);
         $query = $this->db->get('usuarios');
         return $query->row();

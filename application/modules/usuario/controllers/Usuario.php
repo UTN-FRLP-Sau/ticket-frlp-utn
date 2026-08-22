@@ -164,20 +164,57 @@ class Usuario extends CI_Controller
                 $this->load->view('perfil', $data);
                 $this->load->view('general/footer');
             } else {
-                $updateData = [
-                    'mail' => strtolower($this->input->post('email')),
-                ];
+                $updateData = [];
+                $mensajes_success = [];
 
                 if ($usuario->aspirante == 1) {
                     $updateData['legajo'] = $this->input->post('legajo');
                     $updateData['aspirante'] = 0;
+                    $mensajes_success[] = 'legajo actualizado correctamente';
                 }
 
-                $this->usuario_model->updatePerfil($id_user, $updateData);
-                $this->session->set_flashdata(
-                    'success',
-                    'Perfil actualizado correctamente'
-                );
+                if (!empty($updateData)) {
+                    $this->usuario_model->updatePerfil($id_user, $updateData);
+                }
+
+                // El mail no se aplica directo: queda pendiente de confirmación
+                // en la casilla nueva (ver Login::confirmarCorreo()).
+                $mail_nuevo = strtolower($this->input->post('email'));
+                if ($mail_nuevo != $usuario->mail) {
+                    $this->load->model('login_model');
+                    $token = md5("mailconfirm_{$id_user}_{$mail_nuevo}");
+
+                    if (!$this->login_model->getMailConfirmacionByToken($token)) {
+                        $emailData = [
+                            'nombre' => $usuario->nombre,
+                            'apellido' => $usuario->apellido,
+                            'dni' => $usuario->documento,
+                            'link' => base_url("usuario/confirmar-correo/{$token}"),
+                        ];
+                        $subject = 'Confirmá tu nuevo correo';
+                        $message = $this->load->view('general/correos/confirmar_correo', $emailData, true);
+
+                        if ($this->generalticket->smtpSendEmail($mail_nuevo, $subject, $message)) {
+                            $this->login_model->addMailConfirmacion([
+                                'fecha' => date('Y-m-d', time()),
+                                'hora' => date('H:i:s', time()),
+                                'id_usuario' => $id_user,
+                                'mail_nuevo' => $mail_nuevo,
+                                'token' => $token,
+                            ]);
+                        }
+                    }
+                    $mensajes_success[] = 'te enviamos un correo a tu nueva casilla para confirmar el cambio de mail';
+                }
+
+                if (!empty($mensajes_success)) {
+                    $this->session->set_flashdata(
+                        'success',
+                        ucfirst(implode(', y ', $mensajes_success)) . '.'
+                    );
+                } else {
+                    $this->session->set_flashdata('success', 'No se detectaron cambios para guardar.');
+                }
                 redirect(base_url('usuario/perfil'));
             }
         } else {
