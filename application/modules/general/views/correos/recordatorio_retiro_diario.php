@@ -34,6 +34,8 @@
             </div>
             <?php endif; ?>
 
+            <p>En caso de no poder ir a retirarlo, contactar al siguiente mail: <a href="mailto:comedor@frlp.utn.edu.ar">comedor@frlp.utn.edu.ar</a>.</p>
+
             <p>Si preferís no recibir este recordatorio en el futuro, podés desactivarlo desde <a href="<?= base_url('usuario/notificaciones'); ?>">Mis notificaciones</a>.</p>
         </div>
         <div class="footer">
