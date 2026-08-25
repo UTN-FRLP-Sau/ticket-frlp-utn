@@ -54,23 +54,27 @@
         <div class="container">
             <div class="row justify-content-center mb-4">
                 <div class="col-lg-8 text-center">
-                    <h2>Secretaría de Asuntos Universitarios</h2>
+                    <h2>Subsecretaría de Asuntos Estudiantiles</h2>
                     <hr class="mx-auto" style="width: 60px; border-top: 3px solid #0d6efd;">
                 </div>
             </div>
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <p class="fs-5">
-                        La Secretaría de Asuntos Universitarios tiene como objeto articular las
-                        necesidades de la comunidad universitaria. Dentro de la misma, se gestionan
-                        las becas, los deportes, las pasantías, el comedor y más. Cualquier consulta o
-                        inconveniente con estas cuestiones, pueden trasladarlas a la Secretaría.
+                        La Subsecretaría de Asuntos Estudiantiles (SAE), en conjunto con el Centro de
+                        Estudiantes Tecnológicos, lleva adelante la gestión del Comedor Universitario.
+                    </p>
+                    <p class="fs-5">
+                        Desde este espacio se articulan los medios necesarios para brindar a los
+                        estudiantes de nuestra facultad, una alimentación correcta a un precio módico,
+                        permitiendo así cubrir un pilar fundamental dentro de las necesidades básicas
+                        de cada estudiante.
                     </p>
 
-                    <h4 class="fw-bold"><i class="bi bi-envelope-fill me-2"></i>Contacto</h4>
+                    <h4 class="fw-bold"><i class="bi bi-envelope-fill me-2"></i>¿Tenés alguna consulta?</h4>
                     <p>
-                        Ante cualquier duda o consulta con la página, menú o cuestión del comedor,
-                        trasladarla a través del siguiente mail: 
+                        Para información sobre el comedor, menú o página web, podés comunicarte con
+                        nosotros:
                         <a href="mailto:comedor@frlp.utn.edu.ar">comedor@frlp.utn.edu.ar</a>
                     </p>
                 </div>
