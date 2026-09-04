@@ -191,4 +191,29 @@ class Login extends CI_Controller
             redirect(base_url('usuario/recovery'));
         }
     }
+
+    public function confirmarCorreo()
+    {
+        // No requiere sesión activa: el link se abre desde el mail, no
+        // necesariamente logueado (mismo criterio que newPasswordRequest()).
+        $token = $this->uri->segment(3);
+        $confirmacion = $this->login_model->getMailConfirmacionByToken($token);
+
+        if (empty($confirmacion)) {
+            $this->session->set_flashdata('error', 'El link de confirmación no es válido o ya fue utilizado.');
+            redirect(base_url('login'));
+        }
+
+        if ($this->login_model->mailEstaRegistrado($confirmacion->mail_nuevo)) {
+            $this->login_model->deleteMailConfirmacionById($confirmacion->id);
+            $this->session->set_flashdata('error', 'Ese correo ya fue registrado por otra cuenta, no se pudo confirmar el cambio.');
+            redirect(base_url('login'));
+        }
+
+        $this->login_model->updateUserMail($confirmacion->id_usuario, $confirmacion->mail_nuevo);
+        $this->login_model->deleteMailConfirmacionById($confirmacion->id);
+
+        $this->session->set_flashdata('success', 'Tu correo fue confirmado y actualizado correctamente.');
+        redirect(base_url('login'));
+    }
 }

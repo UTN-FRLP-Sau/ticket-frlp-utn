@@ -175,6 +175,37 @@ class Administrador extends CI_Controller
         }
     }
 
+    public function actualizar_instructivo()
+    {
+        $id_vendedor = $this->session->userdata('id_vendedor');
+        $admin = $this->administrador_model->getAdminById($id_vendedor);
+        if ($admin->nivel == 1) {
+            $data['titulo'] = 'Instructivo de Login';
+
+            if ($this->input->method() == 'post') {
+                $config['upload_path'] = "uploads";
+                $config['file_name'] = "instructivo_login";
+                $config['overwrite'] = TRUE;
+                $config['allowed_types'] = "pdf";
+                $config['max_size'] = "10000"; // ~10MB, en KB
+
+                $this->load->library('upload', $config);
+
+                if (!$this->upload->do_upload('archivo_instructivo')) {
+                    $data['subidoError'] = $this->upload->display_errors();
+                } else {
+                    $data['subidoCorrecto'] = TRUE;
+                }
+            }
+
+            $this->load->view('header', $data);
+            $this->load->view('actualizar_instructivo', $data);
+            $this->load->view('general/footer');
+        } else {
+            redirect(base_url('admin'));
+        }
+    }
+
     public function confirmarCargasCVS()
     {
         if ($this->input->method() == 'post') {
@@ -292,6 +323,21 @@ class Administrador extends CI_Controller
         }
     }
 
+    public function ver_legajos_inconsistentes()
+    {
+        $id_vendedor = $this->session->userdata('id_vendedor');
+        $admin = $this->administrador_model->getAdminById($id_vendedor);
+        if ($admin->nivel == 1) {
+            $data['titulo'] = 'Legajos Inconsistentes';
+            $data['usuarios'] = $this->administrador_model->getUsuariosLegajoInconsistente();
+            $this->load->view('header', $data);
+            $this->load->view('legajos_inconsistentes', $data);
+            $this->load->view('general/footer');
+        } else {
+            redirect(base_url('admin'));
+        }
+    }
+
     public function configuracion_general()
     {
         $id_vendedor = $this->session->userdata('id_vendedor');
@@ -306,7 +352,13 @@ class Administrador extends CI_Controller
                     'vacaciones_f' => $this->input->post('fin_receso'),
                     'dia_inicial' => $this->input->post('inicio_venta_semana'),
                     'dia_final' => $this->input->post('fin_venta_semana'),
-                    'hora_final' => $this->input->post('hora_cierre_venta')
+                    'hora_final' => $this->input->post('hora_cierre_venta'),
+                    'hora_apertura_venta' => $this->input->post('hora_apertura_venta'),
+                    'retiro_mediodia_desde' => $this->input->post('retiro_mediodia_desde'),
+                    'retiro_mediodia_hasta' => $this->input->post('retiro_mediodia_hasta'),
+                    'retiro_noche_desde' => $this->input->post('retiro_noche_desde'),
+                    'retiro_noche_hasta' => $this->input->post('retiro_noche_hasta'),
+                    'legajo_provisorio_limite' => $this->input->post('legajo_provisorio_limite')
                 ];
                 $this->administrador_model->updateConfiguracion($newConfig);
 

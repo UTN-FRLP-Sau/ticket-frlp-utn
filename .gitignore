@@ -33,6 +33,7 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 
 .vscode
 uploads/carga.csv
+uploads/instructivo_login.pdf
 script/
 
 node_modules
@@ -40,4 +41,10 @@ node_modules
 .env
 
 application/config/ticket.php
+
+# Script local para levantar XAMPP (Apache/MySQL standalone), no es parte de la app
+start-xampp.bat
+
+# Resúmenes/notas locales, no forman parte de la app
+resumen_gerencia_*
 

@@ -504,6 +504,22 @@ class Vendedor extends CI_Controller
                     'id_precio' => $idPrecio
                 ];
 
+                // El select de estado del formulario solo ofrece Activo(1)/Inactivo(0).
+                // Si el usuario está en mantenimiento (estado = 2) el select se
+                // deshabilita en la vista y no llega en el POST: nunca pisamos ese
+                // valor desde acá, se gestiona por otro medio (fuera de este issue).
+                $estadoPost = $this->input->post('estado');
+                if ($usuario->estado != 2 && in_array($estadoPost, ['0', '1'], true)) {
+                    $updateUser['estado'] = (int) $estadoPost;
+                }
+
+                // El checkbox "aspirante" solo se muestra en la vista para
+                // claustro = Estudiante. Los checkbox no marcados no llegan
+                // en el POST, por eso se interpreta la ausencia como 0.
+                if ($updateUser['tipo'] === 'Estudiante') {
+                    $updateUser['aspirante'] = $this->input->post('aspirante') ? 1 : 0;
+                }
+
                 if ($this->vendedor_model->updateUserById($iduser, $updateUser)) {
                     redirect(base_url('admin'));
                 }

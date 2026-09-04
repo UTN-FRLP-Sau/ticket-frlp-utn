@@ -403,6 +403,39 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     </div>
 </div>
 
+<?php if (!empty($mostrar_popup_aspirante)): ?>
+<div class="modal fade" id="aspiranteModal" tabindex="-1" aria-labelledby="aspiranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-warning-subtle d-flex align-items-center justify-content-between py-3 px-4 rounded-top-4">
+                <h5 class="modal-title fs-5 fw-bold" id="aspiranteModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Legajo provisorio
+                </h5>
+                <button type="button" class="btn-close d-none" id="btnCerrarAspiranteModal" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-0">
+                    Te quedan <strong><?= (int) $dias_restantes_aspirante; ?></strong> día(s) antes de que tu usuario quede bloqueado
+                    por tener un legajo provisorio. Actualizá tu legajo oficial cuanto antes desde tu perfil.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var aspiranteModalEl = document.getElementById('aspiranteModal');
+    var aspiranteModal = new bootstrap.Modal(aspiranteModalEl, {
+        backdrop: 'static',
+        keyboard: false
+    });
+    aspiranteModal.show();
+    setTimeout(function () {
+        document.getElementById('btnCerrarAspiranteModal').classList.remove('d-none');
+    }, 5000);
+});
+</script>
+<?php endif; ?>
 
 <div id="confirmCancelModal" class="custom-modal" style="display: none;">
   <div class="custom-modal-content">

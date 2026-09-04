@@ -18,6 +18,8 @@ class Tareas extends CI_Controller {
         $this->load->model('comedor/ticket_model');
         $this->load->model('general/general_model', 'generalticket');
         $this->load->model('comedor/Webhook_model', 'webhook_model');
+        $this->load->model('admin/administrador_model');
+        $this->load->model('admin/vendedor_model');
     }
 
     /**
@@ -226,5 +228,267 @@ class Tareas extends CI_Controller {
         $affected = $this->db->affected_rows();
         $this->_logManual("CRON_CLI: Se eliminaron {$affected} registros de passrecovery.", 'Cron');
         echo "Registros eliminados: {$affected}\n";
+    }
+
+    /**
+     * Recordatorio semanal de compra: todos los jueves, les avisa por mail a los
+     * estudiantes activos (estado = 1) que no desactivaron la notificación
+     * (notif_recordatorio_compra = 1) y que todavía no tienen ninguna compra
+     * (ni pendiente) para ningún día de la semana próxima.
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor (a la hora
+     * de cierre de venta configurada menos 30 minutos); internamente valida que
+     * hoy sea jueves y no hace nada si no lo es, para no depender de reconfigurar
+     * el cron cada vez que cambie 'hora_final' desde el admin.
+     */
+    public function recordatorio_compra_semanal() {
+        $this->_logManual('CRON_RECORDATORIO: ************************************************************');
+
+        $hoy = new DateTime('now');
+        if ((int)$hoy->format('N') !== 4) { // 1 = lunes ... 4 = jueves ... 7 = domingo
+            $this->_logManual('CRON_RECORDATORIO: Hoy (' . $hoy->format('Y-m-d') . ') no es jueves, se omite la ejecución.', 'Cron');
+            echo "Hoy no es jueves, no corresponde enviar el recordatorio.\n";
+            return;
+        }
+
+        // "Semana próxima" = lunes a domingo de la semana siguiente a la actual,
+        // usando la misma convención de semana (lunes a lunes) que
+        // Ticket_model::esFechaViandaAunOrdenable().
+        $lunesSemanaActual = clone $hoy;
+        $lunesSemanaActual->setTime(0, 0, 0);
+        if ((int)$lunesSemanaActual->format('N') !== 1) {
+            $lunesSemanaActual->modify('last monday');
+        }
+        $lunesProximaSemana = clone $lunesSemanaActual;
+        $lunesProximaSemana->modify('+7 days');
+        $domingoProximaSemana = clone $lunesProximaSemana;
+        $domingoProximaSemana->modify('+6 days');
+
+        $fecha_inicio = $lunesProximaSemana->format('Y-m-d');
+        $fecha_fin = $domingoProximaSemana->format('Y-m-d');
+
+        $this->_logManual("CRON_RECORDATORIO: Hoy es jueves. Buscando estudiantes sin compra para la semana próxima ({$fecha_inicio} a {$fecha_fin}).", 'Cron');
+
+        $estudiantes = $this->tareas_model->getEstudiantesSinCompraProximaSemana($fecha_inicio, $fecha_fin);
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_RECORDATORIO: No hay estudiantes para notificar (todos tienen compra/pendiente o desactivaron el aviso).', 'Cron');
+            echo "No hay estudiantes para notificar.\n";
+            return;
+        }
+
+        $enviados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            if (empty($estudiante->mail)) {
+                $fallidos[] = $estudiante->id . ':sin_mail';
+                $this->_logManual("CRON_RECORDATORIO: Usuario ID {$estudiante->id} no tiene mail configurado, se omite.", 'Cron_error');
+                continue;
+            }
+
+            $data = [
+                'nombre' => $estudiante->nombre,
+                'apellido' => $estudiante->apellido,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+            ];
+
+            $subject = 'Recordatorio: todavía no compraste tu vianda para la próxima semana';
+
+            try {
+                $message = $this->load->view('general/correos/recordatorio_compra_semanal', $data, true);
+
+                if ($this->generalticket->smtpSendEmail($estudiante->mail, $subject, $message)) {
+                    $enviados[] = $estudiante->id;
+                    $this->_logManual("CRON_RECORDATORIO: Mail enviado a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron');
+                } else {
+                    $fallidos[] = $estudiante->id;
+                    $this->_logManual("CRON_RECORDATORIO: Fallo al enviar mail a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron_error');
+                }
+            } catch (Exception $e) {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_RECORDATORIO: Excepción al enviar mail a usuario ID {$estudiante->id}: " . $e->getMessage(), 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_RECORDATORIO: Finalizado. Semana próxima: %s a %s. Candidatos: %d. Enviados: %d [%s]. Fallidos: %d [%s].',
+            $fecha_inicio,
+            $fecha_fin,
+            count($estudiantes),
+            count($enviados),
+            implode(',', $enviados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Recordatorios enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
+    }
+
+    /**
+     * Recordatorio diario de retiro: todas las mañanas, les avisa por mail a los
+     * estudiantes con una compra APROBADA (fila en 'compra') cuyo 'dia_comprado'
+     * es hoy, indicando el horario de retiro (configuración del issue 02) del
+     * turno o turnos (mediodía/noche) que compraron. Un estudiante que compró
+     * ambos turnos el mismo día recibe un único mail con ambos horarios.
+     *
+     * Respeta usuarios.estado = 1 y notif_recordatorio_retiro = 1 (opt-out),
+     * ambos filtrados en Tareas_model::getComprasAprobadasDeHoy(). No distingue
+     * compras pendientes/pasarela: esas nunca llegan a la tabla 'compra', así
+     * que quedan afuera naturalmente.
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor a una
+     * hora fija de la mañana (recomendado 09:00).
+     */
+    public function recordatorio_retiro_diario() {
+        $this->_logManual('CRON_RETIRO: ************************************************************');
+
+        $hoy = date('Y-m-d');
+        $this->_logManual("CRON_RETIRO: Buscando compras aprobadas para hoy ({$hoy}).", 'Cron');
+
+        $estudiantes = $this->tareas_model->getComprasAprobadasDeHoy();
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_RETIRO: No hay compras aprobadas para hoy (o todos los que tienen desactivaron el aviso).', 'Cron');
+            echo "No hay compras aprobadas para hoy.\n";
+            return;
+        }
+
+        $configuracion = $this->ticket_model->getConfiguracion();
+        if (empty($configuracion)) {
+            $this->_logManual('CRON_RETIRO: No se pudo obtener la configuración de horarios de retiro. Se aborta el envío.', 'Cron_error');
+            echo "Error: no se pudo obtener la configuración de horarios de retiro.\n";
+            return;
+        }
+        $config = $configuracion[0];
+
+        $enviados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            if (empty($estudiante->mail)) {
+                $fallidos[] = $estudiante->id . ':sin_mail';
+                $this->_logManual("CRON_RETIRO: Usuario ID {$estudiante->id} no tiene mail configurado, se omite.", 'Cron_error');
+                continue;
+            }
+
+            $retiro_mediodia = in_array('manana', $estudiante->turnos, true);
+            $retiro_noche = in_array('noche', $estudiante->turnos, true);
+
+            $data = [
+                'nombre' => $estudiante->nombre,
+                'apellido' => $estudiante->apellido,
+                'retiro_mediodia' => $retiro_mediodia,
+                'retiro_noche' => $retiro_noche,
+                'retiro_mediodia_desde' => $config->retiro_mediodia_desde,
+                'retiro_mediodia_hasta' => $config->retiro_mediodia_hasta,
+                'retiro_noche_desde' => $config->retiro_noche_desde,
+                'retiro_noche_hasta' => $config->retiro_noche_hasta,
+            ];
+
+            $subject = 'Recordatorio: hoy podés retirar tu vianda';
+
+            try {
+                $message = $this->load->view('general/correos/recordatorio_retiro_diario', $data, true);
+
+                if ($this->generalticket->smtpSendEmail($estudiante->mail, $subject, $message)) {
+                    $enviados[] = $estudiante->id;
+                    $this->_logManual("CRON_RETIRO: Mail enviado a usuario ID {$estudiante->id} ({$estudiante->mail}) - turnos: " . implode(',', $estudiante->turnos) . ".", 'Cron');
+                } else {
+                    $fallidos[] = $estudiante->id;
+                    $this->_logManual("CRON_RETIRO: Fallo al enviar mail a usuario ID {$estudiante->id} ({$estudiante->mail}).", 'Cron_error');
+                }
+            } catch (Exception $e) {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_RETIRO: Excepción al enviar mail a usuario ID {$estudiante->id}: " . $e->getMessage(), 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_RETIRO: Finalizado. Fecha: %s. Candidatos: %d. Enviados: %d [%s]. Fallidos: %d [%s].',
+            $hoy,
+            count($estudiantes),
+            count($enviados),
+            implode(',', $enviados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Recordatorios de retiro enviados: " . count($enviados) . " / " . count($estudiantes) . "\n";
+    }
+
+    /**
+     * Deshabilitación automática de legajos provisorios: solo actúa a partir
+     * de configuracion.legajo_provisorio_limite (editable desde el panel de
+     * admin, "Configuración General del Sitio"), momento en el que pasa a
+     * estado = 0 a los estudiantes activos (estado = 1) marcados como
+     * aspirante = 1 que siguen sin corregir su legajo.
+     *
+     * Idempotencia: reutiliza Administrador_model::getUsuariosLegajoInconsistente(),
+     * que ya filtra por estado = 1, tipo = 'Estudiante' y aspirante = 1. Por
+     * lo tanto, correrlo varios días seguidos después del límite no vuelve a
+     * tocar a quien ya quedó en estado = 0 (deja de matchear el filtro), ni a
+     * quien dejó de ser aspirante (también deja de matchear).
+     *
+     * Pensado para ser invocado a diario por el scheduler del servidor (no
+     * necesita ser exacto a la medianoche del día límite, alcanza con una
+     * corrida diaria).
+     */
+    public function deshabilitar_legajos_provisorios() {
+        $this->_logManual('CRON_LEGAJOS: ************************************************************');
+
+        $hoy = date('Y-m-d');
+        $configuracion = $this->ticket_model->getConfiguracion();
+        $fecha_limite = $configuracion[0]->legajo_provisorio_limite;
+
+        if ($hoy < $fecha_limite) {
+            $this->_logManual("CRON_LEGAJOS: Hoy ({$hoy}) es anterior a la fecha límite configurada ({$fecha_limite}), se omite la ejecución.", 'Cron');
+            echo "Todavia no llego la fecha limite configurada, no corresponde deshabilitar legajos.\n";
+            return;
+        }
+
+        $estudiantes = $this->administrador_model->getUsuariosLegajoInconsistente();
+
+        if (empty($estudiantes)) {
+            $this->_logManual('CRON_LEGAJOS: No hay estudiantes activos con legajo provisorio para deshabilitar.', 'Cron');
+            echo "No hay estudiantes con legajo provisorio para deshabilitar.\n";
+            return;
+        }
+
+        $deshabilitados = [];
+        $fallidos = [];
+
+        foreach ($estudiantes as $estudiante) {
+            // Nota: Vendedor_model::updateUserById() siempre retorna true (no
+            // inspecciona el resultado real del UPDATE), por lo que acá no se
+            // puede confiar en su valor de retorno para saber si el cambio
+            // realmente se aplicó. Como 'database' está autocargada, $this->db
+            // en este controlador apunta a la misma conexión que usa el
+            // modelo, así que se verifica affected_rows() inmediatamente
+            // después del llamado en lugar de modificar el modelo compartido
+            // (usado también por Vendedor::updateUser(), fuera del alcance de
+            // esta tarea).
+            $this->vendedor_model->updateUserById($estudiante->id, ['estado' => 0]);
+
+            if ($this->db->affected_rows() > 0) {
+                $deshabilitados[] = $estudiante->id;
+                $this->_logManual("CRON_LEGAJOS: Usuario ID {$estudiante->id} (legajo {$estudiante->legajo}) deshabilitado por legajo provisorio fuera de rango.", 'Cron');
+            } else {
+                $fallidos[] = $estudiante->id;
+                $this->_logManual("CRON_LEGAJOS: Fallo al deshabilitar usuario ID {$estudiante->id} (legajo {$estudiante->legajo}).", 'Cron_error');
+            }
+        }
+
+        $resumen = sprintf(
+            'CRON_LEGAJOS: Finalizado. Candidatos: %d. Deshabilitados: %d [%s]. Fallidos: %d [%s].',
+            count($estudiantes),
+            count($deshabilitados),
+            implode(',', $deshabilitados),
+            count($fallidos),
+            implode(',', $fallidos)
+        );
+        $this->_logManual($resumen, 'Cron');
+        echo "Usuarios deshabilitados: " . count($deshabilitados) . " / " . count($estudiantes) . "\n";
     }
 }

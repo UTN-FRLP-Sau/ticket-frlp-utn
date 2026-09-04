@@ -85,6 +85,146 @@ class Usuario extends CI_Controller
         }
     }
 
+    public function notificaciones()
+    {
+        $data = [
+            'titulo' => 'Mis notificaciones'
+        ];
+        $id_user = $this->session->userdata('id_usuario');
+
+        if ($this->input->method() == 'post') {
+            $preferencias = [
+                'notif_recordatorio_compra' => $this->input->post('notif_recordatorio_compra') ? 1 : 0,
+                'notif_recordatorio_retiro' => $this->input->post('notif_recordatorio_retiro') ? 1 : 0,
+            ];
+            if ($this->usuario_model->updatePreferenciasNotificacion($id_user, $preferencias)) {
+                $this->session->set_flashdata(
+                    'success',
+                    'Preferencias de notificaciones actualizadas correctamente'
+                );
+            }
+            redirect(base_url('usuario/notificaciones'));
+        } else {
+            $data['preferencias'] = $this->usuario_model->getPreferenciasNotificacion($id_user);
+
+            $this->load->view('header', $data);
+            $this->load->view('notificaciones', $data);
+            $this->load->view('general/footer');
+        }
+    }
+
+    public function perfil()
+    {
+        $data = [
+            'titulo' => 'Mi perfil'
+        ];
+        $id_user = $this->session->userdata('id_usuario');
+        $usuario = $this->usuario_model->getPerfil($id_user);
+
+        if ($this->input->method() == 'post') {
+            $unique_email = ($this->input->post('email') != $usuario->mail) ? '|is_unique[usuarios.mail]' : '';
+
+            $rules = [
+                [
+                    'field' => 'email',
+                    'label' => 'E-Mail',
+                    'rules' => "trim|required|valid_email{$unique_email}",
+                    'errors' => [
+                        'required' => 'Debe ingresar un %s',
+                        'valid_email' => 'No es un %s valido',
+                        'is_unique' => 'Ese %s ya esta registrado',
+                    ]
+                ],
+            ];
+
+            // El legajo solo es editable mientras el usuario sea aspirante
+            // (todavía no tiene legajo oficial). No se confía en el estado
+            // del campo en el HTML: se revalida server-side.
+            if ($usuario->aspirante == 1) {
+                $unique_legajo = ($this->input->post('legajo') != $usuario->legajo) ? '|is_unique[usuarios.legajo]' : '';
+                $rules[] = [
+                    'field' => 'legajo',
+                    'label' => 'Legajo',
+                    'rules' => "trim|min_length[5]|max_length[6]|required|numeric|integer{$unique_legajo}",
+                    'errors' => [
+                        'max_length' => 'El %s debe contener entre 5 y 6 digitos',
+                        'min_length' => 'El %s debe contener entre 5 y 6 digitos',
+                        'required' => 'Debe ingresar un %s',
+                        'numeric' => 'El %s debe ser un numero',
+                        'integer' => 'El %s debe ser un entero',
+                        'is_unique' => 'Ese %s ya esta registrado',
+                    ]
+                ];
+            }
+
+            $this->form_validation->set_rules($rules);
+            if ($this->form_validation->run() == FALSE) {
+                $data['usuario'] = $usuario;
+                $this->load->view('header', $data);
+                $this->load->view('perfil', $data);
+                $this->load->view('general/footer');
+            } else {
+                $updateData = [];
+                $mensajes_success = [];
+
+                if ($usuario->aspirante == 1) {
+                    $updateData['legajo'] = $this->input->post('legajo');
+                    $updateData['aspirante'] = 0;
+                    $mensajes_success[] = 'legajo actualizado correctamente';
+                }
+
+                if (!empty($updateData)) {
+                    $this->usuario_model->updatePerfil($id_user, $updateData);
+                }
+
+                // El mail no se aplica directo: queda pendiente de confirmación
+                // en la casilla nueva (ver Login::confirmarCorreo()).
+                $mail_nuevo = strtolower($this->input->post('email'));
+                if ($mail_nuevo != $usuario->mail) {
+                    $this->load->model('login_model');
+
+                    if (!$this->login_model->getMailConfirmacionPendiente($id_user, $mail_nuevo)) {
+                        $token = bin2hex(random_bytes(16));
+                        $emailData = [
+                            'nombre' => $usuario->nombre,
+                            'apellido' => $usuario->apellido,
+                            'dni' => $usuario->documento,
+                            'link' => base_url("usuario/confirmar-correo/{$token}"),
+                        ];
+                        $subject = 'Confirmá tu nuevo correo';
+                        $message = $this->load->view('general/correos/confirmar_correo', $emailData, true);
+
+                        if ($this->generalticket->smtpSendEmail($mail_nuevo, $subject, $message)) {
+                            $this->login_model->addMailConfirmacion([
+                                'fecha' => date('Y-m-d', time()),
+                                'hora' => date('H:i:s', time()),
+                                'id_usuario' => $id_user,
+                                'mail_nuevo' => $mail_nuevo,
+                                'token' => $token,
+                            ]);
+                        }
+                    }
+                    $mensajes_success[] = 'te enviamos un correo a tu nueva casilla para confirmar el cambio de mail';
+                }
+
+                if (!empty($mensajes_success)) {
+                    $this->session->set_flashdata(
+                        'success',
+                        ucfirst(implode(', y ', $mensajes_success)) . '.'
+                    );
+                } else {
+                    $this->session->set_flashdata('success', 'No se detectaron cambios para guardar.');
+                }
+                redirect(base_url('usuario/perfil'));
+            }
+        } else {
+            $data['usuario'] = $usuario;
+            $this->load->view('header', $data);
+            $this->load->view('perfil', $data);
+            $this->load->view('general/footer');
+        }
+    }
+
     public function ultimosMovimientos()
     {
         $data['titulo'] = 'Ultimos movimientos';

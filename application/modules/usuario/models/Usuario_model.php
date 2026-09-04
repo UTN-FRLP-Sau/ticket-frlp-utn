@@ -90,4 +90,49 @@ class Usuario_model extends CI_Model
         $query = $this->db->get('cargasvirtuales');
         return $query->result();
     }
+
+    public function getPreferenciasNotificacion($id_user)
+    {
+        /*Usado en:
+        notificaciones
+        */
+        $this->db->select('notif_recordatorio_compra, notif_recordatorio_retiro');
+        $this->db->where('id', $id_user);
+        $query = $this->db->get('usuarios');
+        return $query->row();
+    }
+
+    public function updatePreferenciasNotificacion($id_user, $data)
+    {
+        /*Usado en:
+        notificaciones
+        */
+        $this->db->where('id', $id_user);
+        $this->db->update('usuarios', $data);
+        return true;
+    }
+
+    public function getPerfil($id_user)
+    {
+        /*Usado en:
+        perfil
+
+        nombre/apellido/documento se usan para armar el correo de
+        confirmación de cambio de mail (general/correos/confirmar_correo).
+        */
+        $this->db->select('mail, legajo, aspirante, nombre, apellido, documento');
+        $this->db->where('id', $id_user);
+        $query = $this->db->get('usuarios');
+        return $query->row();
+    }
+
+    public function updatePerfil($id_user, $data)
+    {
+        /*Usado en:
+        perfil
+        */
+        $this->db->where('id', $id_user);
+        $this->db->update('usuarios', $data);
+        return true;
+    }
 }

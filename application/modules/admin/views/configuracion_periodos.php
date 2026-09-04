@@ -51,7 +51,8 @@
         $fechaVacacionesInicio = DateTime::createFromFormat('Y-m-d', $configuracion[0]->vacaciones_i)->format('j \d\e F \d\e\l Y'); // Removed modify('next monday') as it might not be intended for the exact start date
         $fechaVacacionesCierre = DateTime::createFromFormat('Y-m-d', $configuracion[0]->vacaciones_f)->format('j \d\e F \d\e\l Y'); // Removed modify('next friday') as it might not be intended for the exact end date
         ?>
-            Actualmente la compra se puede realizar desde las <strong>00:01 hs</strong> del
+            Actualmente la compra se puede realizar desde las
+            <strong><?= (new DateTime($configuracion[0]->hora_apertura_venta))->format('H:i'); ?> hs</strong> del
             <strong><?= $diaInicial; ?></strong>,
             hasta las <strong><?= (new DateTime($configuracion[0]->hora_final))->format('H:i'); ?> hs</strong> del
             <strong>
@@ -63,7 +64,14 @@
             <strong><?= $fechaEntregaCierre; ?></strong> </br>
 
             No se entregaran comida desde el <strong><?= $fechaVacacionesInicio; ?></strong> hasta el
-            <strong><?= $fechaVacacionesCierre; ?></strong>, por receso Invernal
+            <strong><?= $fechaVacacionesCierre; ?></strong>, por receso Invernal </br>
+
+            El retiro de la vianda del turno mediodía es de
+            <strong><?= (new DateTime($configuracion[0]->retiro_mediodia_desde))->format('H:i'); ?> hs</strong> a
+            <strong><?= (new DateTime($configuracion[0]->retiro_mediodia_hasta))->format('H:i'); ?> hs</strong>, y el
+            del turno noche es de
+            <strong><?= (new DateTime($configuracion[0]->retiro_noche_desde))->format('H:i'); ?> hs</strong> a
+            <strong><?= (new DateTime($configuracion[0]->retiro_noche_hasta))->format('H:i'); ?> hs</strong>
         </div>
 
         <?= form_open(current_url()); ?>
@@ -137,6 +145,60 @@
             <div class="col-sm-4 col-md-3">
                 <input type="time" id="hora_cierre_venta" name="hora_cierre_venta" class="form-control"
                     value="<?= $configuracion[0]->hora_final ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="hora_apertura_venta" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Hora de Apertura de la
+                Venta:</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" id="hora_apertura_venta" name="hora_apertura_venta" class="form-control"
+                    value="<?= $configuracion[0]->hora_apertura_venta ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="retiro_mediodia_desde" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Retiro Turno
+                Mediodía - Desde:</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" id="retiro_mediodia_desde" name="retiro_mediodia_desde" class="form-control"
+                    value="<?= $configuracion[0]->retiro_mediodia_desde ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="retiro_mediodia_hasta" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Retiro Turno
+                Mediodía - Hasta:</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" id="retiro_mediodia_hasta" name="retiro_mediodia_hasta" class="form-control"
+                    value="<?= $configuracion[0]->retiro_mediodia_hasta ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="retiro_noche_desde" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Retiro Turno Noche -
+                Desde:</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" id="retiro_noche_desde" name="retiro_noche_desde" class="form-control"
+                    value="<?= $configuracion[0]->retiro_noche_desde ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="retiro_noche_hasta" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Retiro Turno Noche -
+                Hasta:</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="time" id="retiro_noche_hasta" name="retiro_noche_hasta" class="form-control"
+                    value="<?= $configuracion[0]->retiro_noche_hasta ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group row mb-2">
+            <label for="legajo_provisorio_limite" class="col-sm-5 col-md-5 col-lg-3 col-form-label">Límite para
+                regularizar Legajo (Aspirantes):</label>
+            <div class="col-sm-4 col-md-3">
+                <input type="date" id="legajo_provisorio_limite" name="legajo_provisorio_limite" class="form-control"
+                    value="<?= $configuracion[0]->legajo_provisorio_limite ?>" required>
             </div>
         </div>
 

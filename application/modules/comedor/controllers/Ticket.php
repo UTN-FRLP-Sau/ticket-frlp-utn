@@ -55,6 +55,30 @@ class Ticket extends CI_Controller
         $id_usuario = $this->session->userdata('id_usuario');
         $usuario = $this->ticket_model->getUserById($id_usuario);
 
+        // --- LEGAJO PROVISORIO (aspirante) ---
+        // Aviso no bloqueante: no impide comprar, solo advierte que la cuenta
+        // quedará deshabilitada en la fecha límite configurada si no se corrige.
+        // Se re-evalúa en cada carga de esta pantalla mientras siga marcado
+        // como aspirante (ver cronJobs/Tareas::deshabilitar_legajos_provisorios()).
+        $mostrar_popup_aspirante = false;
+        $dias_restantes_aspirante = null;
+
+        if ($usuario->tipo === 'Estudiante' && $usuario->aspirante == 1) {
+            $configuracion = $this->ticket_model->getConfiguracion();
+            $fecha_limite = $configuracion[0]->legajo_provisorio_limite;
+
+            $this->session->set_flashdata(
+                'info',
+                'Tu usuario fue creado con un legajo provisorio. Por favor actualizá tu legajo oficial, sino la cuenta quedará deshabilitada a partir del ' . (new DateTime($fecha_limite))->format('d/m/Y') . '.'
+            );
+
+            $dias_restantes = (int) (new DateTime('today'))->diff(new DateTime($fecha_limite))->format('%r%a');
+            if ($dias_restantes >= 0 && $dias_restantes <= 30) {
+                $mostrar_popup_aspirante = true;
+                $dias_restantes_aspirante = $dias_restantes;
+            }
+        }
+
         $data = [
             'titulo'                          => 'Comprar Viandas',
             'usuario'                         => $usuario,
@@ -67,6 +91,8 @@ class Ticket extends CI_Controller
             'permitir_ambos_turnos_mismo_dia' => false,
             'vacaciones_invierno_inicio'      => null,
             'vacaciones_invierno_fin'         => null,
+            'mostrar_popup_aspirante'         => $mostrar_popup_aspirante,
+            'dias_restantes_aspirante'        => $dias_restantes_aspirante,
         ];
 
         $this->load->database();

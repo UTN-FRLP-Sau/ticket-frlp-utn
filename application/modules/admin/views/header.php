@@ -126,6 +126,7 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAdminConfig">
                 <li><a class="dropdown-item" href="<?= base_url('admin/ver_comentarios'); ?>"><i class="bi bi-chat-left-text me-1"></i> Ver Comentarios</a></li>
+                <li><a class="dropdown-item" href="<?= base_url('admin/legajos_inconsistentes'); ?>"><i class="bi bi-exclamation-triangle me-1"></i> Legajos Inconsistentes</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/cargasvirtuales/list/'.date('Y-m-d')); ?>"><i class="bi bi-cloud-upload me-1"></i> Ver Cargas Virtuales</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/crear_vendedor'); ?>"><i class="bi bi-person-fill-add me-1"></i> Nuevo Vendedor</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/csv_carga'); ?>"><i class="bi bi-filetype-csv me-1"></i> Cargar desde CSV</a></li>
@@ -141,6 +142,7 @@
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/feriados_list/'.date('Y')); ?>"><i class="bi bi-calendar-x me-1"></i> Feriados</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/links'); ?>"><i class="bi bi-link-45deg me-1"></i> Botones de Pagos</a></li>
                 <li><a class="dropdown-item" href="<?= base_url('admin/configuracion/precios'); ?>"><i class="bi bi-currency-dollar me-1"></i> Precios</a></li>
+                <li><a class="dropdown-item" href="<?= base_url('admin/instructivo'); ?>"><i class="bi bi-file-earmark-pdf me-1"></i> Instructivo de Login</a></li>
                 <li>
                     <a class="dropdown-item" href="<?= base_url('admin/logs'); ?>">
                         <i class="bi bi-file-text-fill me-1"></i> Logs
