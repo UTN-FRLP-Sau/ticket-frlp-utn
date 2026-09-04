@@ -71,7 +71,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                 <a href="<?= base_url('faq'); ?>" class="btn btn-primary btn-lg shadow-sm me-sm-3 mb-2 mb-sm-0">
                                     <i class="bi bi-envelope-fill me-2"></i> Preguntas Frecuentes
                                 </a>
-                                <a href="https://forms.office.com/r/95Nm8WSntH" target="_blank" class="btn btn-danger btn-lg shadow-sm">
+                                <a href="mailto:comedor@frlp.utn.edu.ar" class="btn btn-danger btn-lg shadow-sm">
                                     <i class="bi bi-envelope-fill me-2"></i> Reportar un problema
                                 </a>
                             </div>
